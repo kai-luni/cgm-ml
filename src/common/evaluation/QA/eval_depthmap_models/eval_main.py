@@ -78,7 +78,7 @@ if __name__ == "__main__":
     print("dataset:", dataset)
     print("TF supported versions:", TensorFlow.get_supported_versions())
 
-    #parameters used in the evaluation
+    # parameters used in the evaluation
     script_params = {"--qa_config_module": args.qa_config_module}
     print("script_params:", script_params)
 
@@ -115,19 +115,19 @@ if __name__ == "__main__":
     # Show run.
     print("Run:", run)
 
-    #Check the logs of the current run until is complete
+    # Check the logs of the current run until is complete
     run.wait_for_completion(show_output=True)
 
-    #Print Completed when run is completed
+    # Print Completed when run is completed
     print("Run status:", run.get_status())
 
     end = time.time()
     print("Total time for evaluation experiment: {} sec".format(end - start))
 
-    #Download the evaluation results of the model
+    # Download the evaluation results of the model
     GET_CSV_FROM_EXPERIMENT_PATH = '.'
     run.download_files(RESULT_CONFIG.SAVE_PATH, GET_CSV_FROM_EXPERIMENT_PATH)
     print("Downloaded the result.csv")
 
-    #Delete temp folder
+    # Delete temp folder
     shutil.rmtree(temp_path)

@@ -24,7 +24,7 @@ EVAL_CONFIG = Bunch(dict(
     DEBUG_RUN=False,
 
     #Will run eval on specified # of scan instead of full dataset
-    DEBUG_NUMBER_OF_SCAN=5,
+    DEBUG_NUMBER_OF_SCAN=200,
 
     SPLIT_SEED=0,
 ))
@@ -42,7 +42,7 @@ DATA_CONFIG = Bunch(dict(
     NORMALIZATION_VALUE=7.5,
 
     # Parameters for dataset generation.
-    TARGET_INDEXES=[0, 3, 4, 5],  # 0 is height, 1 is weight, 2 is muac, 3 is weight, 4 is sex('male' or 'female'), 5 is quality ('good' or 'bad'), 6 is test
+    TARGET_INDEXES=[0, 3, 4, 5],  # 0 is height, 1 is weight, 2 is muac, 3 is age, 4 is sex('male' or 'female'), 5 is quality ('good' or 'bad'), 6 is test
 
     CODES=['100', '101', '102', '200', '201', '202']
 ))
@@ -57,6 +57,11 @@ RESULT_CONFIG = Bunch(dict(
     AGE_BUCKETS=[0, 1, 2, 3, 4, 5],
 
     COLUMNS=['qrcode', 'artifact', 'scantype', 'GT', 'predicted'],
+
+    # uncertainty
+    USE_UNCERTAINTY=True,  # Flag to enable model uncertainty calculation
+    NUM_DROPOUT_PREDICTIONS=16,
+    DROPOUT_STRENGTH=1,  # 1.0 means like original model
 
     #path of csv file in the experiment which final result is stored
     SAVE_PATH='./outputs/height',
