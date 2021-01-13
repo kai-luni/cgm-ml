@@ -1,13 +1,14 @@
 import argparse
-from importlib import import_module
-import os
-import time
 import glob
+import os
 import shutil
+import time
+from importlib import import_module
 from pathlib import Path
 
-from azureml.core import Workspace, Experiment
-from azureml.core.compute import ComputeTarget, AmlCompute
+import azureml._restclient.snapshots_client
+from azureml.core import Experiment, Workspace
+from azureml.core.compute import AmlCompute, ComputeTarget
 from azureml.core.compute_target import ComputeTargetException
 from azureml.core.run import Run
 from azureml.train.dnn import TensorFlow
@@ -28,6 +29,7 @@ if __name__ == "__main__":
     EVAL_CONFIG = qa_config.EVAL_CONFIG
     DATA_CONFIG = qa_config.DATA_CONFIG
     RESULT_CONFIG = qa_config.RESULT_CONFIG
+    FILTER_CONFIG = qa_config.FILTER_CONFIG if getattr(qa_config, 'FILTER_CONFIG', False) else None
 
     # Create a temp folder
     code_dir = CWD / "src"
@@ -59,6 +61,12 @@ if __name__ == "__main__":
                    run_id=MODEL_CONFIG.RUN_ID,
                    input_location=os.path.join(MODEL_CONFIG.INPUT_LOCATION, MODEL_CONFIG.NAME),
                    output_location=MODEL_BASE_DIR)
+
+    # Copy filter to temp folder
+    if FILTER_CONFIG is not None and FILTER_CONFIG.IS_ENABLED:
+        download_model(ws=ws, experiment_name=FILTER_CONFIG.EXPERIMENT_NAME, run_id=FILTER_CONFIG.RUN_ID, input_location=os.path.join(
+            FILTER_CONFIG.INPUT_LOCATION, MODEL_CONFIG.NAME), output_location=str(temp_path / FILTER_CONFIG.NAME))
+        azureml._restclient.snapshots_client.SNAPSHOT_MAX_SIZE_BYTES = 500000000
 
     experiment = Experiment(workspace=ws, name=EVAL_CONFIG.EXPERIMENT_NAME)
 

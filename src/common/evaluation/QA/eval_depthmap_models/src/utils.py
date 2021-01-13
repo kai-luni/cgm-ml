@@ -2,11 +2,12 @@ import datetime
 import os
 import pickle
 from pathlib import Path
-from typing import List, Callable
+from typing import Callable, List
 
 import glob2 as glob
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from azureml.core import Experiment, Run, Workspace
 from bunch import Bunch
 import matplotlib
@@ -36,6 +37,15 @@ CODE_TO_SCANTYPE = {
     '201': '_lyingrot',
     '202': '_lyingback',
 }
+
+
+def process_image(data):
+    img = tf.convert_to_tensor(data)
+    img = tf.cast(img, tf.float32) * (1. / 256)
+    img = tf.image.rot90(img, k=3)
+    img = tf.image.resize(img, [240, 180])
+    img = tf.expand_dims(img, axis=0)
+    return img
 
 
 def download_dataset(workspace: Workspace, dataset_name: str, dataset_path: str):
@@ -82,13 +92,16 @@ def get_depthmap_files(paths: List[str]) -> List[str]:
     return pickle_paths
 
 
-def get_column_list(depthmap_path_list: List[str], prediction: np.array, data_config: Bunch):
+def get_column_list(depthmap_path_list: List[str], prediction: np.array, DATA_CONFIG: Bunch, FILTER_CONFIG: Bunch):
     """Prepare the list of all artifact with its corresponding scantype, qrcode, target and prediction"""
     qrcode_list, scan_type_list, artifact_list, prediction_list, target_list = [], [], [], [], []
 
     for idx, path in enumerate(depthmap_path_list):
-        _, targets = pickle.load(open(path, "rb"))
-        targets = preprocess_targets(targets, data_config.TARGET_INDEXES)
+        if FILTER_CONFIG is not None:
+            _, targets, _ = pickle.load(open(path, "rb"))  # For filter(contains RGBs) dataset
+        else:
+            _, targets = pickle.load(open(path, "rb"))
+        targets = preprocess_targets(targets, DATA_CONFIG.TARGET_INDEXES)
         target = np.squeeze(targets)
 
         sub_folder_list = path.split('/')
@@ -301,7 +314,7 @@ def download_model(ws, experiment_name, run_id, input_location, output_location)
          output_location: Location for saving the model
     """
     experiment = Experiment(workspace=ws, name=experiment_name)
-    #Download the model on which evaluation need to be done
+    # Download the model on which evaluation need to be done
     run = Run(experiment, run_id=run_id)
     if input_location.endswith(".h5"):
         run.download_file(input_location, output_location)
@@ -310,3 +323,17 @@ def download_model(ws, experiment_name, run_id, input_location, output_location)
     else:
         raise NameError(f"{input_location}'s path extension not supported")
     print("Successfully downloaded model")
+
+
+def filter_dataset(paths_evaluation, standing):
+    new_paths_evaluation = []
+    exc = []
+    for p in paths_evaluation:
+        depthmap, targets, image = pickle.load(open(p, "rb"))
+        try:
+            image = process_image(image)
+            if standing.predict(image) > .9:
+                new_paths_evaluation.append(p)
+        except ValueError:
+            exc.append(image)
+    return new_paths_evaluation

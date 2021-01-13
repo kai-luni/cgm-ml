@@ -39,15 +39,21 @@ MODEL_CONFIG = qa_config.MODEL_CONFIG
 EVAL_CONFIG = qa_config.EVAL_CONFIG
 DATA_CONFIG = qa_config.DATA_CONFIG
 RESULT_CONFIG = qa_config.RESULT_CONFIG
+FILTER_CONFIG = qa_config.FILTER_CONFIG if getattr(qa_config, 'FILTER_CONFIG', False) else None
+
 
 RUN_ID = MODEL_CONFIG.RUN_ID
 
-
 # Function for loading and processing depthmaps.
+
+
 def tf_load_pickle(path, max_value):
     """Utility to load the depthmap pickle file"""
     def py_load_pickle(path, max_value):
-        depthmap, targets = pickle.load(open(path.numpy(), "rb"))
+        if FILTER_CONFIG is not None:
+            depthmap, targets, image = pickle.load(open(path.numpy(), "rb"))  # for filter (Contains RGBs)
+        else:
+            depthmap, targets = pickle.load(open(path.numpy(), "rb"))
         depthmap = utils.preprocess_depthmap(depthmap)
         depthmap = depthmap / max_value
         depthmap = tf.image.resize(depthmap, (DATA_CONFIG.IMAGE_TARGET_HEIGHT, DATA_CONFIG.IMAGE_TARGET_WIDTH))
@@ -192,7 +198,7 @@ if __name__ == "__main__":
     # Get the QR-code paths.
     dataset_path = os.path.join(dataset_path, "scans")
     print("Dataset path:", dataset_path)
-    #print(glob.glob(os.path.join(dataset_path, "*"))) # Debug
+    # print(glob.glob(os.path.join(dataset_path, "*"))) # Debug
     print("Getting QR code paths...")
     qrcode_paths = glob.glob(os.path.join(dataset_path, "*"))
     print("QR code paths: ", len(qrcode_paths))
@@ -214,8 +220,14 @@ if __name__ == "__main__":
 
     print("Using {} artifact files for evaluation.".format(len(paths_evaluation)))
 
+    new_paths_evaluation = paths_evaluation
+
+    if FILTER_CONFIG is not None and FILTER_CONFIG.IS_ENABLED:
+        standing = load_model(FILTER_CONFIG.NAME)
+        new_paths_evaluation = utils.filter_dataset(paths_evaluation, standing)
+
     print("Creating dataset for training.")
-    paths = paths_evaluation
+    paths = new_paths_evaluation
     dataset = tf.data.Dataset.from_tensor_slices(paths)
     dataset_norm = dataset.map(lambda path: tf_load_pickle(path, DATA_CONFIG.NORMALIZATION_VALUE))
     dataset_norm = dataset_norm.cache()
@@ -230,7 +242,7 @@ if __name__ == "__main__":
     print(prediction_list_one)
 
     qrcode_list, scantype_list, artifact_list, prediction_list, target_list = utils.get_column_list(
-        paths_evaluation, prediction_list_one, DATA_CONFIG)
+        new_paths_evaluation, prediction_list_one, DATA_CONFIG, FILTER_CONFIG)
 
     df = pd.DataFrame({
         'qrcode': qrcode_list,
@@ -262,7 +274,6 @@ if __name__ == "__main__":
     print(f"Calculate and save the results to {csv_file}")
     utils.calculate_and_save_results(df_grouped, EVAL_CONFIG.NAME, csv_file,
                                      DATA_CONFIG, RESULT_CONFIG, fct=calculate_performance)
-
     if 'AGE_BUCKETS' in RESULT_CONFIG.keys():
         csv_file = f"{OUTPUT_CSV_PATH}/age_evaluation_{RUN_ID}.csv"
         print(f"Calculate and save age results to {csv_file}")
