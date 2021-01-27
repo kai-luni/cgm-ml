@@ -234,7 +234,9 @@ if __name__ == "__main__":
     dataset_norm = dataset.map(lambda path: tf_load_pickle(path, DATA_CONFIG.NORMALIZATION_VALUE))
 
     # filter goodbad==delete
-    dataset_norm = dataset_norm.filter(lambda _path, _depthmap, targets: targets[2] != GOODBAD_DICT['delete'])  # TODO refactor: replace 2 with inferred goodbad target idx
+    if GOODBAD_IDX in DATA_CONFIG.TARGET_INDEXES:
+        goodbad_index = DATA_CONFIG.TARGET_INDEXES.index(GOODBAD_IDX)
+        dataset_norm = dataset_norm.filter(lambda _path, _depthmap, targets: targets[goodbad_index] != GOODBAD_DICT['delete'])
 
     dataset_norm = dataset_norm.cache()
     dataset_norm = dataset_norm.prefetch(tf.data.experimental.AUTOTUNE)
@@ -336,6 +338,15 @@ if __name__ == "__main__":
         df_sample_100 = df_sample.iloc[df_sample.index.get_level_values('scantype') == '100']
         png_file = f"{OUTPUT_CSV_PATH}/uncertainty_code100_distribution_dropoutstrength{RESULT_CONFIG.DROPOUT_STRENGTH}_{RUN_ID}.png"
         draw_uncertainty_goodbad_plot(df_sample_100, png_file)
+
+        # Filter for scans with high certainty and calculate their accuracy/results
+        df_sample['error'] = df_sample.apply(utils.avgerror, axis=1).abs()
+        df_sample_better_threshold = df_sample[df_sample['uncertainties'] < RESULT_CONFIG.UNCERTAINTY_THRESHOLD_IN_CM]
+        csv_file = f"{OUTPUT_CSV_PATH}/uncertainty_smaller_than_{RESULT_CONFIG.UNCERTAINTY_THRESHOLD_IN_CM}cm_{RUN_ID}.csv"
+        print(f"Uncertainty: For more certain than {RESULT_CONFIG.UNCERTAINTY_THRESHOLD_IN_CM}cm, "
+              f"calculate and save the results to {csv_file}")
+        utils.calculate_and_save_results(df_sample_better_threshold, EVAL_CONFIG.NAME, csv_file,
+                                         DATA_CONFIG, RESULT_CONFIG, fct=calculate_performance)
 
     # Done.
     run.complete()
