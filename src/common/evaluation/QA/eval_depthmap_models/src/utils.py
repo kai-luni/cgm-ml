@@ -1,5 +1,5 @@
+from multiprocessing import Pool
 import datetime
-import json
 import os
 import pickle
 from pathlib import Path
@@ -46,7 +46,7 @@ MIN_HEIGHT = 45
 MAX_HEIGHT = 120
 MAX_AGE = 1856.0
 
-STUNTING_DIAGNOSIS = ["Healthy", "Moderately Stunted", "Severly Stunted"]
+STUNTING_DIAGNOSIS = ["Not Stunted", "Moderately Stunted", "Severly Stunted"]
 
 
 def process_image(data):
@@ -337,29 +337,13 @@ def draw_stunting_diagnosis(df: pd.DataFrame, png_out_fpath: str):
         df: Dataframe with columns: qrcode, scantype, COLUMN_NAME_AGE, GT, predicted
         png_out_fpath: File path where plot image will be saved
     """
-    predicted_stunting = []
-    actual_stunting = []
-    not_processed_data = []
-    for index, row in df.iterrows():
-        sex = 'M' if row[COLUMN_NAME_SEX] == SEX_DICT['male'] else 'F'
-        age_days = int(row[COLUMN_NAME_AGE])
-        if MIN_HEIGHT < row['GT'] <= MAX_HEIGHT and MIN_HEIGHT < row['predicted'] <= MAX_HEIGHT and row[COLUMN_NAME_AGE] <= MAX_AGE:
-            actual_calcuated = Calculator().zScore_withclass(
-                weight="0", muac="0", age_in_days=age_days, sex=sex, height=row['GT'])
-            actual_json = json.loads(actual_calcuated)
-            actual_stunting.append(actual_json['Class_HFA'])
-            predicted_calculated = Calculator().zScore_withclass(
-                weight="0", muac="0", age_in_days=age_days, sex=sex, height=row['predicted'])
-            predicted_json = json.loads(predicted_calculated)
-            predicted_stunting.append(predicted_json['Class_HFA'])
-        else:
-            not_processed_data.append(row['qrcode'])
-    data = confusion_matrix(actual_stunting, predicted_stunting)
-    T1, FP1, FP2, FN1, T2, FP3, FN2, FN3, T3 = data.ravel()
-    Total = sum(data.ravel())
-    T = ((T1 + T2 + T3) / Total) * 100
-    FP = ((FP1 + FP2 + FP3) / Total) * 100
-    FN = ((FN1 + FN2 + FN3) / Total) * 100
+    df = parallelize_dataframe(df, calculate_confusion_matrix_stunting)
+    actual = np.where(df['Z_actual'].values < -3, 'Severly Stunted',
+                      np.where(df['Z_actual'].values > -2, 'Not Stunted', 'Moderately Stunted'))
+    predicted = np.where(df['Z_predicted'].values < -3, 'Severly Stunted',
+                         np.where(df['Z_predicted'].values > -2, 'Not Stunted', 'Moderately Stunted'))
+    data = confusion_matrix(actual, predicted)
+    T, FP, FN = calculate_percentage_confusion_matrix(data)
     fig = plt.figure(figsize=(15, 15))
     ax = fig.add_subplot(111)
     disp = ConfusionMatrixDisplay(confusion_matrix=data, display_labels=STUNTING_DIAGNOSIS)
@@ -370,6 +354,39 @@ def draw_stunting_diagnosis(df: pd.DataFrame, png_out_fpath: str):
     Path(png_out_fpath).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(png_out_fpath)
     plt.close()
+
+
+def calculate_confusion_matrix_stunting(df):
+    cal = Calculator()
+
+    def utils(age_in_days, height, sex):
+        if MIN_HEIGHT < height <= MAX_HEIGHT and age_in_days <= MAX_AGE:
+            return cal.zScore_lhfa(age_in_days=age_in_days, sex=sex, height=height)
+
+    df['Z_actual'] = df.apply(lambda row: utils(age_in_days=int(row[COLUMN_NAME_AGE]),
+                                                sex='M' if row[COLUMN_NAME_SEX] == SEX_DICT['male'] else 'F', height=row['GT']), axis=1)
+    df['Z_predicted'] = df.apply(lambda row: utils(age_in_days=int(
+        row[COLUMN_NAME_AGE]), sex='M' if row[COLUMN_NAME_SEX] == SEX_DICT['male'] else 'F', height=row['predicted']), axis=1)
+
+    return df
+
+
+def parallelize_dataframe(df, calculate_confusion_matrix, n_cores=8):
+    df_split = np.array_split(df, n_cores)
+    pool = Pool(n_cores)
+    df = pd.concat(pool.map(calculate_confusion_matrix, df_split))
+    pool.close()
+    pool.join()
+    return df
+
+
+def calculate_percentage_confusion_matrix(data):
+    T1, FP1, FP2, FN1, T2, FP3, FN2, FN3, T3 = data.ravel()
+    Total = sum(data.ravel())
+    T = ((T1 + T2 + T3) / Total) * 100
+    FP = ((FP1 + FP2 + FP3) / Total) * 100
+    FN = ((FN1 + FN2 + FN3) / Total) * 100
+    return T, FP, FN
 
 
 def get_model_path(MODEL_CONFIG: Bunch) -> str:
