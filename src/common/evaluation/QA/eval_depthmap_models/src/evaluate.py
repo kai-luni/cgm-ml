@@ -84,7 +84,6 @@ def prepare_sample_dataset(df_sample, dataset_path):
 
 def predict_uncertainty(X: np.array, model: tf.keras.Model) -> float:
     """Predict standard deviation of multiple predictions with different dropouts
-
     Args:
         X: Sample image with shape (1, h, w, 1)
         model: keras model
@@ -136,7 +135,7 @@ def get_prediction_uncertainty(model_path: str, dataset_evaluation: tf.data.Data
 
 
 def get_prediction(model_path: str, dataset_evaluation: tf.data.Dataset) -> np.array:
-    """Perform the prediction on the dataset with the given model
+    """Perform the prediction on the dataset with the given model.
 
     Args:
         model_path: Path of the trained model
@@ -296,6 +295,10 @@ if __name__ == "__main__":
     logging.info("Calculate and save the results to %s", csv_file)
     utils.calculate_and_save_results(df_grouped, EVAL_CONFIG.NAME, csv_file,
                                      DATA_CONFIG, RESULT_CONFIG, fct=calculate_performance)
+
+    sample_csv_file = f"{OUTPUT_CSV_PATH}/inaccurate_scans_{RUN_ID}.csv"
+    df_grouped.to_csv(sample_csv_file, index=True)
+
     if 'AGE_BUCKETS' in RESULT_CONFIG.keys():
         csv_file = f"{OUTPUT_CSV_PATH}/age_evaluation_{RUN_ID}.csv"
         logging.info("Calculate and save age results to %s", csv_file)
