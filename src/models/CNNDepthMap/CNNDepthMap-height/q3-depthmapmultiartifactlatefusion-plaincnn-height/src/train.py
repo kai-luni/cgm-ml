@@ -6,6 +6,7 @@ import logging
 import logging.config
 
 import glob2 as glob
+import numpy as np
 import tensorflow as tf
 from azureml.core import Experiment, Workspace
 from azureml.core.run import Run
@@ -14,7 +15,7 @@ from tensorflow.keras import callbacks, layers, models
 from config import CONFIG
 from constants import MODEL_CKPT_FILENAME, REPO_DIR
 from augmentation import tf_augment_sample
-from preprocessing_multiartifact import tf_load_pickle
+from model import get_base_model
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d')
 
@@ -35,8 +36,8 @@ if run.id.startswith("OfflineRun"):
         shutil.copy(p, temp_model_util_dir)
 
 from tmp_model_util.preprocessing import create_samples  # noqa: E402
+from tmp_model_util.preprocessing_multiartifact import create_multiartifact_sample  # noqa: E402
 from tmp_model_util.utils import download_dataset, get_dataset_path, AzureLogCallback, create_tensorboard_callback, get_optimizer, create_head  # noqa: E402
-from model import get_base_model  # noqa: E402
 
 # Make experiment reproducible
 tf.random.set_seed(CONFIG.SPLIT_SEED)
@@ -86,7 +87,6 @@ random.seed(CONFIG.SPLIT_SEED)
 random.shuffle(qrcode_paths)
 split_index = int(len(qrcode_paths) * 0.8)
 qrcode_paths_training = qrcode_paths[:split_index]
-
 qrcode_paths_validate = qrcode_paths[split_index:]
 
 del qrcode_paths
@@ -106,11 +106,28 @@ logging.info('Using %d files for training.', len(paths_training))
 paths_validate = create_samples(qrcode_paths_validate, CONFIG)
 logging.info('Using %d files for validation.', len(paths_validate))
 
+
+@tf.function(input_signature=[tf.TensorSpec(None, tf.string)])
+def tf_load_pickle(paths):  # refactor: should be path
+    """Load and process depthmaps"""
+    params = [paths,
+              CONFIG.NORMALIZATION_VALUE,
+              CONFIG.IMAGE_TARGET_HEIGHT,
+              CONFIG.IMAGE_TARGET_WIDTH,
+              np.array(CONFIG.TARGET_INDEXES),
+              CONFIG.N_ARTIFACTS]
+    depthmap, targets = tf.py_function(create_multiartifact_sample, params, [tf.float32, tf.float32])
+    depthmap.set_shape((CONFIG.IMAGE_TARGET_HEIGHT, CONFIG.IMAGE_TARGET_WIDTH, CONFIG.N_ARTIFACTS))
+    targets.set_shape((len(CONFIG.TARGET_INDEXES,)))
+    return depthmap, targets  # (240,180,5), (1,)
+
+
 # Create dataset for training.
 paths = paths_training  # list
 dataset = tf.data.Dataset.from_tensor_slices(paths)  # TensorSliceDataset  # List[ndarray[str]]
 dataset = dataset.cache()
 dataset = dataset.repeat(CONFIG.N_REPEAT_DATASET)
+
 dataset = dataset.map(
     lambda path: tf_load_pickle(paths=path),
     tf.data.experimental.AUTOTUNE
