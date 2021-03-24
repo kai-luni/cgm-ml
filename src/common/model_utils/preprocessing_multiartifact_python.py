@@ -9,7 +9,6 @@ from itertools import groupby, islice
 from typing import Iterator, List
 
 import glob2 as glob
-import numpy as np
 
 sys.path.append(str(Path(__file__).parent))
 
@@ -22,17 +21,17 @@ REGEX_PICKLE = re.compile(
 )
 
 
-def create_samples(qrcode_paths: List[str], CONFIG) -> List[List[str]]:
+def create_multiartifact_paths_for_qrcodes(qrcode_paths: List[str], CONFIG) -> List[List[str]]:
     samples = []
     for qrcode_path in sorted(qrcode_paths):
         for code in CONFIG.CODES_FOR_POSE_AND_SCANSTEP:
             p = os.path.join(qrcode_path, code)
-            new_samples = create_multiartifact_paths(p, CONFIG.N_ARTIFACTS, CONFIG)
+            new_samples = _create_multiartifact_paths(p, CONFIG.N_ARTIFACTS, CONFIG)
             samples.extend(new_samples)
     return samples
 
 
-def create_multiartifact_paths(qrcode_path: str, n_artifacts: int, CONFIG) -> List[List[str]]:
+def _create_multiartifact_paths(qrcode_path: str, n_artifacts: int, CONFIG) -> List[List[str]]:
     """Look at files for 1 qrcode and divide into samples.
 
     Args:
@@ -102,14 +101,3 @@ def _get_epoch(fname: str) -> str:
         return match_result.group("unixepoch")
     else:
         logging.info("%s doesn't match REGEX_PICKLE", fname)
-
-
-def preprocess_depthmap(depthmap: np.array) -> np.array:
-    # TODO here be more code.
-    return depthmap.astype("float32")
-
-
-def preprocess_targets(targets: np.array, targets_indices: list) -> np.array:
-    if targets_indices is not None:
-        targets = targets[targets_indices]
-    return targets.astype("float32")
