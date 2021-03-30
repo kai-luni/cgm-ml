@@ -2,7 +2,30 @@ import logging
 import logging.config
 import numpy as np
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d')
+
+
+def cross(a: list, b: list) -> list:
+    """Cross product of two vectors"""
+    c = [a[1] * b[2] - a[2] * b[1],
+         a[2] * b[0] - a[0] * b[2],
+         a[0] * b[1] - a[1] * b[0]]
+    return c
+
+
+def diff(a: list, b: list) -> list:
+    """Difference of two vectors"""
+    return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+
+
+def norm(v: list) -> list:
+    """Vector normalize"""
+    length = abs(v[0]) + abs(v[1]) + abs(v[2])
+    if length == 0:
+        length = 1
+    return [v[0] / length, v[1] / length, v[2] / length]
 
 
 def matrix_calculate(position: list, rotation: list) -> list:
@@ -75,7 +98,11 @@ def convert_2d_to_3d_oriented(intrisics: list, x: float, y: float, z: float) -> 
     res = convert_2d_to_3d(CALIBRATION[1], x, y, z)
     if res:
         try:
-            res = [-res[0], res[1], res[2]]
+            # special case for Google Tango devices with different rotation
+            if width == 180 and height == 135:
+                res = [res[0], -res[1], res[2]]
+            else:
+                res = [-res[0], res[1], res[2]]
             res = matrix_transform_point(res, matrix)
             res = [res[0], -res[1], res[2]]
         except NameError:
@@ -117,23 +144,27 @@ def export_obj(filename, triangulate):
             max_diff = 0.2
             for x in range(2, width - 2):
                 for y in range(2, height - 2):
-                    #get depth of all points of 2 potential triangles
+                    # get depth of all points of 2 potential triangles
                     d00 = parse_depth(x, y)
                     d10 = parse_depth(x + 1, y)
                     d01 = parse_depth(x, y + 1)
                     d11 = parse_depth(x + 1, y + 1)
 
-                    #check if first triangle points have existing indices
+                    # check if first triangle points have existing indices
                     if indices[x][y] > 0 and indices[x + 1][y] > 0 and indices[x][y + 1] > 0:
-                        #check if the triangle size is valid (to prevent generating triangle connecting child and background)
+                        # check if the triangle size is valid (to prevent generating triangle
+                        # connecting child and background)
                         if abs(d00 - d10) + abs(d00 - d01) + abs(d10 - d01) < max_diff:
-                            f.write('f ' + str(int(indices[x][y])) + ' ' + str(int(indices[x + 1][y])) + ' ' + str(int(indices[x][y + 1])) + '\n')
+                            f.write('f ' + str(int(indices[x][y])) + ' '
+                                    + str(int(indices[x + 1][y])) + ' ' + str(int(indices[x][y + 1])) + '\n')
 
-                    #check if second triangle points have existing indices
+                    # check if second triangle points have existing indices
                     if indices[x + 1][y + 1] > 0 and indices[x + 1][y] > 0 and indices[x][y + 1] > 0:
-                        #check if the triangle size is valid (to prevent generating triangle connecting child and background)
+                        # check if the triangle size is valid (to prevent generating triangle
+                        # connecting child and background)
                         if abs(d11 - d10) + abs(d11 - d01) + abs(d10 - d01) < max_diff:
-                            f.write('f ' + str(int(indices[x + 1][y + 1])) + ' ' + str(int(indices[x + 1][y])) + ' ' + str(int(indices[x][y + 1])) + '\n')
+                            f.write('f ' + str(int(indices[x + 1][y + 1])) + ' '
+                                    + str(int(indices[x + 1][y])) + ' ' + str(int(indices[x][y + 1])) + '\n')
         logging.info('Mesh exported into %s', filename)
 
 
@@ -182,13 +213,13 @@ def parse_calibration(filepath):
         CALIBRATION = []
         f.readline()[:-1]
         CALIBRATION.append(parse_numbers(f.readline()))
-        #logging.info(str(CALIBRATION[0]) + '\n') #color camera intrinsics - fx, fy, cx, cy
+        # logging.info(str(CALIBRATION[0]) + '\n') #color camera intrinsics - fx, fy, cx, cy
         f.readline()[:-1]
         CALIBRATION.append(parse_numbers(f.readline()))
-        #logging.info(str(CALIBRATION[1]) + '\n') #depth camera intrinsics - fx, fy, cx, cy
+        # logging.info(str(CALIBRATION[1]) + '\n') #depth camera intrinsics - fx, fy, cx, cy
         f.readline()[:-1]
         CALIBRATION.append(parse_numbers(f.readline()))
-        #logging.info(str(CALIBRATION[2]) + '\n') #depth camera position relativelly to color camera in meters
+        # logging.info(str(CALIBRATION[2]) + '\n') #depth camera position relativelly to color camera in meters
         CALIBRATION[2][1] *= 8.0  # workaround for wrong calibration data
     return CALIBRATION
 
@@ -219,10 +250,22 @@ def parse_data(filename):
 
 def parse_depth(tx, ty):
     """Get depth of the point in meters"""
+    if tx < 1 or ty < 1 or tx >= width or ty >= height:
+        return 0
     depth = data[(int(ty) * width + int(tx)) * 3 + 0] << 8
     depth += data[(int(ty) * width + int(tx)) * 3 + 1]
     depth *= depthScale
     return depth
+
+
+def parse_depth_smoothed(tx, ty):
+    """Get average depth value from neighboring pixels"""
+    depth_center = parse_depth(tx, ty)
+    depth_x_minus = parse_depth(tx - 1, ty)
+    depth_x_plus = parse_depth(tx + 1, ty)
+    depth_y_minus = parse_depth(tx, ty - 1)
+    depth_y_plus = parse_depth(tx, ty + 1)
+    return (depth_x_minus + depth_x_plus + depth_y_minus + depth_y_plus + depth_center) / 5.0
 
 
 def parse_numbers(line):
