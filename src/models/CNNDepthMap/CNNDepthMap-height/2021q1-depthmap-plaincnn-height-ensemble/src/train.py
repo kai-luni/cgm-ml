@@ -6,15 +6,15 @@ from pathlib import Path
 
 import glob2 as glob
 import tensorflow as tf
+import wandb
 from azureml.core import Experiment, Workspace
 from azureml.core.run import Run
-from train_util import copy_dir
-import wandb
 from wandb.keras import WandbCallback
 
 from config import CONFIG
 from constants import MODEL_CKPT_FILENAME, REPO_DIR
 from model import create_cnn
+from train_util import copy_dir
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d')
@@ -28,8 +28,12 @@ if run.id.startswith("OfflineRun"):
     temp_common_dir = Path(__file__).parent / "temp_common"
     copy_dir(src=common_dir_path, tgt=temp_common_dir, glob_pattern='*/*.py', should_touch_init=True)
 
-from temp_common.model_utils.preprocessing import (filter_blacklisted_qrcodes, preprocess_depthmap, preprocess_targets)  # noqa: E402
-from temp_common.model_utils.utils import (create_tensorboard_callback, download_dataset, get_dataset_path, get_optimizer, setup_wandb, AzureLogCallback)  # noqa: E402
+from temp_common.model_utils.preprocessing import (  # noqa: E402
+    filter_blacklisted_qrcodes, preprocess_depthmap, preprocess_targets)
+from temp_common.model_utils.utils import (AzureLogCallback,  # noqa: E402
+                                           create_tensorboard_callback,
+                                           download_dataset, get_dataset_path,
+                                           get_optimizer, setup_wandb)
 
 # Make experiment reproducible. Set random seeds for splitting.
 tf.random.set_seed(CONFIG.SPLIT_SEED)
