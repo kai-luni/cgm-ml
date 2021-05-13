@@ -2,7 +2,6 @@ import logging
 import os
 import pickle
 import random
-import shutil
 from pathlib import Path
 
 import glob2 as glob
@@ -13,8 +12,8 @@ from train_util import copy_dir
 import wandb
 from wandb.keras import WandbCallback
 
-from config import CONFIG, DATASET_MODE_DOWNLOAD, DATASET_MODE_MOUNT
-from constants import DATA_DIR_ONLINE_RUN, MODEL_CKPT_FILENAME, REPO_DIR
+from config import CONFIG
+from constants import MODEL_CKPT_FILENAME, REPO_DIR
 from model import create_cnn
 
 logging.basicConfig(level=logging.INFO,
