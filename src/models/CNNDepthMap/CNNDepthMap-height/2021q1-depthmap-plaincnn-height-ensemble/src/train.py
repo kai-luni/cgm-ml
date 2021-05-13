@@ -1,51 +1,50 @@
-from pathlib import Path
+import logging
 import os
 import pickle
 import random
 import shutil
+from pathlib import Path
 
 import glob2 as glob
 import tensorflow as tf
 from azureml.core import Experiment, Workspace
 from azureml.core.run import Run
+from train_util import copy_dir
+import wandb
+from wandb.keras import WandbCallback
 
 from config import CONFIG, DATASET_MODE_DOWNLOAD, DATASET_MODE_MOUNT
 from constants import DATA_DIR_ONLINE_RUN, MODEL_CKPT_FILENAME, REPO_DIR
+from model import create_cnn
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d')
 
 # Get the current run.
 run = Run.get_context()
 
 if run.id.startswith("OfflineRun"):
-    utils_dir_path = REPO_DIR / "src/common/model_utils"
-    utils_paths = glob.glob(os.path.join(utils_dir_path, "*.py"))
-    temp_model_util_dir = Path(__file__).parent / "tmp_model_util"
-    # Remove old temp_path
-    if os.path.exists(temp_model_util_dir):
-        shutil.rmtree(temp_model_util_dir)
-    # Copy
-    os.mkdir(temp_model_util_dir)
-    os.system(f'touch {temp_model_util_dir}/__init__.py')
-    for p in utils_paths:
-        shutil.copy(p, temp_model_util_dir)
+    # Copy common into the temp folder
+    common_dir_path = REPO_DIR / "src/common"
+    temp_common_dir = Path(__file__).parent / "temp_common"
+    copy_dir(src=common_dir_path, tgt=temp_common_dir, glob_pattern='*/*.py', should_touch_init=True)
 
-from model import create_cnn  # noqa: E402
-from tmp_model_util.preprocessing import preprocess_depthmap, preprocess_targets  # noqa: E402
-from tmp_model_util.utils import download_dataset, get_dataset_path, AzureLogCallback, create_tensorboard_callback, get_optimizer  # noqa: E402
+from temp_common.model_utils.preprocessing import (filter_blacklisted_qrcodes, preprocess_depthmap, preprocess_targets)  # noqa: E402
+from temp_common.model_utils.utils import (create_tensorboard_callback, download_dataset, get_dataset_path, get_optimizer, setup_wandb, AzureLogCallback)  # noqa: E402
 
 # Make experiment reproducible. Set random seeds for splitting.
 tf.random.set_seed(CONFIG.SPLIT_SEED)
 random.seed(CONFIG.SPLIT_SEED)
-print(f"Random seed for splitting: {CONFIG.SPLIT_SEED}")
 
 DATA_DIR = REPO_DIR / 'data' if run.id.startswith("OfflineRun") else Path(".")
-print(f"DATA_DIR: {DATA_DIR}")
+logging.info('DATA_DIR: %s', DATA_DIR)
 
 # Offline run. Download the sample dataset and run locally. Still push results to Azure.
 if run.id.startswith("OfflineRun"):
-    print("Running in offline mode...")
+    logging.info("Running in offline mode...")
 
     # Access workspace.
-    print("Accessing workspace...")
+    logging.info("Accessing workspace...")
     workspace = Workspace.from_config()
     experiment = Experiment(workspace, "training-junkyard")
     run = experiment.start_logging(outputs=None, snapshot_directory=None)
@@ -63,22 +62,18 @@ else:
     dataset_name = CONFIG.DATASET_NAME
 
     # Mount or download
-    if CONFIG.DATASET_MODE == DATASET_MODE_MOUNT:
-        dataset_path = run.input_datasets["dataset"]
-    elif CONFIG.DATASET_MODE == DATASET_MODE_DOWNLOAD:
-        dataset_path = get_dataset_path(DATA_DIR_ONLINE_RUN, dataset_name)
-        download_dataset(workspace, dataset_name, dataset_path)
-    else:
-        raise NameError(f"Unknown DATASET_MODE: {CONFIG.DATASET_MODE}")
+    dataset_path = run.input_datasets['cgm_dataset']
 
 # Get the QR-code paths.
 dataset_path = os.path.join(dataset_path, "scans")
-print("Dataset path:", dataset_path)
-#print(glob.glob(os.path.join(dataset_path, "*"))) # Debug
-print("Getting QR-code paths...")
+logging.info("Dataset path:", dataset_path)
+# print(glob.glob(os.path.join(dataset_path, "*"))) # Debug
+logging.info("Getting QR-code paths...")
 qrcode_paths = glob.glob(os.path.join(dataset_path, "*"))
-print("qrcode_paths: ", len(qrcode_paths))
+logging.info("qrcode_paths: ", len(qrcode_paths))
 assert len(qrcode_paths) != 0
+
+qrcode_paths = filter_blacklisted_qrcodes(qrcode_paths)
 
 # Shuffle and split into train and validate.
 random.shuffle(qrcode_paths)
@@ -174,11 +169,20 @@ checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     save_best_only=True,
     verbose=1
 )
+
+dataset_batches = dataset_training.batch(CONFIG.BATCH_SIZE)
+
 training_callbacks = [
     AzureLogCallback(run),
     create_tensorboard_callback(),
     checkpoint_callback,
 ]
+
+if getattr(CONFIG, 'USE_WANDB', False):
+    setup_wandb()
+    wandb.init(project="ml-project", entity="cgm-team")
+    wandb.config.update(CONFIG)
+    training_callbacks.append(WandbCallback(log_weights=True, log_gradients=True, training_data=dataset_batches))
 
 optimizer = get_optimizer(CONFIG.USE_ONE_CYCLE,
                           lr=CONFIG.LEARNING_RATE,
