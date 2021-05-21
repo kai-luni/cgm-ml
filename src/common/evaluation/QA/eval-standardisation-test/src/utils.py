@@ -6,6 +6,7 @@ import pickle
 from pathlib import Path
 import sys
 import zipfile
+from typing import Tuple
 
 from azureml.core import Experiment, Run
 import glob2 as glob
@@ -156,21 +157,32 @@ def calculate_and_save_results(MAE, complete_name, CSV_OUT_PATH):
     result.to_csv(CSV_OUT_PATH, index=True)
 
 
-def load_depth(filename):
-    with zipfile.ZipFile(filename) as z:
+def load_depth(fpath: str) -> Tuple[bytes, int, int, float, float]:
+    """Take ZIP file and extract depth and metadata
+    Args:
+        fpath (str): File path to the ZIP
+    Returns:
+        depth_data (bytes): depthmap data
+        width(int): depthmap width in pixel
+        height(int): depthmap height in pixel
+        depth_scale(float)
+        max_confidence(float)
+    """
+    with zipfile.ZipFile(fpath) as z:
         with z.open('data') as f:
-            line = str(f.readline())[2:-3]
-            header = line.split("_")
-            res = header[0].split("x")
-            #logging.info(res)
-            width = int(res[0])
-            height = int(res[1])
-            depthScale = float(header[1])
-            maxConfidence = float(header[2])
-            data = f.read()
-            f.close()
-        z.close()
-    return data, width, height, depthScale, maxConfidence
+            # Example for a first_line: '180x135_0.001_7_0.57045287_-0.0057296_0.0022602521_0.82130724_-0.059177425_0.0024800065_0.030834956'
+            first_line = f.readline().decode().strip()
+
+            file_header = first_line.split("_")
+
+            # header[0] example: 180x135
+            width, height = file_header[0].split("x")
+            width, height = int(width), int(height)
+            depth_scale = float(file_header[1])
+            max_confidence = float(file_header[2])
+
+            depth_data = f.read()
+    return depth_data, width, height, depth_scale, max_confidence
 
 
 def parse_depth(tx, ty, data, depthScale):
@@ -180,17 +192,15 @@ def parse_depth(tx, ty, data, depthScale):
     return depth
 
 
-def prepare_depthmap(data, width, height, depthScale):
-    # prepare array for output
+def prepare_depthmap(data: bytes, width: int, height: int, depth_scale: float) -> np.array:
+    """Convert bytes array into np.array"""
     output = np.zeros((width, height, 1))
     for cx in range(width):
         for cy in range(height):
-            #             output[cx][height - cy - 1][0] = parse_confidence(cx, cy)
-            #             output[cx][height - cy - 1][1] = im_array[cy][cx][1] / 255.0 #test matching on RGB data
-            # output[cx][height - cy - 1][2] = 1.0 - min(parse_depth(cx, cy) / 2.0,
-            # 1.0) #depth data scaled to be visible
-            output[cx][height - cy - 1] = parse_depth(cx, cy, data, depthScale)  # depth data scaled to be visible
-    return (np.array(output, dtype='float32').reshape(width, height), height, width)
+            # depth data scaled to be visible
+            output[cx][height - cy - 1] = parse_depth(cx, cy, data, depth_scale, width)
+    arr = np.array(output, dtype='float32')
+    return arr.reshape(width, height)
 
 
 def preprocess(depthmap):
