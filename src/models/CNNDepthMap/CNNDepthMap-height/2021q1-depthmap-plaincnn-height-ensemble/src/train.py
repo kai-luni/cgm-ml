@@ -101,7 +101,8 @@ assert len(qrcode_paths_training) > 0 and len(qrcode_paths_validate) > 0
 def get_depthmap_files(paths):
     pickle_paths = []
     for path in paths:
-        pickle_paths.extend(glob.glob(os.path.join(path, "**", "*.p")))
+        for code in CONFIG.CODES:
+            pickle_paths.extend(glob.glob(os.path.join(path, code, "*.p")))
     return pickle_paths
 
 
@@ -131,11 +132,6 @@ def tf_load_pickle(path, max_value):
     depthmap.set_shape((CONFIG.IMAGE_TARGET_HEIGHT, CONFIG.IMAGE_TARGET_WIDTH, 1))
     targets.set_shape((len(CONFIG.TARGET_INDEXES,)))
     return depthmap, targets
-
-
-def tf_flip(image):
-    image = tf.image.random_flip_left_right(image)
-    return image
 
 
 # Create dataset for training.
@@ -201,7 +197,7 @@ model.compile(
 # Train the model.
 model.fit(
     dataset_training.batch(CONFIG.BATCH_SIZE),
-    validation_data=dataset_validation.batch(CONFIG.BATCH_SIZE),
+    validation_data=dataset_batches,
     epochs=CONFIG.EPOCHS,
     callbacks=training_callbacks,
     verbose=2
