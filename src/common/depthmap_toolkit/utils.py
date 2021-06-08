@@ -1,7 +1,8 @@
 import logging
 import logging.config
-import numpy as np
 from typing import List
+
+import numpy as np
 
 logging.basicConfig(
     level=logging.INFO,
@@ -194,11 +195,11 @@ def export_obj(filename: str,
                 f.write('vt ' + str(x / width) + ' ' + str(1 - y / height) + '\n')
 
         if triangulate:
-            do_triangulation(width, height, data, depth_scale, indices, f)
+            _do_triangulation(width, height, data, depth_scale, indices, f)
         logging.info('Mesh exported into %s', filename)
 
 
-def do_triangulation(width, height, data, depth_scale, indices, filehandle):
+def _do_triangulation(width, height, data, depth_scale, indices, filehandle):
     max_diff = 0.2
     for x in range(2, width - 2):
         for y in range(2, height - 2):
@@ -231,7 +232,7 @@ def do_triangulation(width, height, data, depth_scale, indices, filehandle):
                     filehandle.write('f ' + a + '/' + a + ' ' + b + '/' + b + ' ' + c + '/' + c + '\n')
 
 
-def write_pcd_header(filehandle, count):
+def _write_pcd_header(filehandle, count):
     filehandle.write('# timestamp 1 1 float 0\n')
     filehandle.write('# .PCD v.7 - Point Cloud Data file format\n')
     filehandle.write('VERSION .7\n')
@@ -250,7 +251,7 @@ def export_pcd(filename: str, width: int, height: int, data: bytes, depth_scale:
                calibration: List[List[float]], max_confidence: float):
     with open(filename, 'w') as f:
         count = str(_get_count(width, height, data, depth_scale, calibration))
-        write_pcd_header(f, count)
+        _write_pcd_header(f, count)
 
         for x in range(2, width - 2):
             for y in range(2, height - 2):
@@ -280,13 +281,24 @@ def _get_count(width: int, height: int, data: bytes, depth_scale: float, calibra
 
 
 def parse_calibration(filepath: str) -> List[List[float]]:
-    """Parse calibration file"""
+    """Parse calibration file
+
+    filepath: The content of a calibration file looks like this:
+        Color camera intrinsic:
+        0.6786797 0.90489584 0.49585155 0.5035042
+        Depth camera intrinsic:
+        0.6786797 0.90489584 0.49585155 0.5035042
+        Depth camera position:
+        0 0 0
+    """
     with open(filepath, 'r') as f:
         calibration = []
         for _ in range(3):
-            f.readline()[:-1]
-            calibration.append(parse_numbers(f.readline()))
-        calibration[2][1] *= 8.0  # workaround for wrong calibration data
+            f.readline().strip()
+            line_with_numbers = f.readline()
+            intrinsic = _parse_numbers(line_with_numbers)
+            calibration.append(intrinsic)
+    calibration[2][1] *= 8.0  # workaround for wrong calibration data
     return calibration
 
 
@@ -338,8 +350,15 @@ def parse_depth_smoothed(tx: int, ty: int, width: int, height: int, data: bytes,
     return sum(depths) / len(depths)
 
 
-def parse_numbers(line: str) -> List[float]:
-    """Parse line of numbers"""
+def _parse_numbers(line: str) -> List[float]:
+    """Parse line of numbers
+
+    Args:
+        line: Example: "0.6786797 0.90489584 0.49585155 0.5035042"
+
+    Return:
+        numbers: [0.6786797, 0.90489584, 0.49585155, 0.5035042]
+    """
     return [float(value) for value in line.split(' ')]
 
 
@@ -356,6 +375,6 @@ def parse_pcd(filepath: str) -> List[List[float]]:
             if not line:
                 break
             else:
-                values = parse_numbers(line)
+                values = _parse_numbers(line)
                 data.append(values)
     return data

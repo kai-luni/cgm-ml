@@ -9,7 +9,7 @@ from PIL import Image
 from pathlib import Path
 import functools
 import statistics
-from typing import List
+from typing import List, Tuple
 
 import utils
 import constants
@@ -62,15 +62,26 @@ def onclick(event, width: int, height: int, data: bytes, depth_scale: float, cal
             logging.info('no valid data')
 
 
-def extract_depthmap(dir_path: str, filename: str):
+def extract_depthmap(depthmap_dir: str, depthmap_fname: str):
     """Extract depthmap from given file"""
-    with zipfile.ZipFile(Path(dir_path) / 'depth' / filename, 'r') as zip_ref:
+    with zipfile.ZipFile(Path(depthmap_dir) / 'depth' / depthmap_fname, 'r') as zip_ref:
         zip_ref.extractall('.')
 
 
-def process(dir_path: str, depth: str, rgb: str):
+def process(depthmap_dir: str,
+            depthmap_fname: str,
+            rgb_fname: str) -> Tuple[bytes, int, int, float, float, list]:
+    """Process depthmap
 
-    extract_depthmap(dir_path, depth)
+    Args:
+        depthmap_dir: depthmap_dir
+        depthmap_fname: Example: depth_dog_1622182020448_100_234.depth
+        rgb_fname: Example: rgb_dog_1622182020448_100_234.jpg
+
+    Returns:
+        width, height, depth_scale, max_confidence, data, matrix
+    """
+    extract_depthmap(depthmap_dir, depthmap_fname)
 
     data, width, height, depth_scale, max_confidence, matrix = utils.parse_data(constants.EXTRACTED_DEPTH_FILE_NAME)
 
@@ -78,14 +89,14 @@ def process(dir_path: str, depth: str, rgb: str):
     global CURRENT_RGB
     global HAS_RGB
     global IM_ARRAY
-    if rgb:
-        CURRENT_RGB = dir_path + '/rgb/' + rgb
+    if rgb_fname:
+        CURRENT_RGB = depthmap_dir + '/rgb/' + rgb_fname
         HAS_RGB = 1
         pil_im = Image.open(CURRENT_RGB)
         pil_im = pil_im.resize((width, height), Image.ANTIALIAS)
         IM_ARRAY = np.asarray(pil_im)
     else:
-        CURRENT_RGB = rgb
+        CURRENT_RGB = rgb_fname
         HAS_RGB = 0
 
     return width, height, depth_scale, max_confidence, data, matrix
