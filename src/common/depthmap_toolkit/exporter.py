@@ -11,9 +11,11 @@ logging.basicConfig(
 
 def export_obj(filename: str,
                dmap: Depthmap,
+               floor_altitude_in_meters: float,
                triangulate: bool):
     """Export .obj file, which can be visualized in tools like Meshlab.
 
+    floor_altitude_in_meters is the floor altitude to align floor to Y=zero
     triangulate=True generates OBJ of type mesh
     triangulate=False generates OBJ of type pointcloud
     """
@@ -41,6 +43,7 @@ def export_obj(filename: str,
                     continue
                 count = count + 1
                 indices[x][y] = count  # add index of written vertex into array
+                res[1] = res[1] - floor_altitude_in_meters
                 f.write('v ' + str(res[0]) + ' ' + str(res[1]) + ' ' + str(res[2]) + '\n')
                 f.write('vt ' + str(x / dmap.width) + ' ' + str(1 - y / dmap.height) + '\n')
 

@@ -51,8 +51,9 @@ def onclick(event):
 
 def export_object(event):
     global DMAP
+    floor = DMAP.get_floor_level()
     fname = f'output{INDEX}.obj'
-    export_obj('export/' + fname, DMAP, triangulate=True)
+    export_obj('export/' + fname, DMAP, floor, triangulate=True)
 
 
 def export_pointcloud(event):
@@ -86,7 +87,7 @@ def show(depthmap_dir: str, calibration_file: str):
     angle = DMAP.get_angle_between_camera_and_floor()
     logging.info('angle between camera and floor is %f', angle)
 
-    render_plot(DMAP)
+    plt.imshow(render_plot(DMAP))
     plt.show()
 
 
