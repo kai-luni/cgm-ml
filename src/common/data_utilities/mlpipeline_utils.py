@@ -87,8 +87,8 @@ def prepare_depthmap(data: bytes, width: int, height: int, depth_scale: float) -
 def get_depthmaps(fpaths: List[str]) -> np.array:
     depthmaps = []
     for fpath in fpaths:
-        data, width, height, depthScale, _ = load_depth(fpath)
-        depthmap = prepare_depthmap(data, width, height, depthScale)
+        data, width, height, depth_scale, _ = load_depth(fpath)
+        depthmap = prepare_depthmap(data, width, height, depth_scale)
         depthmap = preprocess(depthmap)
         depthmaps.append(depthmap)
 
@@ -111,10 +111,11 @@ class ArtifactProcessor:
                                order_number: str) -> str:
         """Side effect: Saves and returns file path"""
         depthmaps = get_depthmaps([zip_input_full_path])
-        pickle_output_path = f"qrcode/{scan_id}/{scan_step}/pc_{scan_id}_{timestamp}_{scan_step}_{order_number}.p"
+        depthmap = depthmaps[0]
+        pickle_output_path = f"scans/{scan_id}/{scan_step}/pc_{scan_id}_{timestamp}_{scan_step}_{order_number}.p"
         pickle_output_full_path = f"{self.output_dir}/{pickle_output_path}"
         Path(pickle_output_full_path).parent.mkdir(parents=True, exist_ok=True)
-        pickle.dump((depthmaps, np.array(target_tuple)), open(pickle_output_full_path, "wb"))
+        pickle.dump((depthmap, np.array(target_tuple)), open(pickle_output_full_path, "wb"))
         return pickle_output_full_path
 
     def process_artifact_tuple(self, artifact_tuple: tuple):
