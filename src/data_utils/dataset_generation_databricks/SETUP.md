@@ -30,7 +30,7 @@ Visit that URL and login to Databricks.
 		* scikit-image
 		* cgm-ml-common
 
-### Setup Compute
+### Setup Secrets
 
 In the Azure Portal, put secrets into key vault:
 
@@ -48,7 +48,35 @@ In Databricks:
 	* name: 'cgm-ml-scope'
 	* Manage Principal: All Users
   	* Get DNS Name and Resource ID from Azure Portal
+    
+#### Generating SAS tokens
+
+To generate SAS token for access to a storage account in portal, go to the storage account in portal and from left panel select Shared access signature from Security+Networking
+
+* Permissions for mlapi storage account
+    * Read
+    * List
+
+* Permissions for dset storage account
+    * Read
+    * List
+    * Write
+
+for more details you can check this https://adamtheautomator.com/azure-sas-token/
 
 ### Check if setup is correct
 
 To check if the setup is correct, you can run the databricks notebook and see if all the steps succeed.
+
+
+# Databricks setup for new user
+
+A new user should setup cgm-ml git(hub) repository
+
+* Repos -> Add Repo
+	* cgm-ml with HTTPS
+	* open databricks notebook
+* Create git access token
+	* Go to https://github.com/settings/tokens and create a token -> remember this
+* User settings -> Git integration:
+	* Select: Github, Supply your github handle + token
