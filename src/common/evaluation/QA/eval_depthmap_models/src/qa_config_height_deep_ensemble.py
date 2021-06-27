@@ -7,14 +7,14 @@ CONFIG_NAME = os.path.splitext(os.path.basename(__file__))[0]
 # Details of model used for evaluation
 MODEL_CONFIG = Bunch(dict(
     EXPERIMENT_NAME='q1-ensemble-warmup',
-    RUN_IDS=['q1-ensemble-warmup_1620826225_2d4eccea', 'q1-ensemble-warmup_1620888668_aa21c375',
-             'q1-ensemble-warmup_1620888698_f28ae559', 'q1-ensemble-warmup_1620888734_5dab77c0',
-             'q1-ensemble-warmup_1620888764_734f0aeb', 'q1-ensemble-warmup_1620888793_17bdc5e6',
-             'q1-ensemble-warmup_1620888821_b4345da5', 'q1-ensemble-warmup_1620888848_24d582da',
-             'q1-ensemble-warmup_1620888873_3b898e53', 'q1-ensemble-warmup_1620888897_c4aa922e',
-             'q1-ensemble-warmup_1620888920_d9b18646', 'q1-ensemble-warmup_1620888947_29ac29af',
-             'q1-ensemble-warmup_1620888968_5aaa8501', 'q1-ensemble-warmup_1620889003_ca6ffb1a',
-             'q1-ensemble-warmup_1620889029_86f10712', 'q1-ensemble-warmup_1620889059_a9b48454'],
+    RUN_IDS=['2021q1-depthmap-ensemble-height-95k_1622230917_290d733e', '2021q1-depthmap-ensemble-height-95k_1622230877_02b7cc34',
+             '2021q1-depthmap-ensemble-height-95k_1622230838_187c2c8f', '2021q1-depthmap-ensemble-height-95k_1622230815_3a6833d4',
+             '2021q1-depthmap-ensemble-height-95k_1622230796_d18037bb', '2021q1-depthmap-ensemble-height-95k_1622230770_32a7a89c',
+             '2021q1-depthmap-ensemble-height-95k_1622230729_c239a326', '2021q1-depthmap-ensemble-height-95k_1622230699_886a2a9d',
+             '2021q1-depthmap-ensemble-height-95k_1622230664_d9d108b4', '2021q1-depthmap-ensemble-height-95k_1622230624_f791db0c',
+             '2021q1-depthmap-ensemble-height-95k_1622230551_76ff056b', '2021q1-depthmap-ensemble-height-95k_1622230426_12111939',
+             '2021q1-depthmap-ensemble-height-95k_1622230397_a2f46051', '2021q1-depthmap-ensemble-height-95k_1622230371_7b4cc0a2',
+             '2021q1-depthmap-ensemble-height-95k_1622230334_67c64a77'],
     INPUT_LOCATION='outputs',
     NAME='best_model.ckpt',
 ))
