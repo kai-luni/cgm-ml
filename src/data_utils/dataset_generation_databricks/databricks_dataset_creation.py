@@ -103,10 +103,14 @@ SELECT f.file_path, f.created as timestamp,
 FROM file f
 INNER JOIN artifact a ON f.id = a.file_id
 INNER JOIN scan s     ON s.id = a.scan_id
-INNER JOIN measure m  ON m.person_id = s.person_id
-WHERE a.format = 'depth'
-"""
-sql_cursor.execute(SQL_QUERY)
+INNER JOIN measure m  ON m.person_id = s.person_id"""
+
+# The query select all scans with no results, this is a hack as we cannot add a column for data_version/etl_version right now.
+CONDITION = """ 
+ LEFT JOIN result r ON s.id = r.scan_id
+WHERE r.scan_id is NULL and a.format = 'depth';"""
+
+sql_cursor.execute(SQL_QUERY + CONDITION)
 
 # Get multiple query_result rows
 NUM_ARTIFACTS = 300  # None
