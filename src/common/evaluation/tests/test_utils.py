@@ -9,7 +9,8 @@ sys.path.append(str(Path(__file__).parents[2]))  # common/ dir
 
 from evaluation.eval_utilities import (COLUMN_NAME_GOODBAD,  # noqa: E402
                                        calculate_percentage_confusion_matrix,
-                                       draw_uncertainty_goodbad_plot, get_dataset_path)
+                                       draw_uncertainty_goodbad_plot)
+from model_utils.utils import get_dataset_path  # noqa: E402
 
 
 def test_draw_uncertainty_goodbad_plot():
