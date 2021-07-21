@@ -30,9 +30,11 @@ from pyntcloud.io import write_ply
 from cgm_fusion.calibration import (get_extrinsic_matrix_depth,
                                     get_intrinsic_matrix_depth, get_k_depth)
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d')
-
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
+logger.addHandler(handler)
 
 HEIGHT = 224
 WIDTH = 172
@@ -65,7 +67,7 @@ def fuse_point_cloud(points, rgb_vals, confidence, seg_vals):
 def write_color_ply(fname, points, color_vals, confidence, normals):
     new_pc = fuse_point_cloud(points, color_vals, confidence, normals)
     write_ply(fname, new_pc.points, as_text=True)
-    logging.info(fname)
+    logger.info(fname)
 
 
 def apply_projection(points, calibration_file):
@@ -99,7 +101,7 @@ class Channel(IntEnum):
 
 def get_depth_channel(ply_path, output_path_np, output_path_png, calibration_file):
     if not os.path.exists(calibration_file):  # check if the califile exists
-        logging.error('Calibration does not exist')
+        logger.error('Calibration does not exist')
         return
 
     # get a default black image
@@ -109,15 +111,15 @@ def get_depth_channel(ply_path, output_path_np, output_path_png, calibration_fil
     try:
         cloud = PyntCloud.from_file(ply_path)  # load the data from the files
     except ValueError as e:
-        logging.error("Error reading point cloud")
-        logging.error(str(e))
-        logging.error(ply_path)
+        logger.error("Error reading point cloud")
+        logger.error(str(e))
+        logger.error(ply_path)
 
-    logging.info(cloud.points.values[:, 3])
+    logger.info(cloud.points.values[:, 3])
     r = cloud.points.values[:, 3]
-    logging.info(min(r))
-    logging.info(max(r))
-    logging.info(np.mean(r))
+    logger.info(min(r))
+    logger.info(max(r))
+    logger.info(np.mean(r))
 
     points = cloud.points.values[:, :3]  # get x y z
     z = cloud.points.values[:, 2]  # get only z coordinate
@@ -165,7 +167,7 @@ def get_depth_channel(ply_path, output_path_np, output_path_png, calibration_fil
 
 def get_rgbd_channel(ply_path, output_path_np, calibration_file):
     if not os.path.exists(calibration_file):  # check if the califile exists
-        logging.error('Calibration does not exist')
+        logger.error('Calibration does not exist')
         return
 
     # get a default black image
@@ -175,9 +177,9 @@ def get_rgbd_channel(ply_path, output_path_np, calibration_file):
     try:
         cloud = PyntCloud.from_file(ply_path)  # load the data from the files
     except ValueError as e:
-        logging.error(" Error reading point cloud ")
-        logging.error(str(e))
-        logging.error(ply_path)
+        logger.error(" Error reading point cloud ")
+        logger.error(str(e))
+        logger.error(ply_path)
 
     points = cloud.points.values[:, :3]  # get x y z
     z = cloud.points.values[:, 2]  # get only z coordinate
@@ -210,7 +212,7 @@ def get_rgbd_channel(ply_path, output_path_np, calibration_file):
 
 def get_all_channel(ply_path, output_path_np, calibration_file):
     if not os.path.exists(calibration_file):  # check if the califile exists
-        logging.error('Calibration does not exist')
+        logger.error('Calibration does not exist')
         return
 
     # get a default black image
@@ -220,9 +222,9 @@ def get_all_channel(ply_path, output_path_np, calibration_file):
     try:
         cloud = PyntCloud.from_file(ply_path)  # load the data from the files
     except ValueError as e:
-        logging.error(" Error reading point cloud ")
-        logging.error(str(e))
-        logging.error(ply_path)
+        logger.error(" Error reading point cloud ")
+        logger.error(str(e))
+        logger.error(ply_path)
 
     points = cloud.points.values[:, :3]  # get x y z
     x = cloud.points.values[:, 0]
@@ -277,7 +279,7 @@ def get_viz_channel(calibration_file,
                     output_path="/tmp/output.png"):
 
     if not os.path.exists(calibration_file):  # check if the califile exists
-        logging.error('Calibration does not exist')
+        logger.error('Calibration does not exist')
         return
 
     # get a default black image
@@ -288,10 +290,10 @@ def get_viz_channel(calibration_file,
     try:
         cloud = PyntCloud.from_file(ply_path)  # load the data from the files
     except ValueError as e:
-        logging.error(" Error reading point cloud ")
-        logging.error(str(e))
+        logger.error(" Error reading point cloud ")
+        logger.error(str(e))
 
-    # logging.info(int(channel))
+    # logger.info(int(channel))
 
     points = cloud.points.values[:, :3]  # get x y z
     z = cloud.points.values[:, int(channel)]  # get only z coordinate

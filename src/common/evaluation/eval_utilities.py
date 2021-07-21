@@ -27,8 +27,11 @@ from .constants_eval import (  # noqa: E402
 from .eval_utils import (  # noqa: E402
     avgerror, preprocess_depthmap, preprocess_targets)
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
+logger.addHandler(handler)
 
 MIN_HEIGHT = 45
 MAX_HEIGHT = 120
@@ -274,7 +277,7 @@ def draw_uncertainty_scatterplot(df: pd.DataFrame, png_out_fpath: str):
     plt.grid()
 
     correlation, _ = pearsonr(df['error'], df['uncertainties'])
-    logging.info("correlation: %d", correlation)
+    logger.info("correlation: %d", correlation)
 
     plt.title(f"Per-scan sample artifact: Error over uncertainty (correlation={correlation:.3})")
     plt.xlabel("error")
@@ -419,7 +422,7 @@ def download_model(workspace, experiment_name, run_id, input_location, output_lo
     else:
         raise NameError(f"{input_location}'s path extension not supported")
 
-    logging.info("Successfully downloaded model")
+    logger.info("Successfully downloaded model")
 
 
 def filter_dataset_according_to_standing_lying(paths_evaluation: List[str],
@@ -446,16 +449,16 @@ def get_prediction(model_path: str, dataset_evaluation: tf.data.Dataset, data_co
     Returns:
         predictions, array shape (N_SAMPLES, )
     """
-    logging.info("loading model from %s", model_path)
+    logger.info("loading model from %s", model_path)
     model = load_model(model_path, compile=False)
 
     dataset = dataset_evaluation.batch(data_config.BATCH_SIZE)
 
-    logging.info("starting predicting")
+    logger.info("starting predicting")
     start = time.time()
     predictions = model.predict(dataset, batch_size=data_config.BATCH_SIZE)
     end = time.time()
-    logging.info("Total time for uncertainty prediction experiment: %.2f sec", end - start)
+    logger.info("Total time for uncertainty prediction experiment: %.2f sec", end - start)
 
     prediction_list = np.squeeze(predictions)
     return prediction_list
@@ -464,9 +467,9 @@ def get_prediction(model_path: str, dataset_evaluation: tf.data.Dataset, data_co
 def get_predictions_from_multiple_models(model_paths: list, dataset_evaluation: tf.data.Dataset, data_config) -> list:
     prediction_array = []
     for model_index, model_path in enumerate(model_paths):
-        logging.info(f"Model {model_index + 1}/{len(model_paths)}")
+        logger.info(f"Model {model_index + 1}/{len(model_paths)}")
         prediction_array += [get_prediction(model_path, dataset_evaluation, data_config)]
-        logging.info("Prediction made by model on the depthmaps...")
+        logger.info("Prediction made by model on the depthmaps...")
     prediction_array = np.array(prediction_array)
     prediction_array = np.mean(prediction_array, axis=0)
     return prediction_array
@@ -485,7 +488,7 @@ def get_prediction_multiartifact(model_path: str,
     Returns:
         predictions array
     """
-    logging.info("loading model from %s", model_path)
+    logger.info("loading model from %s", model_path)
     model = load_model(model_path, compile=False)
     predictions = model.predict(dataset, batch_size=data_config.BATCH_SIZE)
     return predictions

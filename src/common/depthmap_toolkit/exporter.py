@@ -4,9 +4,11 @@ import logging.config
 import numpy as np
 from depthmap import Depthmap
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
+logger.addHandler(handler)
 
 
 def export_obj(filename: str,
@@ -49,7 +51,7 @@ def export_obj(filename: str,
 
         if triangulate:
             _do_triangulation(dmap, indices, f)
-        logging.info('Mesh exported into %s', filename)
+        logger.info('Mesh exported into %s', filename)
 
 
 def _do_triangulation(dmap: Depthmap, indices, filehandle):
@@ -115,7 +117,7 @@ def export_pcd(filename: str, dmap: Depthmap):
                     continue
                 confidence = dmap.parse_confidence(x, y)
                 f.write(str(-res[0]) + ' ' + str(res[1]) + ' ' + str(res[2]) + ' ' + str(confidence) + '\n')
-        logging.info('Pointcloud exported into %s', filename)
+        logger.info('Pointcloud exported into %s', filename)
 
 
 def _get_count(dmap: Depthmap) -> int:

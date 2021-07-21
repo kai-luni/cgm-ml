@@ -11,9 +11,15 @@ from azureml.core.run import Run
 
 from constants import DEFAULT_CONFIG, REPO_DIR
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
+logger.addHandler(handler)
+
 
 def copy_dir(src: Path, tgt: Path, glob_pattern: str, should_touch_init: bool = False):
-    logging.info("Creating temp folder")
+    logger.info("Creating temp folder")
     if tgt.exists():
         shutil.rmtree(tgt)
     tgt.mkdir(parents=True, exist_ok=True)
@@ -21,7 +27,7 @@ def copy_dir(src: Path, tgt: Path, glob_pattern: str, should_touch_init: bool = 
         (tgt / '__init__.py').touch(exist_ok=False)
 
     paths_to_copy = list(src.glob(glob_pattern))
-    logging.info(f"Copying to {tgt} the following files: {str(paths_to_copy)}")
+    logger.info(f"Copying to {tgt} the following files: {str(paths_to_copy)}")
     for p in paths_to_copy:
         destpath = tgt / p.relative_to(src)
         destpath.parent.mkdir(parents=True, exist_ok=True)
@@ -59,7 +65,7 @@ if __name__ == "__main__":
 else:
     qa_config_module = DEFAULT_CONFIG
     qa_config = import_module(qa_config_module)
-logging.info('Using the following config: %s', qa_config_module)
+logger.info('Using the following config: %s', qa_config_module)
 
 
 MODEL_CONFIG = qa_config.MODEL_CONFIG
@@ -96,12 +102,12 @@ if __name__ == "__main__":
     qrcode_paths = evaluation.get_the_qr_code_path()
     if getattr(EVAL_CONFIG, 'DEBUG_RUN', False) and len(qrcode_paths) > EVAL_CONFIG.DEBUG_NUMBER_OF_SCAN:
         qrcode_paths = qrcode_paths[:EVAL_CONFIG.DEBUG_NUMBER_OF_SCAN]
-        logging.info("Executing on %d qrcodes for FAST RUN", EVAL_CONFIG.DEBUG_NUMBER_OF_SCAN)
+        logger.info("Executing on %d qrcodes for FAST RUN", EVAL_CONFIG.DEBUG_NUMBER_OF_SCAN)
 
     dataset_evaluation, paths_belonging_to_predictions = evaluation.prepare_dataset(qrcode_paths, FILTER_CONFIG)
     prediction_array = evaluation.get_prediction_(evaluation.model_path_or_paths, dataset_evaluation)
-    logging.info("Prediction made by model on the depthmaps...")
-    logging.info(prediction_array)
+    logger.info("Prediction made by model on the depthmaps...")
+    logger.info(prediction_array)
 
     df = evaluation.prepare_dataframe(paths_belonging_to_predictions, prediction_array, RESULT_CONFIG)
     evaluation.evaluate(df, RESULT_CONFIG, EVAL_CONFIG, OUTPUT_CSV_PATH, descriptor)

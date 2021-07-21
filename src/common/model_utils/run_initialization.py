@@ -12,6 +12,12 @@ from .utils import download_dataset, get_dataset_path
 DATA_DIR_ONLINE_RUN = Path("/tmp/data/")
 REPO_DIR = Path(__file__).parents[3].absolute()
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
+logger.addHandler(handler)
+
 
 class RunInitializer:
     """Setup AzureML and prepare dataset"""
@@ -34,14 +40,14 @@ class OfflineRunInitializer(RunInitializer):
         super().__init__(data_config, eval_config)
 
     def run_azureml_setup(self):
-        logging.info("Running in offline mode...")
-        logging.info("Accessing workspace...")
+        logger.info("Running in offline mode...")
+        logger.info("Accessing workspace...")
         self.workspace = Workspace.from_config()
         self.experiment = Experiment(self.workspace, self._eval_config.EXPERIMENT_NAME)
         self.run = self.experiment.start_logging(outputs=None, snapshot_directory=None)
 
     def get_dataset(self):
-        logging.info("Accessing dataset...")
+        logger.info("Accessing dataset...")
         dataset_name = self._data_config.NAME
         self.dataset_path = str(REPO_DIR / "data" / dataset_name)
         if not os.path.exists(self.dataset_path):
@@ -55,7 +61,7 @@ class OnlineRunInitializer(RunInitializer):
         super().__init__(data_config, eval_config)
 
     def run_azureml_setup(self):
-        logging.info("Running in online mode...")
+        logger.info("Running in online mode...")
         self.experiment = self.run.experiment
         self.workspace = self.experiment.workspace
 

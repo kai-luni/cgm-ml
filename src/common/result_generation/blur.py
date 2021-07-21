@@ -1,5 +1,6 @@
 import os
 import logging
+import logging.config
 from typing import Iterable
 
 import cv2
@@ -12,6 +13,12 @@ CODES_BACK_FACING = ("102", "202")
 CODES_360 = ("101", "201")
 
 RESIZE_FACTOR = 4
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
+logger.addHandler(handler)
 
 
 def blur_faces_in_file(source_path: str, target_path: str) -> bool:
@@ -37,7 +44,7 @@ def blur_faces_in_file(source_path: str, target_path: str) -> bool:
 
     # Check if image should be used.
     if not should_image_be_used(source_path, number_of_faces=len(face_locations)):
-        logging.warn(f"{len(face_locations)} face locations found and not blurred for path: {source_path}")
+        logger.warn(f"{len(face_locations)} face locations found and not blurred for path: {source_path}")
         return False
 
     # Blur the image.
@@ -64,7 +71,7 @@ def blur_faces_in_file(source_path: str, target_path: str) -> bool:
     rgb_image = image[:, :, ::-1]  # BGR -> RGB for OpenCV
     cv2.imwrite(target_path, rgb_image)
 
-    logging.info(f"{len(face_locations)} face locations found and blurred for path: {source_path}")
+    logger.info(f"{len(face_locations)} face locations found and blurred for path: {source_path}")
     return True
 
 

@@ -33,6 +33,12 @@ sys.path.append(str(Path(__file__).parents[1]))
 from model_utils.preprocessing_multiartifact_python import create_multiartifact_paths_for_qrcodes  # noqa: E402
 from model_utils.preprocessing_multiartifact_tensorflow import create_multiartifact_sample  # noqa: E402
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
+logger.addHandler(handler)
+
 
 class Evaluation:
     def __init__(self, model_config: Bunch, data_config: Bunch, model_base_dir: Path, dataset_path: str):
@@ -43,37 +49,37 @@ class Evaluation:
         self._input_location = os.path.join(self.model_config.INPUT_LOCATION, self.model_config.NAME)
 
     def get_the_model_path(self, workspace: Workspace):
-        logging.info(f"Model will download from '{self._input_location}' to '{self.model_base_dir}'")
+        logger.info(f"Model will download from '{self._input_location}' to '{self.model_base_dir}'")
         download_model(workspace=workspace,
                        experiment_name=self.model_config.EXPERIMENT_NAME,
                        run_id=self.model_config.RUN_ID,
                        input_location=self._input_location,
                        output_location=self.model_base_dir)
-        logging.info("Model was downloaded")
+        logger.info("Model was downloaded")
         self.model_path = self.model_base_dir / get_model_path(self.model_config)
         self.model_path_or_paths = self.model_path
 
     def get_the_qr_code_path(self) -> List[str]:
         dataset_path = os.path.join(self.dataset_path, "scans")
-        logging.info('Dataset path: %s', dataset_path)
-        logging.info('Getting QR-code paths...')
+        logger.info('Dataset path: %s', dataset_path)
+        logger.info('Getting QR-code paths...')
         qrcode_paths = glob.glob(os.path.join(dataset_path, "*"))
-        logging.info('qrcode_paths: %d', len(qrcode_paths))
+        logger.info('qrcode_paths: %d', len(qrcode_paths))
         assert len(qrcode_paths) != 0
 
-        logging.info('Paths for evaluation: \n\t' + '\n\t'.join(qrcode_paths))
-        logging.info(len(qrcode_paths))
+        logger.info('Paths for evaluation: \n\t' + '\n\t'.join(qrcode_paths))
+        logger.info(len(qrcode_paths))
         return qrcode_paths
 
     def prepare_dataset(self,
                         qrcode_paths: List[str],
                         filter_config: Bunch) -> Tuple[tf.data.Dataset, List[str]]:
         # Get depthmaps
-        logging.info("Getting Depthmap paths...")
+        logger.info("Getting Depthmap paths...")
         paths_evaluation = get_depthmap_files(qrcode_paths)
         del qrcode_paths
 
-        logging.info("Using %d artifact files for evaluation.", len(paths_evaluation))
+        logger.info("Using %d artifact files for evaluation.", len(paths_evaluation))
 
         paths_belonging_to_predictions = paths_evaluation
 
@@ -81,7 +87,7 @@ class Evaluation:
             standing_model = load_model(filter_config.NAME)
             paths_belonging_to_predictions = filter_dataset_according_to_standing_lying(paths_evaluation,
                                                                                         standing_model)
-        logging.info("Creating dataset for training.")
+        logger.info("Creating dataset for training.")
         paths = paths_belonging_to_predictions
         dataset = tf.data.Dataset.from_tensor_slices(paths)
         dataset_norm = dataset.map(
@@ -98,7 +104,7 @@ class Evaluation:
         dataset_norm = dataset_norm.prefetch(tf.data.experimental.AUTOTUNE)
         temp_dataset_evaluation = dataset_norm
         del dataset_norm
-        logging.info("Created dataset for training.")
+        logger.info("Created dataset for training.")
 
         # Update paths_belonging_to_predictions after filtering
         dataset_paths = temp_dataset_evaluation.map(lambda path, _depthmap, _targets: path)
@@ -139,7 +145,7 @@ class Evaluation:
             idx = self.data_config.TARGET_INDEXES.index(GOODBAD_IDX)
             df[COLUMN_NAME_GOODBAD] = [el[idx] for el in target_list]
 
-        logging.info("df.shape: %s", df.shape)
+        logger.info("df.shape: %s", df.shape)
         return df
 
     def evaluate(self,
@@ -149,12 +155,12 @@ class Evaluation:
                  OUTPUT_CSV_PATH: str,
                  descriptor: str):
         df_grouped = df.groupby(['qrcode', 'scantype']).mean()
-        logging.info("Mean Avg Error: %s", df_grouped)
+        logger.info("Mean Avg Error: %s", df_grouped)
 
         df_grouped['error'] = df_grouped.apply(avgerror, axis=1)
 
         csv_fpath = f"{OUTPUT_CSV_PATH}/{descriptor}.csv"
-        logging.info("Calculate and save the results to %s", csv_fpath)
+        logger.info("Calculate and save the results to %s", csv_fpath)
         calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
                                    self.data_config, result_config, fct=calculate_performance)
 
@@ -163,41 +169,41 @@ class Evaluation:
 
         if 'AGE_BUCKETS' in result_config.keys():
             csv_fpath = f"{OUTPUT_CSV_PATH}/age_evaluation_{descriptor}.csv"
-            logging.info("Calculate and save age results to %s", csv_fpath)
+            logger.info("Calculate and save age results to %s", csv_fpath)
             calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
                                        self.data_config, result_config, fct=calculate_performance_age)
             png_fpath = f"{OUTPUT_CSV_PATH}/age_evaluation_scatter_{descriptor}.png"
-            logging.info("Calculate and save scatterplot results to %s", png_fpath)
+            logger.info("Calculate and save scatterplot results to %s", png_fpath)
             draw_age_scatterplot(df, png_fpath)
 
         if (HEIGHT_IDX in self.data_config.TARGET_INDEXES
                 and AGE_IDX in self.data_config.TARGET_INDEXES
                 and descriptor != self.model_config.EXPERIMENT_NAME):
             png_fpath = f"{OUTPUT_CSV_PATH}/stunting_diagnosis_{descriptor}.png"
-            logging.info("Calculate zscores and save confusion matrix results to %s", png_fpath)
+            logger.info("Calculate zscores and save confusion matrix results to %s", png_fpath)
             start = time.time()
             draw_stunting_diagnosis(df, png_fpath)
             end = time.time()
-            logging.info("Total time for Calculate zscores and save confusion matrix: %.2f", end - start)
+            logger.info("Total time for Calculate zscores and save confusion matrix: %.2f", end - start)
 
         if (WEIGHT_IDX in self.data_config.TARGET_INDEXES
                 and AGE_IDX in self.data_config.TARGET_INDEXES
                 and descriptor != self.model_config.EXPERIMENT_NAME):
             png_fpath = f"{OUTPUT_CSV_PATH}/wasting_diagnosis_{descriptor}.png"
-            logging.info("Calculate and save wasting confusion matrix results to %s", png_fpath)
+            logger.info("Calculate and save wasting confusion matrix results to %s", png_fpath)
             start = time.time()
             draw_wasting_diagnosis(df, png_fpath)
             end = time.time()
-            logging.info("Total time for Calculate zscores and save wasting confusion matrix: %.2f", end - start)
+            logger.info("Total time for Calculate zscores and save wasting confusion matrix: %.2f", end - start)
 
         if SEX_IDX in self.data_config.TARGET_INDEXES:
             csv_fpath = f"{OUTPUT_CSV_PATH}/sex_evaluation_{descriptor}.csv"
-            logging.info("Calculate and save sex results to %s", csv_fpath)
+            logger.info("Calculate and save sex results to %s", csv_fpath)
             calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
                                        self.data_config, result_config, fct=calculate_performance_sex)
         if GOODBAD_IDX in self.data_config.TARGET_INDEXES:
             csv_fpath = f"{OUTPUT_CSV_PATH}/goodbad_evaluation_{descriptor}.csv"
-            logging.info("Calculate performance on bad/good scans and save results to %s", csv_fpath)
+            logger.info("Calculate performance on bad/good scans and save results to %s", csv_fpath)
             calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
                                        self.data_config, result_config, fct=calculate_performance_goodbad)
 
@@ -209,7 +215,7 @@ class EnsembleEvaluation(Evaluation):
     def get_the_model_path(self, workspace: Workspace):
         """Get multiple model paths"""
         for run_id in self.model_config.RUN_IDS:
-            logging.info(f"Downloading run {run_id}")
+            logger.info(f"Downloading run {run_id}")
             download_model(
                 workspace=workspace,
                 experiment_name=self.model_config.EXPERIMENT_NAME,
@@ -221,8 +227,8 @@ class EnsembleEvaluation(Evaluation):
         model_paths = [p for p in model_paths if os.path.isdir(p)]
         model_paths = [p for p in model_paths if p.split("/")[-1].startswith(self.model_config.EXPERIMENT_NAME)]
         model_paths = [os.path.join(p, self.model_config.INPUT_LOCATION, self.model_config.NAME) for p in model_paths]
-        logging.info(f"Models paths ({len(model_paths)}):")
-        logging.info("\t" + "\n\t".join(model_paths))
+        logger.info(f"Models paths ({len(model_paths)}):")
+        logger.info("\t" + "\n\t".join(model_paths))
         self.model_paths = model_paths
         self.model_path_or_paths = model_paths
 
@@ -271,8 +277,8 @@ class EnsembleEvaluation(Evaluation):
         df_sample['error'] = df_sample.apply(avgerror, axis=1).abs()
         df_sample_better_threshold = df_sample[df_sample['uncertainties'] < result_config.UNCERTAINTY_THRESHOLD_IN_CM]
         csv_fpath = f"{OUTPUT_CSV_PATH}/uncertainty_smaller_than_{result_config.UNCERTAINTY_THRESHOLD_IN_CM}cm.csv"
-        logging.info("Uncertainty: For more certain than %.2f cm, calculate and save the results to %s",
-                     result_config.UNCERTAINTY_THRESHOLD_IN_CM, csv_fpath)
+        logger.info("Uncertainty: For more certain than %.2f cm, calculate and save the results to %s",
+                    result_config.UNCERTAINTY_THRESHOLD_IN_CM, csv_fpath)
         calculate_and_save_results(df_sample_better_threshold, eval_config.NAME, csv_fpath,
                                    self.data_config, result_config, fct=calculate_performance)
 
@@ -336,5 +342,5 @@ class MultiartifactEvaluation(Evaluation):
             idx = self.data_config.TARGET_INDEXES.index(GOODBAD_IDX)
             df[COLUMN_NAME_GOODBAD] = [el[idx] for el in target_list]
 
-        logging.info("df.shape: %s", df.shape)
+        logger.info("df.shape: %s", df.shape)
         return df

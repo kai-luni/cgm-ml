@@ -6,8 +6,11 @@ import logging.config
 import numpy as np
 import tensorflow as tf
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
+logger.addHandler(handler)
 
 
 def create_multiartifact_sample(artifacts: List[str],
@@ -37,8 +40,8 @@ def create_multiartifact_sample(artifacts: List[str],
         targets_list.append(targets)
     targets = targets_list[0]
     if not np.all(targets_list == targets):
-        logging.info('Warning: Not all targets are the same!! \n target_list: %s \n artifacts: %s: ',
-                     targets_list, artifacts)
+        logger.info('Warning: Not all targets are the same!! \n target_list: %s \n artifacts: %s: ',
+                    targets_list, artifacts)
     return depthmaps, targets
 
 
