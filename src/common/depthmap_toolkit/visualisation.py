@@ -38,7 +38,7 @@ def blur_face(data: np.array, subplot: int, highest: list, dmap: Depthmap) -> np
         for y in range(dmap.height):
 
             # count distance from the highest child point
-            depth = dmap.parse_depth(x, y)
+            depth = dmap.depthmap_arr[x, y]
             if not depth:
                 continue
             point = dmap.convert_2d_to_3d_oriented(1, x, y, depth)
@@ -55,10 +55,10 @@ def blur_face(data: np.array, subplot: int, highest: list, dmap: Depthmap) -> np
                     if not (0 < tx < dmap.width and 0 < ty < dmap.height):
                         continue
                     index = subplot * dmap.height + dmap.height - ty - 1
-                    pixel = pixel + data[tx][index][0]
+                    pixel = pixel + data[tx, index, 0]
                     count = count + 1
             index = subplot * dmap.height + dmap.height - y - 1
-            output[x][index] = pixel / count
+            output[x, index] = pixel / count
 
     return output
 
@@ -69,9 +69,9 @@ def render_confidence(output: np.array,
     for x in range(dmap.width):
         for y in range(dmap.height):
             index = subplot * dmap.height + dmap.height - y - 1
-            output[x][index][:] = dmap.parse_confidence(x, y)
-            if output[x][index][0] == 0:
-                output[x][index][:] = 1
+            output[x, index, :] = dmap.confidence_arr[x, y]
+            if output[x, index, 0] == 0:
+                output[x, index, :] = 1
 
 
 def render_depth(output: np.array,
@@ -79,11 +79,11 @@ def render_depth(output: np.array,
                  dmap: Depthmap):
     for x in range(dmap.width):
         for y in range(dmap.height):
-            depth = dmap.parse_depth(x, y)
+            depth = dmap.depthmap_arr[x, y]
             if not depth:
                 continue
             index = subplot * dmap.height + dmap.height - y - 1
-            output[x][index] = min(max(0, 1.0 - min(depth / 2.0, 1.0)), 1)
+            output[x, index] = min(max(0, 1.0 - min(depth / 2.0, 1.0)), 1)
 
 
 def render_normal(output: np.array,
@@ -93,9 +93,9 @@ def render_normal(output: np.array,
         for y in range(dmap.height):
             normal = dmap.calculate_normal_vector(x, y)
             index = subplot * dmap.height + dmap.height - y - 1
-            output[x][index][0] = abs(normal[0])
-            output[x][index][1] = abs(normal[1])
-            output[x][index][2] = abs(normal[2])
+            output[x, index, 0] = abs(normal[0])
+            output[x, index, 1] = abs(normal[1])
+            output[x, index, 2] = abs(normal[2])
 
 
 def render_rgb(output: np.array,
@@ -104,9 +104,9 @@ def render_rgb(output: np.array,
     for x in range(dmap.width):
         for y in range(dmap.height):
             index = subplot * dmap.height + dmap.height - y - 1
-            output[x][index][0] = dmap.rgb_array[y][x][0] / 255.0
-            output[x][index][1] = dmap.rgb_array[y][x][1] / 255.0
-            output[x][index][2] = dmap.rgb_array[y][x][2] / 255.0
+            output[x, index, 0] = dmap.rgb_array[y, x, 0] / 255.0
+            output[x, index, 1] = dmap.rgb_array[y, x, 1] / 255.0
+            output[x, index, 2] = dmap.rgb_array[y, x, 2] / 255.0
 
 
 def render_segmentation(output: np.array,
@@ -118,7 +118,7 @@ def render_segmentation(output: np.array,
         for y in range(dmap.height):
 
             # get depth value
-            depth = dmap.parse_depth(x, y)
+            depth = dmap.depthmap_arr[x, y]
             if not depth:
                 continue
 
@@ -130,21 +130,21 @@ def render_segmentation(output: np.array,
             vertical_z = (point[2] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS
             vertical = (vertical_x + vertical_z) / 2.0
             index = subplot * dmap.height + dmap.height - y - 1
-            if mask[x][y] == MASK_CHILD:
-                output[x][index][0] = horizontal / (depth * depth)
-                output[x][index][1] = horizontal / (depth * depth)
+            if mask[x, y] == MASK_CHILD:
+                output[x, index, 0] = horizontal / (depth * depth)
+                output[x, index, 1] = horizontal / (depth * depth)
             elif abs(normal[1]) < 0.5:
-                output[x][index][0] = horizontal / (depth * depth)
+                output[x, index, 0] = horizontal / (depth * depth)
             elif abs(normal[1]) > 0.5:
                 if abs(point[1] - floor) < 0.1:
-                    output[x][index][2] = vertical / (depth * depth)
+                    output[x, index, 2] = vertical / (depth * depth)
                 else:
-                    output[x][index][1] = vertical / (depth * depth)
+                    output[x, index, 1] = vertical / (depth * depth)
 
             # ensure pixel clipping
-            output[x][index][0] = min(max(0, output[x][index][0]), 1)
-            output[x][index][1] = min(max(0, output[x][index][1]), 1)
-            output[x][index][2] = min(max(0, output[x][index][2]), 1)
+            output[x, index, 0] = min(max(0, output[x, index, 0]), 1)
+            output[x, index, 1] = min(max(0, output[x, index, 1]), 1)
+            output[x, index, 2] = min(max(0, output[x, index, 2]), 1)
 
 
 def render_plot(dmap: Depthmap) -> np.array:
