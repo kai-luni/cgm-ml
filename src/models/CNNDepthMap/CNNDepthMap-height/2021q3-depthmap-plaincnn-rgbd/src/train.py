@@ -121,9 +121,9 @@ logger.info('Using %d files for validation.', len(paths_validate))
 
 def tf_load_pickle(path, max_value):
     def py_load_pickle(path, max_value):
-        rgbd, targets = pickle.load(open(path.numpy(), "rb"))
-        rgb = rgbd[0]  # shape: (240, 180, 3)
-        depthmap = rgbd[1]  # shape: (240, 180)
+        rgbd_tuple, targets = pickle.load(open(path.numpy(), "rb"))
+        rgb = rgbd_tuple[0]  # shape: (240, 180, 3)
+        depthmap = rgbd_tuple[1]  # shape: (240, 180)
 
         rgb = preprocess_depthmap(rgb)
         rgb = rgb / 255.
@@ -146,21 +146,23 @@ def tf_load_pickle(path, max_value):
 paths = paths_training
 dataset = tf.data.Dataset.from_tensor_slices(paths)
 dataset = dataset.cache()
-dataset_norm = dataset.map(lambda path: tf_load_pickle(path, CONFIG.NORMALIZATION_VALUE))
-dataset_norm = dataset_norm.prefetch(tf.data.experimental.AUTOTUNE)
-dataset_norm = dataset_norm.shuffle(CONFIG.SHUFFLE_BUFFER_SIZE)
-dataset_training = dataset_norm
-del dataset_norm
+dataset = dataset.map(lambda path: tf_load_pickle(path, CONFIG.NORMALIZATION_VALUE),
+                      num_parallel_calls=tf.data.AUTOTUNE)
+dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+dataset = dataset.shuffle(CONFIG.SHUFFLE_BUFFER_SIZE)
+dataset_training = dataset
+del dataset
 
 # Create dataset for validation.
 # Note: No shuffle necessary.
 paths = paths_validate
 dataset = tf.data.Dataset.from_tensor_slices(paths)
 dataset = dataset.cache()
-dataset_norm = dataset.map(lambda path: tf_load_pickle(path, CONFIG.NORMALIZATION_VALUE))
-dataset_norm = dataset_norm.prefetch(tf.data.experimental.AUTOTUNE)
-dataset_validation = dataset_norm
-del dataset_norm
+dataset = dataset.map(lambda path: tf_load_pickle(path, CONFIG.NORMALIZATION_VALUE),
+                      num_parallel_calls=tf.data.AUTOTUNE)
+dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+dataset_validation = dataset
+del dataset
 
 # Note: Now the datasets are prepared.
 
