@@ -3,15 +3,13 @@ import math
 import sys
 from typing import List, Optional, Tuple
 from pathlib import Path
-import statistics
 
+from scipy import ndimage
 import numpy as np
 from PIL import Image
 
-from depthmap_utils import (
-    matrix_calculate, IDENTITY_MATRIX_4D, parse_numbers, diff, cross, norm, matrix_transform_point)
+from depthmap_utils import matrix_calculate, IDENTITY_MATRIX_4D, parse_numbers
 from constants import EXTRACTED_DEPTH_FILE_NAME, MASK_FLOOR, MASK_CHILD, MASK_INVALID
-
 
 TOOLKIT_DIR = Path(__file__).parents[0].absolute()
 
@@ -21,6 +19,39 @@ def extract_depthmap(depthmap_dir: str, depthmap_fname: str):
     with zipfile.ZipFile(Path(depthmap_dir) / 'depth' / depthmap_fname, 'r') as zip_ref:
         zip_ref.extractall(TOOLKIT_DIR)
     return TOOLKIT_DIR / EXTRACTED_DEPTH_FILE_NAME
+
+
+def smoothen_depthmap_array(image_arr: np.ndarray) -> np.ndarray:
+    """Smoothen image array by averaging with direct neighbor pixels.
+
+    Args:
+        image_arr: shape (width, height)
+
+    Returns:
+        shape (width, height)
+    """
+
+    # Apply a convolution
+    conv_filter = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+    conv_filter = conv_filter / conv_filter.sum()
+    smooth_image_arr = ndimage.convolve(image_arr, conv_filter)
+
+    # Create mask which is 0 if any of the pixels in the convolution is 0
+    smooth_center = (image_arr == 0.)
+    smooth_right = np.zeros(image_arr.shape, dtype=bool)
+    smooth_left = np.zeros(image_arr.shape, dtype=bool)
+    smooth_up = np.zeros(image_arr.shape, dtype=bool)
+    smooth_down = np.zeros(image_arr.shape, dtype=bool)
+    smooth_right[1:, :] = smooth_center[:-1, :]
+    smooth_left[:-1, :] = smooth_center[1:, :]
+    smooth_up[:, 1:] = smooth_center[:, :-1]
+    smooth_down[:, :-1] = smooth_center[:, 1:]
+    mask = (smooth_center | smooth_right | smooth_left | smooth_up | smooth_down)
+
+    # Apply mask
+    smooth_image_arr[mask] = 0.
+
+    return smooth_image_arr
 
 
 class Depthmap:
@@ -59,16 +90,30 @@ class Depthmap:
 
         Either `data` or `depthmap_arr` has to be defined
         """
-        self.intrinsics = intrinsics
         self.width = width
         self.height = height
+
+        self._intrinsics = intrinsics
+        self.intrinsics = np.array(intrinsics)
+        self.sensor = 1
+
+        self.fx = self.intrinsics[self.sensor, 0] * self.width
+        self.fy = self.intrinsics[self.sensor, 1] * self.height
+        self.cx = self.intrinsics[self.sensor, 2] * self.width
+        self.cy = self.intrinsics[self.sensor, 3] * self.height
+
         self.depth_scale = depth_scale
         self.max_confidence = max_confidence
         self.device_pose = device_pose
+        self.device_pose_arr = np.array(device_pose).reshape(4, 4).T
         self.rgb_fpath = rgb_fpath
         self.rgb_array = rgb_array
         assert depthmap_arr is None or data is None
         self.depthmap_arr = self._parse_depth_data(data) if data else depthmap_arr
+
+        # smoothing is only for normals, otherwise there is noise
+        self.depthmap_arr_smooth = smoothen_depthmap_array(self.depthmap_arr)
+
         self.confidence_arr = self._parse_confidence_data(data) if data else None
 
     @property
@@ -154,72 +199,106 @@ class Depthmap:
                    rgb_array,
                    )
 
-    def calculate_normal_vector(self, x: float, y: float) -> list:
-        """Calculate normal vector of depthmap point based on neighbors"""
+    def calculate_normalmap_array(self, points_3d_arr: np.array) -> np.array:
+        """Calculate normalmap consisting of normal vectors.
+
+        A normal vector is based on a surface.
+        The surface is constructed by a 3D point and it's neighbors.
+
+        points_3d_arr: shape (3, width, height)
+
+        Returns:
+            3D points: shape (3, width, height)
+        """
 
         # Get depth of the neighbor pixels
-        depth_center = self.parse_depth_smoothed(x, y)
-        depth_x_minus = self.parse_depth_smoothed(x - 1, y)
-        depth_y_minus = self.parse_depth_smoothed(x, y - 1)
-
-        # Create a triangle from neighbor points
-        point_a = self.convert_2d_to_3d_oriented(1, x, y, depth_center)
-        point_b = self.convert_2d_to_3d_oriented(1, x - 1, y, depth_x_minus)
-        point_c = self.convert_2d_to_3d_oriented(1, x, y - 1, depth_y_minus)
+        dim_w = self.width - 1
+        dim_h = self.height - 1
+        depth_center = points_3d_arr[:, 1:, 1:].reshape(3, dim_w * dim_h)
+        depth_x_minus = points_3d_arr[:, 0:-1, 1:].reshape(3, dim_w * dim_h)
+        depth_y_minus = points_3d_arr[:, 1:, 0:-1].reshape(3, dim_w * dim_h)
 
         # Calculate a normal of the triangle
-        vector_u = diff(point_a, point_b)
-        vector_v = diff(point_a, point_c)
-        normal = cross(vector_u, vector_v)
+        vector_u = depth_center - depth_x_minus
+        vector_v = depth_center - depth_y_minus
 
-        # Ensure the normal has a length of one
-        return norm(normal)
+        normal = np.cross(vector_u, vector_v, axisa=0, axisb=0, axisc=0)
 
-    def convert_2d_to_3d(self, sensor: int, x: float, y: float, depth: float) -> list:
-        """Convert point in pixels into point in meters"""
-        fx = self.intrinsics[sensor][0] * float(self.width)
-        fy = self.intrinsics[sensor][1] * float(self.height)
-        cx = self.intrinsics[sensor][2] * float(self.width)
-        cy = self.intrinsics[sensor][3] * float(self.height)
+        normal = normalize(normal)
+
+        normal = normal.reshape(3, dim_w, dim_h)
+
+        # add black border to keep the dimensionality
+        output = np.zeros((3, self.width, self.height))
+        output[:, 1:, 1:] = normal
+        return output
+
+    def convert_2d_to_3d(self, sensor: int, x: float, y: float, depth: float) -> np.array:
+        """Convert point in pixels into point in meters
+
+        Args:
+            sensor: Index of sensor
+            x
+            y
+            depth
+
+        Returns:
+            3D point
+        """
+        fx = self.intrinsics[sensor, 0] * self.width
+        fy = self.intrinsics[sensor, 1] * self.height
+        cx = self.intrinsics[sensor, 2] * self.width
+        cy = self.intrinsics[sensor, 3] * self.height
         tx = (x - cx) * depth / fx
         ty = (y - cy) * depth / fy
-        return [tx, ty, depth]
+        return np.array([tx, ty, depth])
 
-    def convert_2d_to_3d_oriented(self, sensor: int, x: float, y: float, depth: float) -> list:
-        """Convert point in pixels into point in meters (applying rotation)"""
-        res = self.convert_2d_to_3d(sensor, x, y, depth)
-        if not res:
-            return res
+    def convert_2d_to_3d_oriented(self, should_smooth: bool = False) -> np.array:
+        """Convert points in pixels into points in meters (and applying rotation)
 
-        res = [-res[0], res[1], res[2]]
-        if is_google_tango_resolution(self.width, self.height):
-            res = [-res[0], -res[1], res[2]]
+        Args:
+            should_smooth: Flag indicating weather to use a smoothed or an un-smoothed depthmap
 
-        if not self.device_pose:
-            logging.warn("Device pose matrix was not provided.")
-            return res
-        try:
-            res = matrix_transform_point(res, self.device_pose)
-            res = [res[0], -res[1], res[2]]
-        except NameError:
-            pass
+        Returns:
+            array of 3D points: shape(3, width, height)
+        """
+        depth = self.depthmap_arr_smooth if should_smooth else self.depthmap_arr  # shape: (width, height)
+
+        xbig = np.expand_dims(np.array(range(self.width)), -1).repeat(self.height, axis=1)  # shape: (width, height)
+        ybig = np.expand_dims(np.array(range(self.height)), 0).repeat(self.width, axis=0)  # shape: (width, height)
+
+        # Convert point in pixels into point in meters
+        tx = depth * (xbig - self.cx) / self.fx
+        ty = depth * (ybig - self.cy) / self.fy
+        dim4 = np.ones((self.width, self.height))
+        res = np.stack([-tx, ty, depth, dim4], axis=0)
+
+        # Transformation of point by device pose matrix
+        points_4d = res.reshape((4, self.width * self.height))
+        output = np.matmul(self.device_pose_arr, points_4d)
+        output[0:2, :] = output[0:2, :] / abs(output[3, :])
+        output = output.reshape((4, self.width, self.height))
+        res = output[0:-1]
+
+        # Invert y axis
+        res[1, :, :] = -res[1, :, :]
         return res
 
-    def detect_child(self, floor: float) -> np.array:
+    def segment_child(self, floor: float) -> np.array:
         mask, segments = self.detect_objects(floor)
 
         # Select the most focused segment
         closest = sys.maxsize
         focus = -1
-        for segment in segments:
-            a = segment[1][0] - int(self.width / 2)
-            b = segment[1][1] - int(self.height / 2)
-            c = segment[1][2] - int(self.width / 2)
-            d = segment[1][3] - int(self.height / 2)
+        for current, aabb in segments:
+            a = aabb[0] - int(self.width / 2)
+            b = aabb[1] - int(self.height / 2)
+            c = aabb[2] - int(self.width / 2)
+            d = aabb[3] - int(self.height / 2)
             distance = a * a + b * b + c * c + d * d
             if closest > distance:
                 closest = distance
-                focus = segment[0]
+                focus = current
 
         mask = np.where(mask == focus, MASK_CHILD, mask)
 
@@ -227,21 +306,23 @@ class Depthmap:
 
     def detect_floor(self, floor: float) -> np.array:
         mask = np.zeros((self.width, self.height))
-        for x in range(self.width):
-            for y in range(self.height):
-                depth = self.parse_depth_smoothed(x, y)
-                if not depth:
-                    mask[x, y] = MASK_INVALID
-                    continue
-                normal = self.calculate_normal_vector(x, y)
-                point = self.convert_2d_to_3d_oriented(1, x, y, depth)
-                if abs(normal[1]) > 0.5 and abs(point[1] - floor) < 0.1:
-                    mask[x, y] = MASK_FLOOR
+        assert self.depthmap_arr_smooth.shape == (self.width, self.height)
+        mask[self.depthmap_arr_smooth == 0] = MASK_INVALID
 
+        points_3d_arr = self.convert_2d_to_3d_oriented(should_smooth=True)
+        normal = self.calculate_normalmap_array(points_3d_arr)
+
+        cond1 = np.abs(normal[1, :, :]) > 0.5
+        cond2 = (points_3d_arr[1, :, :] - floor) < 0.1
+        per_pixel_cond = cond1 & cond2
+        mask[per_pixel_cond] = MASK_FLOOR
         return mask
 
-    def detect_objects(self, floor: float) -> Tuple[np.array, list]:
-        # Detect objects/children using seed algorithm
+    def detect_objects(self, floor: float) -> Tuple[np.array, List[Tuple[int, List[int]]]]:
+        """Detect objects/children using seed algorithm
+
+        Can likely not be used without for-loops over x,y
+        """
         current = -1
         segments = []
         dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]]
@@ -286,36 +367,48 @@ class Depthmap:
 
     def get_angle_between_camera_and_floor(self) -> float:
         """Calculate an angle between camera and floor based on device pose"""
-        centerx = float(self.width / 2)
-        centery = float(self.height / 2)
-        vector = self.convert_2d_to_3d_oriented(1, centerx, centery, 1.0)
-        angle = 90 + math.degrees(math.atan2(vector[0], vector[1]))
+        centerx = int(self.width / 2)
+        centery = int(self.height / 2)
+        points_3d_arr = self.convert_2d_to_3d_oriented()  # shape: (3, width, height)
+        # TODO revert to original code (depth=1 is important)
+
+        point = points_3d_arr[:, centerx, centery]  # shape: (3,)
+        angle = 90 + math.degrees(math.atan2(point[0], point[1]))
         return angle
 
     def get_floor_level(self) -> float:
         """Calculate an altitude of the floor in the world coordinates"""
-        altitudes = []
-        for x in range(self.width):
-            for y in range(self.height):
-                normal = self.calculate_normal_vector(x, y)
-                if abs(normal[1]) > 0.5:
-                    depth = self.depthmap_arr[x, y]
-                    point = self.convert_2d_to_3d_oriented(1, x, y, depth)
-                    altitudes.append(point[1])
-        return statistics.median(altitudes)
 
-    def get_highest_point(self, mask: np.array) -> list:
-        highest = [-sys.maxsize, -sys.maxsize, -sys.maxsize]
+        # Get normal vectors
+        mask = np.zeros((self.width, self.height))
+        assert self.depthmap_arr_smooth.shape == (self.width, self.height)
+        mask[self.depthmap_arr_smooth == 0] = MASK_INVALID
+        points_3d_arr = self.convert_2d_to_3d_oriented(should_smooth=True)
+        normal = self.calculate_normalmap_array(points_3d_arr)
+
+        cond = np.abs(normal[1, :, :]) > 0.5
+        selection_of_points = points_3d_arr[1, :, :][cond]
+        median = np.median(selection_of_points)
+        return median
+
+    def get_highest_point(self, mask: np.array) -> np.array:  # TODO remove for-loops
+        highest_point = np.array([-sys.maxsize, -sys.maxsize, -sys.maxsize])
+        points_3d_arr = self.convert_2d_to_3d_oriented()
+
         for x in range(self.width):
             for y in range(self.height):
                 if mask[x, y] == MASK_CHILD:
-                    depth = self.depthmap_arr[x, y]
-                    point = self.convert_2d_to_3d_oriented(1, x, y, depth)
-                    if highest[1] < point[1]:
-                        highest = point
-        return highest
+                    point = points_3d_arr[:, x, y]
+                    if highest_point[1] < point[1]:
+                        highest_point = point
+        return highest_point
 
     def _parse_confidence_data(self, data) -> np.array:
+        """Parse depthmap confidence
+
+        Returns:
+            2D array of floats
+        """
         output = np.zeros((self.width, self.height))
         for x in range(self.width):
             for y in range(self.height):
@@ -342,34 +435,12 @@ class Depthmap:
         depth *= self.depth_scale
         return depth
 
-    def parse_depth_smoothed(self, tx: int, ty) -> float:
-        """Get average depth value from neighboring pixels"""
-        if tx - 1 < 0 or ty - 1 < 0:
-            return 0.
-        if tx + 1 >= self.width - 1 or ty + 1 >= self.height - 1:
-            return 0.
-
-        # Get all neighbor depths
-        depth_center = self.depthmap_arr[tx, ty]
-        depth_x_minus = self.depthmap_arr[tx - 1, ty]
-        depth_x_plus = self.depthmap_arr[tx + 1, ty]
-        depth_y_minus = self.depthmap_arr[tx, ty - 1]
-        depth_y_plus = self.depthmap_arr[tx, ty + 1]
-
-        # Ensure the depth is defined
-        if 0 in [depth_center, depth_x_plus, depth_y_minus, depth_y_plus]:
-            return 0.
-
-        # Average the depth value
-        depths = [depth_x_minus, depth_x_plus, depth_y_minus, depth_y_plus, depth_center]
-        return sum(depths) / len(depths)
-
 
 def convert_3d_to_2d(intrinsics: list, x: float, y: float, depth: float, width: int, height: int) -> list:
     """Convert point in meters into point in pixels
 
         Args:
-            intrinsics: is the calibration of the RGB/ToF sensor lenses
+            intrinsics of sensor: Tells if this is ToF sensor or RGB sensor
             x: X-pos in m
             y: Y-pos in m
             depth: distance from sensor to object at (x, y)
@@ -409,3 +480,19 @@ def parse_calibration(filepath: str) -> List[List[float]]:
 def is_google_tango_resolution(width, height):
     """Check for special case for Google Tango devices with different rotation"""
     return width == 180 and height == 135
+
+
+def normalize(vectors: np.array) -> np.array:
+    """Ensure the normal has a length of one
+
+    This way of normalizing is commonly used for normals.
+    It achieves that normals are of size 1.
+
+    Args:
+        vectors (np.array): Multiple vectors (e.g. could be normals)
+
+    Returns:
+        This achieves: abs(x) + abs(y) + abs(z) = 1
+    """
+    length = abs(vectors[0]) + abs(vectors[1]) + abs(vectors[2])
+    return vectors / length

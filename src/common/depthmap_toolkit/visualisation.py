@@ -5,7 +5,6 @@ import numpy as np
 
 from constants import MASK_CHILD
 from depthmap import Depthmap
-from depthmap_utils import diff, length
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -15,23 +14,26 @@ logger.addHandler(handler)
 
 CHILD_HEAD_HEIGHT_IN_METERS = 0.25
 PATTERN_LENGTH_IN_METERS = 0.1
-
-SUBPLOT_DEPTH = 0
-SUBPLOT_NORMAL = 1
-SUBPLOT_SEGMENTATION = 2
-SUBPLOT_CONFIDENCE = 3
-SUBPLOT_RGB = 4
-SUBPLOT_COUNT = 5
+IDX_RED = 0
+IDX_GREEN = 1
+IDX_BLUE = 2
 
 
-def blur_face(data: np.array, subplot: int, highest: list, dmap: Depthmap) -> np.array:
+def blur_face(data: np.array, highest_point: np.array, dmap: Depthmap) -> np.array:
     """Faceblur of the detected standing child.
 
     It uses the highest point of the child and blur all pixels in distance less than CHILD_HEAD_HEIGHT_IN_METERS.
-    """
 
-    # copy values
+    Args:
+        data: existing canvas to blur
+        highest_point: 3D point. The surroundings of this point will be blurred.
+        dmap: depthmap
+
+    Returns:
+        Canvas like data with face blurred.
+    """
     output = np.copy(data)
+    points_3d_arr = dmap.convert_2d_to_3d_oriented()
 
     # blur RGB data around face
     for x in range(dmap.width):
@@ -41,79 +43,101 @@ def blur_face(data: np.array, subplot: int, highest: list, dmap: Depthmap) -> np
             depth = dmap.depthmap_arr[x, y]
             if not depth:
                 continue
-            point = dmap.convert_2d_to_3d_oriented(1, x, y, depth)
-            distance = length(diff(point, highest))
+            point = points_3d_arr[:, x, y]
+
+            vector = point - highest_point
+            distance = abs(vector[0]) + abs(vector[1]) + abs(vector[2])
             if distance >= CHILD_HEAD_HEIGHT_IN_METERS:
                 continue
 
             # Gausian blur
-            pixel = [0, 0, 0]
+            pixel = np.array([0, 0, 0])
             count = 0
             step = 5
             for tx in range(x - step, x + step):
                 for ty in range(y - step, y + step):
                     if not (0 < tx < dmap.width and 0 < ty < dmap.height):
                         continue
-                    index = subplot * dmap.height + dmap.height - ty - 1
+                    index = dmap.height - ty - 1
                     pixel = pixel + data[tx, index, 0]
                     count = count + 1
-            index = subplot * dmap.height + dmap.height - y - 1
+            index = dmap.height - y - 1
             output[x, index] = pixel / count
 
     return output
 
 
-def render_confidence(output: np.array,
-                      subplot: int,
-                      dmap: Depthmap):
+def render_confidence(dmap: Depthmap):
+    confidence = dmap.confidence_arr
+    confidence[confidence == 0.] = 1.
+
+    confidence = np.fliplr(confidence)  # flip left-right
+    output = np.stack([confidence, confidence, confidence], axis=2)
+    return output
+
+
+def render_depth(dmap: Depthmap, use_smooth=False) -> np.array:
+    """Render depthmap into a 2D image.
+
+    We assume here that all values in dmap.depthmap_arr are positive.
+
+    A distance of 0m is visualized in white.
+    A distance of 2m is visualized in black.
+
+    flashlight analogy: close-to-cam data is white
+    """
+    if use_smooth:
+        dmap_arr = np.minimum(dmap.depthmap_arr_smooth / 2., 1.)
+    else:
+        dmap_arr = np.minimum(dmap.depthmap_arr / 2., 1.)
+
+    cond = (dmap_arr != 0.)
+    dmap_arr[cond] = 1. - dmap_arr[cond]
+
+    dmap_arr = np.fliplr(dmap_arr)  # flip left-right
+    output = np.stack([dmap_arr, dmap_arr, dmap_arr], axis=2)
+    return output
+
+
+def render_normal(dmap: Depthmap) -> np.array:
+    """Render normal vectors
+
+    How normal vector are visualized:
+    When a vector has (x,y,z)=(1,0,0), this will show in red color.
+    When a vector has (x,y,z)=(0,1,0), this will show in green color (e.g. floor).
+    When a vector has (x,y,z)=(0,0,1), this will show in blue color.
+    """
+
+    points_3d_arr = dmap.convert_2d_to_3d_oriented(should_smooth=True)
+    normal = dmap.calculate_normalmap_array(points_3d_arr)
+
+    # We can't see negative values, so we take the absolute value
+    normal = abs(normal)  # 3 x w x h
+
+    output = np.moveaxis(normal, 0, -1)
+    output = np.fliplr(output)  # flip left-right
+    return output
+
+
+def render_rgb(dmap: Depthmap) -> np.array:  # TODO remove for-loops
+    output = np.zeros((dmap.width, dmap.height, 3))
     for x in range(dmap.width):
         for y in range(dmap.height):
-            index = subplot * dmap.height + dmap.height - y - 1
-            output[x, index, :] = dmap.confidence_arr[x, y]
-            if output[x, index, 0] == 0:
-                output[x, index, :] = 1
-
-
-def render_depth(output: np.array,
-                 subplot: int,
-                 dmap: Depthmap):
-    for x in range(dmap.width):
-        for y in range(dmap.height):
-            depth = dmap.depthmap_arr[x, y]
-            if not depth:
-                continue
-            index = subplot * dmap.height + dmap.height - y - 1
-            output[x, index] = min(max(0, 1.0 - min(depth / 2.0, 1.0)), 1)
-
-
-def render_normal(output: np.array,
-                  subplot: int,
-                  dmap: Depthmap):
-    for x in range(dmap.width):
-        for y in range(dmap.height):
-            normal = dmap.calculate_normal_vector(x, y)
-            index = subplot * dmap.height + dmap.height - y - 1
-            output[x, index, 0] = abs(normal[0])
-            output[x, index, 1] = abs(normal[1])
-            output[x, index, 2] = abs(normal[2])
-
-
-def render_rgb(output: np.array,
-               subplot: int,
-               dmap: Depthmap):
-    for x in range(dmap.width):
-        for y in range(dmap.height):
-            index = subplot * dmap.height + dmap.height - y - 1
+            index = dmap.height - y - 1
             output[x, index, 0] = dmap.rgb_array[y, x, 0] / 255.0
             output[x, index, 1] = dmap.rgb_array[y, x, 1] / 255.0
             output[x, index, 2] = dmap.rgb_array[y, x, 2] / 255.0
+    return output
 
 
-def render_segmentation(output: np.array,
-                        subplot: int,
-                        floor: float,
+def render_segmentation(floor: float,
                         mask: np.array,
-                        dmap: Depthmap):
+                        dmap: Depthmap) -> np.array:
+    output = np.zeros((dmap.width, dmap.height, 3))
+
+    point = dmap.convert_2d_to_3d_oriented(should_smooth=True)
+    normal = dmap.calculate_normalmap_array(point)
+
     for x in range(dmap.width):
         for y in range(dmap.height):
 
@@ -123,45 +147,53 @@ def render_segmentation(output: np.array,
                 continue
 
             # segmentation visualisation
-            normal = dmap.calculate_normal_vector(x, y)
-            point = dmap.convert_2d_to_3d_oriented(1, x, y, depth)
-            horizontal = (point[1] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS
-            vertical_x = (point[0] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS
-            vertical_z = (point[2] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS
+            horizontal = (point[1, x, y] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS
+            vertical_x = (point[0, x, y] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS
+            vertical_z = (point[2, x, y] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS
             vertical = (vertical_x + vertical_z) / 2.0
-            index = subplot * dmap.height + dmap.height - y - 1
-            if mask[x, y] == MASK_CHILD:
-                output[x, index, 0] = horizontal / (depth * depth)
-                output[x, index, 1] = horizontal / (depth * depth)
-            elif abs(normal[1]) < 0.5:
-                output[x, index, 0] = horizontal / (depth * depth)
-            elif abs(normal[1]) > 0.5:
-                if abs(point[1] - floor) < 0.1:
-                    output[x, index, 2] = vertical / (depth * depth)
-                else:
-                    output[x, index, 1] = vertical / (depth * depth)
+            index = dmap.height - y - 1
 
-            # ensure pixel clipping
-            output[x, index, 0] = min(max(0, output[x, index, 0]), 1)
-            output[x, index, 1] = min(max(0, output[x, index, 1]), 1)
-            output[x, index, 2] = min(max(0, output[x, index, 2]), 1)
+            if mask[x, y] == MASK_CHILD:
+                # Red + Green = Yellow
+                output[x, index, IDX_RED] = horizontal
+                output[x, index, IDX_GREEN] = horizontal
+            elif abs(normal[1, x, y]) < 0.5:
+                output[x, index, IDX_RED] = horizontal
+            else:
+                if abs(point[1, x, y] - floor) < 0.1:
+                    output[x, index, IDX_BLUE] = vertical
+                else:
+                    output[x, index, IDX_GREEN] = vertical
+
+    # Fog effect: achieved by deviding by depth*depth
+    fog_normalization = np.expand_dims(dmap.depthmap_arr * dmap.depthmap_arr, axis=-1)
+    fog_normalization[fog_normalization == 0.] = 1.
+    output = output / fog_normalization
+
+    # Ensure pixel clipping
+    np.clip(output, 0., 1., output)
+
+    return output
 
 
 def render_plot(dmap: Depthmap) -> np.array:
-    # floor and child detection
-    floor = dmap.get_floor_level()
-    mask = dmap.detect_child(floor)
-    highest = dmap.get_highest_point(mask)
+    # detect floor and child
+    floor: float = dmap.get_floor_level()
+    mask = dmap.segment_child(floor)  # dmap.detect_floor(floor)
+    highest_point: np.ndarray = dmap.get_highest_point(mask)
+    logger.info('height=%fm', highest_point[1] - floor)
 
-    # render the visualisations
-    output = np.zeros((dmap.width, dmap.height * SUBPLOT_COUNT, 3))
-    render_depth(output, SUBPLOT_DEPTH, dmap)
-    render_normal(output, SUBPLOT_NORMAL, dmap)
-    render_segmentation(output, SUBPLOT_SEGMENTATION, floor, mask, dmap)
-    render_confidence(output, SUBPLOT_CONFIDENCE, dmap)
+    # prepare plots
+    output_plots = [
+        render_depth(dmap),
+        render_normal(dmap),
+        render_segmentation(floor, mask, dmap),
+        render_confidence(dmap),
+    ]
     if dmap.has_rgb:
-        render_rgb(output, SUBPLOT_RGB, dmap)
-        output = blur_face(output, SUBPLOT_RGB, highest, dmap)
+        output_rgb = render_rgb(dmap)
+        output_rgb = blur_face(output_rgb, highest_point, dmap)
+        output_plots.append(output_rgb)
 
-    logger.info('height=%fm', highest[1] - floor)
+    output = np.concatenate(output_plots, axis=1)
     return output

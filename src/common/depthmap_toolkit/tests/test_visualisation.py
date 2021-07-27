@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 
+import pytest
 import numpy as np
 
 sys.path.append('./src/common/depthmap_toolkit')
@@ -20,15 +21,15 @@ def test_blur_face():
 
     # Find top of the object
     floor = dmap.get_floor_level()
-    mask = dmap.detect_child(floor)
-    highest = dmap.get_highest_point(mask)  # 3D
+    assert floor == pytest.approx(-0.9706086, 0.001)
+    mask = dmap.segment_child(floor)
+    highest_point = dmap.get_highest_point(mask)  # 3D
 
     # Render the color data
-    output_unblurred = np.zeros((dmap.width, dmap.height, 3))
-    render_rgb(output_unblurred, 0, dmap)
+    output_unblurred = render_rgb(dmap)
 
     # Blur
-    output_blurred = blur_face(output_unblurred, 0, highest, dmap)
+    output_blurred = blur_face(output_unblurred, highest_point, dmap)
 
     # Assert some pixels in whole image change (image not same)
     all_count = dmap.width * dmap.height

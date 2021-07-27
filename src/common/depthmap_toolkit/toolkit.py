@@ -1,4 +1,3 @@
-import os
 import shutil
 import sys
 from os import walk
@@ -22,73 +21,69 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
 logger.addHandler(handler)
 
-# click on data
-LAST = [0, 0, 0]
-# INDEX of the current depthmap/rgb frame
-INDEX = 0
-# current depthmap
-DMAP = 0
+REPO_DIR = Path(__file__).parents[3]
+EXPORT_DIR = REPO_DIR / 'data' / 'export'
+
+LAST_CLICK_COORD = [0, 0, 0]
+IDX_CUR_DMAP = None
+DMAP = None
 
 
 def onclick(event):
     global DMAP
-    global LAST
+    global LAST_CLICK_COORD
     if event.xdata is not None and event.ydata is not None:
         x = int(event.ydata)
         y = DMAP.height - int(event.xdata) - 1
         if x > 1 and y > 1 and x < DMAP.width - 2 and y < DMAP.height - 2:
             depth = DMAP.depthmap_arr[x, y]
-            if depth:
-                res = DMAP.convert_2d_to_3d(1, x, y, depth)
-                if res:
-                    diff = [LAST[0] - res[0], LAST[1] - res[1], LAST[2] - res[2]]
-                    dst = np.sqrt(diff[0] * diff[0] + diff[1] * diff[1] + diff[2] * diff[2])
-                    res.append(dst)
-                    logger.info('x=%s, y=%s, depth=%s, diff=%s', str(res[0]), str(res[1]), str(res[2]), str(res[3]))
-                    LAST[0] = res[0]
-                    LAST[1] = res[1]
-                    LAST[2] = res[2]
-                    return
-            logger.info('no valid data')
+            if not depth:
+                logger.info('no valid data')
+                return
+            res = DMAP.convert_2d_to_3d(1, x, y, depth)
+            diff: list = [LAST_CLICK_COORD[0] - res[0], LAST_CLICK_COORD[1] - res[1], LAST_CLICK_COORD[2] - res[2]]
+            dst: float = np.sqrt(diff[0] * diff[0] + diff[1] * diff[1] + diff[2] * diff[2])
+            logger.info(f'x={res[0]:.3f}, y={res[1]:.3f}, depth={res[2]:.3f}, diff={dst:.3f}')
+            LAST_CLICK_COORD[0] = res[0]
+            LAST_CLICK_COORD[1] = res[1]
+            LAST_CLICK_COORD[2] = res[2]
 
 
 def export_object(event):
     global DMAP
     floor = DMAP.get_floor_level()
-    fname = f'output{INDEX}.obj'
-    export_obj(f'export/{fname}', DMAP, floor, triangulate=True)
+    export_obj(EXPORT_DIR / f'output{IDX_CUR_DMAP}.obj', DMAP, floor, triangulate=True)
 
 
 def export_pointcloud(event):
     global DMAP
-    fname = f'output{INDEX}.pcd'
-    export_pcd(f'export/{fname}', DMAP)
+    export_pcd(EXPORT_DIR / f'output{IDX_CUR_DMAP}.pcd', DMAP)
 
 
 def next_click(event, calibration_file: str, depthmap_dir: str):
-    global INDEX
-    INDEX = INDEX + 1
-    if (INDEX == size):
-        INDEX = 0
+    global IDX_CUR_DMAP
+    IDX_CUR_DMAP = IDX_CUR_DMAP + 1
+    if (IDX_CUR_DMAP == size):
+        IDX_CUR_DMAP = 0
     show(depthmap_dir, calibration_file)
 
 
 def prev_click(event, calibration_file: str, depthmap_dir: str):
-    global INDEX
-    INDEX = INDEX - 1
-    if (INDEX == -1):
-        INDEX = size - 1
+    global IDX_CUR_DMAP
+    IDX_CUR_DMAP = IDX_CUR_DMAP - 1
+    if (IDX_CUR_DMAP == -1):
+        IDX_CUR_DMAP = size - 1
     show(depthmap_dir, calibration_file)
 
 
 def show(depthmap_dir: str, calibration_file: str):
     global DMAP
-    fig.canvas.manager.set_window_title(depth_filenames[INDEX])
-    rgb_filename = rgb_filenames[INDEX] if rgb_filenames else 0
-    DMAP = Depthmap.create_from_zip(depthmap_dir, depth_filenames[INDEX], rgb_filename, calibration_file)
+    fig.canvas.manager.set_window_title(depth_filenames[IDX_CUR_DMAP])
+    rgb_filename = rgb_filenames[IDX_CUR_DMAP] if rgb_filenames else 0
+    DMAP = Depthmap.create_from_zip(depthmap_dir, depth_filenames[IDX_CUR_DMAP], rgb_filename, calibration_file)
 
     angle = DMAP.get_angle_between_camera_and_floor()
-    logger.info('angle between camera and floor is %f', angle)
+    logging.info('angle between camera and floor is %f', angle)
 
     plt.imshow(render_plot(DMAP))
     plt.show()
@@ -112,10 +107,9 @@ def assemble_filenames(input_dir: Path):
 
 
 if __name__ == "__main__":
-    # Prepare
     if len(sys.argv) != 3:
-        logger.info('You did not enter depthmap_dir folder and calibration file path')
-        logger.info('E.g.: python toolkit.py depthmap_dir calibration_file')
+        logging.info('You did not enter depthmap_dir folder and calibration file path')
+        logging.info('E.g.: python toolkit.py depthmap_dir calibration_file')
         sys.exit(1)
 
     depthmap_dir = sys.argv[1]
@@ -130,15 +124,15 @@ if __name__ == "__main__":
     depth_filenames = assemble_filenames(depth_dir)
     rgb_filenames = assemble_filenames(rgb_dir)
 
-    # Clear export folder
+    # Re-create export folder
     try:
-        shutil.rmtree('export')
+        shutil.rmtree(EXPORT_DIR)
     except BaseException:
         print('no previous data to delete')
-    os.mkdir('export')
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
 
     # Show viewer
-    INDEX = 0
+    IDX_CUR_DMAP = 0
     size = len(depth_filenames)
     fig = plt.figure()
     fig.canvas.mpl_connect('button_press_event', functools.partial(onclick))

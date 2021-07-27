@@ -1,8 +1,10 @@
 from pathlib import Path
 import sys
 
+import numpy as np
+
 sys.path.append('./src/common/depthmap_toolkit')
-from depthmap import Depthmap  # noqa: E402
+from depthmap import Depthmap, smoothen_depthmap_array  # noqa: E402
 
 TOOLKIT_DIR = Path(__file__).parents[0].absolute()
 
@@ -14,22 +16,21 @@ def test_depthmap():
     calibration_file = str(TOOLKIT_DIR / 'huawei_p40pro' / 'camera_calibration.txt')
 
     dmap = Depthmap.create_from_zip(depthmap_dir, depthmap_fname, rgb_fname, calibration_file)
-
     assert dmap.width == 240
     assert dmap.height == 180
 
-    expected_intrinsics = [
+    expected_intrinsics = np.array([
         [0.6786797, 0.90489584, 0.49585155, 0.5035042],
         [0.6786797, 0.90489584, 0.49585155, 0.5035042],
-    ]
-    assert dmap.intrinsics == expected_intrinsics
+    ])
+    np.testing.assert_array_almost_equal(dmap.intrinsics, expected_intrinsics)
     assert dmap.max_confidence == 7.
     assert dmap.depth_scale == 0.001
 
     floor = dmap.get_floor_level()
-    mask = dmap.detect_child(floor)
-    highest = dmap.get_highest_point(mask)
-    child_height_in_m = highest[1] - floor
+    mask = dmap.segment_child(floor)
+    highest_point = dmap.get_highest_point(mask)
+    child_height_in_m = highest_point[1] - floor
     assert 0 < child_height_in_m < 1.2
     assert mask.shape[0] == dmap.rgb_array.shape[1]
     assert mask.shape[1] == dmap.rgb_array.shape[0]
@@ -47,12 +48,33 @@ def test_get_highest_point():
 
     # Find top of the object
     floor = dmap.get_floor_level()
-    mask = dmap.detect_child(floor)
-    highest = dmap.get_highest_point(mask)  # 3D
+    mask = dmap.segment_child(floor)
+    highest_point = dmap.get_highest_point(mask)  # 3D
 
-    object_height_in_m = highest[1] - floor
+    object_height_in_m = highest_point[1] - floor
     assert 0.3 < object_height_in_m < 0.6
 
 
-if __name__ == '__main__':
-    test_get_highest_point()
+def test_smoothen_depthmap_array_no_masking():
+    depthmap = np.array([
+        [1., 1., 1.],
+        [1., 1., 1.],
+        [1., 1., 1.],
+    ])
+    np.testing.assert_array_equal(depthmap, smoothen_depthmap_array(depthmap))
+
+
+def test_smoothen_depthmap_array_with_masking():
+    depthmap = np.array([
+        [1., 1., 1., 1.],
+        [0., 1., 1., 1.],
+        [1., 1., 1., 1.],
+        [1., 1., 1., 1.],
+    ])
+    expected = np.array([
+        [0., 1., 1., 1.],
+        [0., 0., 1., 1.],
+        [0., 1., 1., 1.],
+        [1., 1., 1., 1.],
+    ])
+    np.testing.assert_array_equal(expected, smoothen_depthmap_array(depthmap))

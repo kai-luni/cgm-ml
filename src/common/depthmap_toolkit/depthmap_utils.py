@@ -1,37 +1,11 @@
-from math import sqrt
 from typing import List
 
+import numpy as np
 
 IDENTITY_MATRIX_4D = [1., 0., 0., 0.,
                       0., 1., 0., 0.,
                       0., 0., 1., 0.,
                       0., 0., 0., 1.]
-
-
-def cross(a: List[float], b: List[float]) -> List[float]:
-    """Cross product of two vectors"""
-    c = [a[1] * b[2] - a[2] * b[1],
-         a[2] * b[0] - a[0] * b[2],
-         a[0] * b[1] - a[1] * b[0]]
-    return c
-
-
-def diff(a: List[float], b: List[float]) -> List[float]:
-    """Difference of two vectors"""
-    return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
-
-
-def length(v: List[float]) -> float:
-    """Vector length"""
-    return sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2])
-
-
-def norm(v: List[float]) -> List[float]:
-    """Vector normalize"""
-    length = abs(v[0]) + abs(v[1]) + abs(v[2])
-    if length == 0:
-        length = 1
-    return [v[0] / length, v[1] / length, v[2] / length]
 
 
 def matrix_calculate(position: List[float], rotation: List[float]) -> List[float]:
@@ -70,19 +44,19 @@ def matrix_calculate(position: List[float], rotation: List[float]) -> List[float
     return output
 
 
-def matrix_transform_point(point: List[float], device_pose: List[float]) -> List[float]:
-    """Transformation of point by device pose matrix"""
-    output = [0, 0, 0, 1]
-    output[0] = point[0] * device_pose[0] + point[1] * device_pose[4] + point[2] * device_pose[8] + device_pose[12]
-    output[1] = point[0] * device_pose[1] + point[1] * device_pose[5] + point[2] * device_pose[9] + device_pose[13]
-    output[2] = point[0] * device_pose[2] + point[1] * device_pose[6] + point[2] * device_pose[10] + device_pose[14]
-    output[3] = point[0] * device_pose[3] + point[1] * device_pose[7] + point[2] * device_pose[11] + device_pose[15]
+def matrix_transform_point(point: np.array, device_pose_arr: np.array) -> np.array:
+    """Transformation of point by device pose matrix
 
-    output[0] /= abs(output[3])
-    output[1] /= abs(output[3])
-    output[2] /= abs(output[3])
-    output[3] = 1
-    return output
+    point(np.array of float): 3D point
+    device_pose: flattened 4x4 matrix
+
+    Returns:
+        3D point(np.array of float)
+    """
+    point_4d = np.append(point, 1.)
+    output = np.matmul(device_pose_arr, point_4d)
+    output[0:2] = output[0:2] / abs(output[3])
+    return output[0:-1]
 
 
 def parse_numbers(line: str) -> List[float]:
