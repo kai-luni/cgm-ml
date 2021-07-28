@@ -59,14 +59,11 @@ def test_tf_load_pickle():
                       + "/src/common/data_utilities/tests/pickle_files/scans/c571de02-a723-11eb-8845-bb6589a1fbe8/102/"
                       + "pc_c571de02-a723-11eb-8845-bb6589a1fbe8_2021-04-22_13-34-33-302557_102_3.p")
 
-    normalization_value = 7.5
-    image_target_height = 240
-    image_target_width = 180
-    test_image = tf_load_pickle(pickle_path, normalization_value, DATA_CONFIG)
+    test_image = tf_load_pickle(pickle_path, DATA_CONFIG.NORMALIZATION_VALUE, DATA_CONFIG)
 
     assert isinstance(test_image, tuple), 'The type of object should be a tuple'
-    assert test_image[1].shape[0] == image_target_height, f"The height of the object should be {image_target_height}"
-    assert test_image[1].shape[1] == image_target_width, f"The width of the object should be {image_target_width}"
+    assert test_image[1].shape[0] == DATA_CONFIG.IMAGE_TARGET_HEIGHT
+    assert test_image[1].shape[1] == DATA_CONFIG.IMAGE_TARGET_WIDTH
 
 
 def test_tf_load_not_a_pickle():
