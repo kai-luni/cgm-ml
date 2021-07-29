@@ -44,7 +44,7 @@ def matrix_calculate(position: List[float], rotation: List[float]) -> List[float
     return output
 
 
-def matrix_transform_point(point: np.array, device_pose_arr: np.array) -> np.array:
+def matrix_transform_point(point: np.ndarray, device_pose_arr: np.ndarray) -> np.ndarray:
     """Transformation of point by device pose matrix
 
     point(np.array of float): 3D point

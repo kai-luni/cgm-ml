@@ -1,3 +1,4 @@
+from collections import namedtuple
 import zipfile
 import math
 import sys
@@ -12,6 +13,9 @@ from depthmap_utils import matrix_calculate, IDENTITY_MATRIX_4D, parse_numbers
 from constants import EXTRACTED_DEPTH_FILE_NAME, MASK_FLOOR, MASK_CHILD, MASK_INVALID
 
 TOOLKIT_DIR = Path(__file__).parents[0].absolute()
+
+
+Segment = namedtuple('Segment', 'id aabb')
 
 
 def extract_depthmap(depthmap_dir: str, depthmap_fname: str):
@@ -76,7 +80,7 @@ class Depthmap:
 
     def __init__(
             self,
-            intrinsics: np.array,
+            intrinsics: np.ndarray,
             width: int,
             height: int,
             data: Optional[bytes],
@@ -85,7 +89,7 @@ class Depthmap:
             max_confidence: float,
             device_pose: List[float],
             rgb_fpath: Path,
-            rgb_array: np.array):
+            rgb_array: np.ndarray):
         """Constructor
 
         Either `data` or `depthmap_arr` has to be defined
@@ -107,7 +111,7 @@ class Depthmap:
         self.device_pose = device_pose
         self.device_pose_arr = np.array(device_pose).reshape(4, 4).T
         self.rgb_fpath = rgb_fpath
-        self.rgb_array = rgb_array
+        self.rgb_array = rgb_array  # shape (height, width, 3)
         assert depthmap_arr is None or data is None
         self.depthmap_arr = self._parse_depth_data(data) if data else depthmap_arr
 
@@ -175,8 +179,8 @@ class Depthmap:
 
     @classmethod
     def create_from_array(cls,
-                          depthmap_arr: np.array,
-                          rgb_arr: np.array,
+                          depthmap_arr: np.ndarray,
+                          rgb_arr: np.ndarray,
                           calibration_file: str) -> 'Depthmap':
         intrinsics = parse_calibration(calibration_file)
         height, width = depthmap_arr.shape
@@ -199,7 +203,7 @@ class Depthmap:
                    rgb_array,
                    )
 
-    def calculate_normalmap_array(self, points_3d_arr: np.array) -> np.array:
+    def calculate_normalmap_array(self, points_3d_arr: np.ndarray) -> np.ndarray:
         """Calculate normalmap consisting of normal vectors.
 
         A normal vector is based on a surface.
@@ -233,7 +237,7 @@ class Depthmap:
         output[:, 1:, 1:] = normal
         return output
 
-    def convert_2d_to_3d(self, sensor: int, x: float, y: float, depth: float) -> np.array:
+    def convert_2d_to_3d(self, sensor: int, x: float, y: float, depth: float) -> np.ndarray:
         """Convert point in pixels into point in meters
 
         Args:
@@ -253,7 +257,7 @@ class Depthmap:
         ty = (y - cy) * depth / fy
         return np.array([tx, ty, depth])
 
-    def convert_2d_to_3d_oriented(self, should_smooth: bool = False) -> np.array:
+    def convert_2d_to_3d_oriented(self, should_smooth: bool = False) -> np.ndarray:
         """Convert points in pixels into points in meters (and applying rotation)
 
         Args:
@@ -284,27 +288,27 @@ class Depthmap:
         res[1, :, :] = -res[1, :, :]
         return res
 
-    def segment_child(self, floor: float) -> np.array:
+    def segment_child(self, floor: float) -> np.ndarray:
         mask, segments = self.detect_objects(floor)
 
         # Select the most focused segment
         closest = sys.maxsize
         focus = -1
-        for current, aabb in segments:
-            a = aabb[0] - int(self.width / 2)
-            b = aabb[1] - int(self.height / 2)
-            c = aabb[2] - int(self.width / 2)
-            d = aabb[3] - int(self.height / 2)
+        for segment in segments:
+            a = segment.aabb[0] - int(self.width / 2)
+            b = segment.aabb[1] - int(self.height / 2)
+            c = segment.aabb[2] - int(self.width / 2)
+            d = segment.aabb[3] - int(self.height / 2)
             distance = a * a + b * b + c * c + d * d
             if closest > distance:
                 closest = distance
-                focus = current
+                focus = segment.id
 
         mask = np.where(mask == focus, MASK_CHILD, mask)
 
         return mask
 
-    def detect_floor(self, floor: float) -> np.array:
+    def detect_floor(self, floor: float) -> np.ndarray:
         mask = np.zeros((self.width, self.height))
         assert self.depthmap_arr_smooth.shape == (self.width, self.height)
         mask[self.depthmap_arr_smooth == 0] = MASK_INVALID
@@ -318,12 +322,19 @@ class Depthmap:
         mask[per_pixel_cond] = MASK_FLOOR
         return mask
 
-    def detect_objects(self, floor: float) -> Tuple[np.array, List[Tuple[int, List[int]]]]:
+    def detect_objects(self, floor: float) -> Tuple[np.array, List[Segment]]:
         """Detect objects/children using seed algorithm
 
         Can likely not be used without for-loops over x,y
+
+        Args:
+            floor: Value of y-coordinate where the floor is
+
+        Returns:
+            mask (np.array): binary mask
+            List[Segment]: a list of segments
         """
-        current = -1
+        current_id = -1
         segments = []
         dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]]
         mask = self.detect_floor(floor)
@@ -355,13 +366,13 @@ class Depthmap:
                     aabb[3] = max(pixel[1], aabb[3])
 
                     # Update the mask
-                    mask[pixel[0], pixel[1]] = current
+                    mask[pixel[0], pixel[1]] = current_id
 
                 # Check if the object size is valid
                 object_size_pixels = max(aabb[2] - aabb[0], aabb[3] - aabb[1])
                 if object_size_pixels > self.width / 4:
-                    segments.append([current, aabb])
-                current = current - 1
+                    segments.append(Segment(current_id, aabb))
+                current_id = current_id - 1
 
         return mask, segments
 
@@ -391,19 +402,15 @@ class Depthmap:
         median = np.median(selection_of_points)
         return median
 
-    def get_highest_point(self, mask: np.array) -> np.array:  # TODO remove for-loops
-        highest_point = np.array([-sys.maxsize, -sys.maxsize, -sys.maxsize])
+    def get_highest_point(self, mask: np.ndarray) -> np.ndarray:
         points_3d_arr = self.convert_2d_to_3d_oriented()
-
-        for x in range(self.width):
-            for y in range(self.height):
-                if mask[x, y] == MASK_CHILD:
-                    point = points_3d_arr[:, x, y]
-                    if highest_point[1] < point[1]:
-                        highest_point = point
+        y_array = np.copy(points_3d_arr[1, :, :])
+        y_array[mask != MASK_CHILD] = -np.inf
+        idx_highest_child_point = np.unravel_index(np.argmax(y_array, axis=None), y_array.shape)
+        highest_point = points_3d_arr[:, idx_highest_child_point[0], idx_highest_child_point[1]]
         return highest_point
 
-    def _parse_confidence_data(self, data) -> np.array:
+    def _parse_confidence_data(self, data) -> np.ndarray:
         """Parse depthmap confidence
 
         Returns:
@@ -419,7 +426,7 @@ class Depthmap:
         """Get confidence of the point in scale 0-1"""
         return data[(int(ty) * self.width + int(tx)) * 3 + 2] / self.max_confidence
 
-    def _parse_depth_data(self, data) -> np.array:
+    def _parse_depth_data(self, data) -> np.ndarray:
         output = np.zeros((self.width, self.height))
         for x in range(self.width):
             for y in range(self.height):
@@ -482,7 +489,7 @@ def is_google_tango_resolution(width, height):
     return width == 180 and height == 135
 
 
-def normalize(vectors: np.array) -> np.array:
+def normalize(vectors: np.ndarray) -> np.ndarray:
     """Ensure the normal has a length of one
 
     This way of normalizing is commonly used for normals.

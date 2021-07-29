@@ -27,7 +27,7 @@ def parse_pcd(filepath: str) -> List[List[float]]:
     return data
 
 
-def process(calibration, pcd_fpath: str, width: int, height: int) -> np.array:
+def process(calibration, pcd_fpath: str, width: int, height: int) -> np.ndarray:
     # Convert to depthmap
     points = parse_pcd(pcd_fpath)
     output = np.zeros((width, height, 3))
@@ -41,7 +41,7 @@ def process(calibration, pcd_fpath: str, width: int, height: int) -> np.array:
     return output
 
 
-def write_depthmap(output_depth_fpath: str, depthmap: np.array, width: int, height: int):
+def write_depthmap(output_depth_fpath: str, depthmap: np.ndarray, width: int, height: int):
     # Write depthmap
     with open('data', 'wb') as f:
         header_str = str(width) + 'x' + str(height) + '_0.001_255\n'

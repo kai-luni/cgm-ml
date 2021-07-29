@@ -53,7 +53,7 @@ def load_depth(fpath: str) -> Tuple[bytes, int, int, float, float]:
     return depth_data, width, height, depth_scale, max_confidence
 
 
-def prepare_depthmap(data: bytes, width: int, height: int, depth_scale: float) -> np.array:
+def prepare_depthmap(data: bytes, width: int, height: int, depth_scale: float) -> np.ndarray:
     """Convert bytes array into np.array"""
     output = np.zeros((width, height, 1))
     for cx in range(width):

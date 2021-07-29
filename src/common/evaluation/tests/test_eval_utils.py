@@ -102,4 +102,4 @@ def test_calculate_performance_50percent():
     df = pd.DataFrame.from_dict(data)
     df = prepare_df(df)
     df_out = calculate_performance(code='100', df_mae=df, result_config=RESULT_CONFIG)
-    assert (df_out[1.2] == 50.0).all()
+    np.testing.assert_array_equal(df_out[1.2], 50.0)

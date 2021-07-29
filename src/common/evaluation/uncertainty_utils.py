@@ -16,7 +16,7 @@ logger.addHandler(handler)
 
 def get_prediction_uncertainty_deepensemble(model_paths: list,
                                             dataset_evaluation: tf.data.Dataset,
-                                            batch_size: int = 256) -> np.array:
+                                            batch_size: int = 256) -> np.ndarray:
     """Predict standard deviation of multiple predictions with different dropouts
     Args:
         model_path: Path of the trained model
@@ -44,7 +44,7 @@ def _load_and_predict(model_path, dataset):
     return _predict(model, dataset)
 
 
-def _predict(model: tf.Module, dataset: tf.data.Dataset) -> np.array:
+def _predict(model: tf.Module, dataset: tf.data.Dataset) -> np.ndarray:
     predictions_batches = []
     for X, _y in dataset.as_numpy_iterator():
         prediction_batch = model.predict(X)  # shape (BATCH_SIZE, 1)
@@ -53,7 +53,7 @@ def _predict(model: tf.Module, dataset: tf.data.Dataset) -> np.array:
     return predictions
 
 
-def _calculate_std(predictions_per_model: List[np.array]) -> np.array:
+def _calculate_std(predictions_per_model: List[np.array]) -> np.ndarray:
     predictions_per_model_ = np.array(predictions_per_model)
     std = np.std(predictions_per_model_, axis=0)
     return std

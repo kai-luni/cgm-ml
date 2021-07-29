@@ -49,4 +49,4 @@ def test_blur_face():
     corner_y = 0
     slice_x = slice(corner_x, corner_x + 4)
     slice_y = slice(corner_y, corner_y + 4)
-    assert (output_unblurred[slice_x, slice_y] == output_blurred[slice_x, slice_y]).all()
+    np.testing.assert_array_equal(output_unblurred[slice_x, slice_y], output_blurred[slice_x, slice_y])

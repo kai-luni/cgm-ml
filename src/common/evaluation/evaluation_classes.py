@@ -115,12 +115,12 @@ class Evaluation:
         del temp_dataset_evaluation
         return dataset_evaluation, paths_belonging_to_predictions
 
-    def get_prediction_(self, model_path: Path, dataset_evaluation: tf.data.Dataset) -> np.array:
+    def get_prediction_(self, model_path: Path, dataset_evaluation: tf.data.Dataset) -> np.ndarray:
         return get_prediction(model_path, dataset_evaluation, self.data_config)
 
     def prepare_dataframe(self,
                           paths_belonging_to_predictions: List[str],
-                          prediction_array: np.array,
+                          prediction_array: np.ndarray,
                           result_config: Bunch) -> pd.DataFrame:
         qrcode_list, scantype_list, artifact_list, prediction_list, target_list = get_column_list(
             paths_belonging_to_predictions, prediction_array, self.data_config)
@@ -234,7 +234,7 @@ class EnsembleEvaluation(Evaluation):
 
     def get_prediction_(self,
                         model_paths: List[Path],
-                        dataset_evaluation: tf.data.Dataset) -> np.array:
+                        dataset_evaluation: tf.data.Dataset) -> np.ndarray:
         return get_predictions_from_multiple_models(model_paths, dataset_evaluation, self.data_config)
 
     def evaluate(self,
@@ -310,13 +310,13 @@ class MultiartifactEvaluation(Evaluation):
 
     def get_prediction_(self,
                         model_path: Path,
-                        dataset_evaluation: List[str]) -> np.array:
+                        dataset_evaluation: List[str]) -> np.ndarray:
         predictions = get_prediction_multiartifact(model_path, dataset_evaluation, self.data_config)
         return predictions
 
     def prepare_dataframe(self,
                           paths_belonging_to_predictions: List[List[str]],
-                          prediction_array: np.array,
+                          prediction_array: np.ndarray,
                           result_config: Bunch):
         first_paths = [paths_list[0] for paths_list in paths_belonging_to_predictions]
         qrcode_list, scantype_list, artifact_list, prediction_list, target_list = get_column_list(

@@ -61,11 +61,11 @@ def parse_depth(tx: int, ty: int, data: bytes, depth_scale: float, width: int) -
     return depth
 
 
-def preprocess_depthmap(depthmap: np.array) -> np.array:
+def preprocess_depthmap(depthmap: np.ndarray) -> np.ndarray:
     return depthmap.astype("float32")
 
 
-def preprocess(depthmap: np.array) -> np.array:
+def preprocess(depthmap: np.ndarray) -> np.ndarray:
     depthmap = preprocess_depthmap(depthmap)
     depthmap = depthmap / NORMALIZATION_VALUE
     depthmap = resize(depthmap, (IMAGE_TARGET_HEIGHT, IMAGE_TARGET_WIDTH))
@@ -73,7 +73,7 @@ def preprocess(depthmap: np.array) -> np.array:
     return depthmap
 
 
-def prepare_depthmap(data: bytes, width: int, height: int, depth_scale: float) -> np.array:
+def prepare_depthmap(data: bytes, width: int, height: int, depth_scale: float) -> np.ndarray:
     """Convert bytes array into np.array"""
     output = np.zeros((width, height, 1))
     for cx in range(width):
@@ -84,7 +84,7 @@ def prepare_depthmap(data: bytes, width: int, height: int, depth_scale: float) -
     return arr.reshape(width, height)
 
 
-def get_depthmaps(fpaths: List[str]) -> np.array:
+def get_depthmaps(fpaths: List[str]) -> np.ndarray:
     depthmaps = []
     for fpath in fpaths:
         data, width, height, depth_scale, _ = load_depth(fpath)

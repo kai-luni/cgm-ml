@@ -19,7 +19,7 @@ IDX_GREEN = 1
 IDX_BLUE = 2
 
 
-def blur_face(data: np.array, highest_point: np.array, dmap: Depthmap) -> np.array:
+def blur_face(data: np.ndarray, highest_point: np.ndarray, dmap: Depthmap) -> np.ndarray:
     """Faceblur of the detected standing child.
 
     It uses the highest point of the child and blur all pixels in distance less than CHILD_HEAD_HEIGHT_IN_METERS.
@@ -76,7 +76,7 @@ def render_confidence(dmap: Depthmap):
     return output
 
 
-def render_depth(dmap: Depthmap, use_smooth=False) -> np.array:
+def render_depth(dmap: Depthmap, use_smooth=False) -> np.ndarray:
     """Render depthmap into a 2D image.
 
     We assume here that all values in dmap.depthmap_arr are positive.
@@ -99,7 +99,7 @@ def render_depth(dmap: Depthmap, use_smooth=False) -> np.array:
     return output
 
 
-def render_normal(dmap: Depthmap) -> np.array:
+def render_normal(dmap: Depthmap) -> np.ndarray:
     """Render normal vectors
 
     How normal vector are visualized:
@@ -119,20 +119,17 @@ def render_normal(dmap: Depthmap) -> np.array:
     return output
 
 
-def render_rgb(dmap: Depthmap) -> np.array:  # TODO remove for-loops
-    output = np.zeros((dmap.width, dmap.height, 3))
-    for x in range(dmap.width):
-        for y in range(dmap.height):
-            index = dmap.height - y - 1
-            output[x, index, 0] = dmap.rgb_array[y, x, 0] / 255.0
-            output[x, index, 1] = dmap.rgb_array[y, x, 1] / 255.0
-            output[x, index, 2] = dmap.rgb_array[y, x, 2] / 255.0
+def render_rgb(dmap: Depthmap) -> np.ndarray:
+    output = np.copy(dmap.rgb_array)  # shape (height, width, 3)
+    output = output / 255.
+    output = np.moveaxis(output, 0, 1)
+    output = np.fliplr(output)  # flip left-right
     return output
 
 
 def render_segmentation(floor: float,
-                        mask: np.array,
-                        dmap: Depthmap) -> np.array:
+                        mask: np.ndarray,
+                        dmap: Depthmap) -> np.ndarray:
     output = np.zeros((dmap.width, dmap.height, 3))
 
     point = dmap.convert_2d_to_3d_oriented(should_smooth=True)
@@ -176,7 +173,7 @@ def render_segmentation(floor: float,
     return output
 
 
-def render_plot(dmap: Depthmap) -> np.array:
+def render_plot(dmap: Depthmap) -> np.ndarray:
     # detect floor and child
     floor: float = dmap.get_floor_level()
     mask = dmap.segment_child(floor)  # dmap.detect_floor(floor)

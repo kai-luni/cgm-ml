@@ -58,7 +58,7 @@ def get_depthmap_files(paths: List[str]) -> List[str]:
     return pickle_paths
 
 
-def get_column_list(depthmap_path_list: List[str], prediction: np.array, data_config: Bunch):
+def get_column_list(depthmap_path_list: List[str], prediction: np.ndarray, data_config: Bunch):
     """Prepare the list of all artifact with its corresponding scantype, qrcode, target and prediction"""
     qrcode_list, scan_type_list, artifact_list, prediction_list, target_list = [], [], [], [], []
 
@@ -440,7 +440,7 @@ def filter_dataset_according_to_standing_lying(paths_evaluation: List[str],
     return paths_belonging_to_predictions
 
 
-def get_prediction(model_path: str, dataset_evaluation: tf.data.Dataset, data_config) -> np.array:
+def get_prediction(model_path: str, dataset_evaluation: tf.data.Dataset, data_config) -> np.ndarray:
     """Perform the prediction on the dataset with the given model.
 
     Args:
@@ -477,7 +477,7 @@ def get_predictions_from_multiple_models(model_paths: list, dataset_evaluation: 
 
 def get_prediction_multiartifact(model_path: str,
                                  dataset: tf.data.Dataset,
-                                 data_config: Bunch) -> np.array:
+                                 data_config: Bunch) -> np.ndarray:
     """Make prediction on each multiartifact sample.
 
     Args:
