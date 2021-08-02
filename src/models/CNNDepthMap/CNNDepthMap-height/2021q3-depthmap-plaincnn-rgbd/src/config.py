@@ -7,6 +7,8 @@ CONFIG = Bunch(dict(
     DATASET_MODE=DATASET_MODE_DOWNLOAD,
     DATASET_NAME="anon-rgbd-5kscans",
     DATASET_NAME_LOCAL="anon-rgbd-5kscans-mini",  # 20 qrcodes
+    DATASET_IS_BGR=True,
+
     SPLIT_SEED=0,
     IMAGE_TARGET_HEIGHT=240,
     IMAGE_TARGET_WIDTH=180,

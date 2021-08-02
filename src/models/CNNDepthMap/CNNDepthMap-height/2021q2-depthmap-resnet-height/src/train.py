@@ -199,7 +199,7 @@ def create_and_fit_model():
     # Train the model.
     model.fit(
         dataset_training.batch(CONFIG.BATCH_SIZE),
-        validation_data=dataset_batches,
+        validation_data=dataset_validation.batch(CONFIG.BATCH_SIZE),
         epochs=CONFIG.EPOCHS,
         callbacks=training_callbacks,
         verbose=2

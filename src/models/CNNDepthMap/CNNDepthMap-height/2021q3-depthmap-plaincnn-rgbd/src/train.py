@@ -123,6 +123,8 @@ def tf_load_pickle(path, max_value):
     def py_load_pickle(path, max_value):
         rgbd_tuple, targets = pickle.load(open(path.numpy(), "rb"))
         rgb = rgbd_tuple[0]  # shape: (240, 180, 3)
+        if getattr(CONFIG, 'DATASET_IS_BGR', False):
+            rgb = rgb[:, :, ::-1]  # BGR -> RGB
         depthmap = rgbd_tuple[1]  # shape: (240, 180)
 
         rgb = preprocess_depthmap(rgb)
@@ -209,7 +211,7 @@ def create_and_fit_model():
     # Train the model.
     model.fit(
         dataset_training.batch(CONFIG.BATCH_SIZE),
-        validation_data=dataset_batches,
+        validation_data=dataset_validation.batch(CONFIG.BATCH_SIZE),
         epochs=CONFIG.EPOCHS,
         callbacks=training_callbacks,
         verbose=2
