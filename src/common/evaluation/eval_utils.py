@@ -30,7 +30,7 @@ def calculate_performance(code: str,
         df_mae: dataframe
         result_config: bunch containing result config
     Returns:
-        dataframe, where each column describes a differnt accuracy, e.g.
+        dataframe, where each column describes a different accuracy, e.g.
                             0.2   0.4   0.6   1.0   1.2    2.0    2.5    3.0    4.0    5.0    6.0
                            20.0  20.0  40.0  80.0  80.0  100.0  100.0  100.0  100.0  100.0  100.0
     """

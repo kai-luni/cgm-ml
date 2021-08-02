@@ -1,13 +1,14 @@
-'''
-# Test case from data provide in survey of https://www.who.int/childgrowth/software/
-'''
-import os
 import logging
 import logging.config
+import os
+import sys
+from pathlib import Path
 
 import pandas as pd
 
-from cgmzscore import Calculator
+sys.path.append(str(Path(__file__).parents[1] / 'src'))
+
+from main import z_score_lhfa, z_score_wfa, z_score_wfh, z_score_wfl, calculate_sam_mam  # noqa
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -33,7 +34,7 @@ def check_null(i, df):
             or pd.isnull(df.loc[i, '_ZWFL']))
 
 
-def test_zScore_wfa():
+def test_z_score_wfa():
     for i in range(len(df)):
         if check_null(i, df):
             continue
@@ -41,13 +42,12 @@ def test_zScore_wfa():
         sex = 'M' if df['GENDER'][i] == 1 else 'F'
 
         g = float("{0:.9f}". format(df['WEIGHT'][i]))
-        v = Calculator().zScore_wfa(weight=str(g), height=str(
-            df['HEIGHT'][i]), sex=sex, age_in_days=str((df['_agedays'][i])))
+        v = z_score_wfa(weight=str(g), sex=sex, age_in_days=str((df['_agedays'][i])))
         ans = float("{0:.2f}". format(abs(v - df['_ZWEI'][i])))
         assert ans <= 0.01
 
 
-def test_zScore_lhfa():
+def test_z_score_lhfa():
     for i in range(len(df)):
         if check_null(i, df):
             continue
@@ -56,8 +56,7 @@ def test_zScore_lhfa():
 
         g = float("{0:.9f}". format(df['HEIGHT'][i]))
 
-        v = Calculator().zScore_lhfa(height=str(g), sex=sex,
-                                     age_in_days=str((df['_agedays'][i])))
+        v = z_score_lhfa(height=str(g), sex=sex, age_in_days=str((df['_agedays'][i])))
 
         logger.info(g)
 
@@ -65,7 +64,7 @@ def test_zScore_lhfa():
         assert ans <= 0.01
 
 
-def test_zScore_wfh():
+def test_z_score_wfh():
     for i in range(len(df)):
         if check_null(i, df):
             continue
@@ -75,14 +74,13 @@ def test_zScore_wfh():
         g = float("{0:.5f}". format(df['HEIGHT'][i]))
         t = float("{0:.9f}". format(df['WEIGHT'][i]))
 
-        v = Calculator().zScore_wfh(height=str(g), weight=str(
-            t), sex=sex, age_in_days=str((df['_agedays'][i])))
+        v = z_score_wfh(height=str(g), weight=str(t), sex=sex, age_in_days=str((df['_agedays'][i])))
 
         ans = float("{0:.2f}". format(abs(v - df['_ZWFL'][i])))
         assert ans <= 0.01
 
 
-def test_zScore_wfl():
+def test_z_score_wfl():
     for i in range(len(df)):
         if check_null(i, df):
             continue
@@ -92,8 +90,12 @@ def test_zScore_wfl():
         g = float("{0:.5f}". format(df['HEIGHT'][i]))
         t = float("{0:.9f}". format(df['WEIGHT'][i]))
 
-        v = Calculator().zScore_wfl(height=str(g), weight=str(
-            t), sex=sex, age_in_days=str((df['_agedays'][i])))
+        v = z_score_wfl(height=str(g), weight=str(t), sex=sex, age_in_days=str((df['_agedays'][i])))
 
         ans = float("{0:.2f}". format(abs(v - df['_ZWFL'][i])))
         assert ans <= 0.01
+
+
+def test_calculate_sam_mam():
+    diagnosis = calculate_sam_mam(weight="10.4", muac="14.89", age_in_days="683", sex='F', height="84.80")
+    assert diagnosis == 'Healthy'
