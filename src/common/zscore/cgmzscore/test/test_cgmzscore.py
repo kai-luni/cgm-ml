@@ -1,14 +1,13 @@
 import logging
 import logging.config
-import os
 import sys
 from pathlib import Path
 
 import pandas as pd
 
-sys.path.append(str(Path(__file__).parents[1] / 'src'))
+sys.path.insert(0, str(Path(__file__).parents[1]))
 
-from main import z_score_lhfa, z_score_wfa, z_score_wfh, z_score_wfl, calculate_sam_mam  # noqa
+from src.main import z_score_lhfa, z_score_wfa, z_score_wfh, z_score_wfl, calculate_sam_mam  # noqa
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -16,10 +15,8 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
 logger.addHandler(handler)
 
-module_dir = str(os.path.split(os.path.abspath(__file__))[0])
 
-
-df = pd.read_csv(module_dir + '/testdata.csv')
+df = pd.read_csv(str(Path(__file__).parents[0]) + '/testdata.csv')
 
 # 1 for male
 # 2 for female

@@ -1,10 +1,10 @@
 import json
 from decimal import Decimal as D
 
-from calculate import Zscore
-from constant import REPO_DIR, WHO_TABLES
-from extract_value import LmsBoxCox
-from table import Table
+from .calculate import Zscore
+from .constant import REPO_DIR, WHO_TABLES
+from .extract_value import LmsBoxCox
+from .table import Table
 TABLE_REPO = REPO_DIR / 'tables'
 GROWTH_CHART = {}
 
