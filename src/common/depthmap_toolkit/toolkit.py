@@ -86,6 +86,11 @@ def show(depthmap_dir: str, calibration_file: str):
     logging.info('angle between camera and floor is %f', angle)
 
     plt.imshow(render_plot(DMAP))
+    plot_names = ['depth', 'normals', 'child/background segmentation', 'confidence']
+    if DMAP.has_rgb:
+        plot_names.append('rgb')
+    plot_title = '\n'.join([f'{i}: {plot_name}' for i, plot_name in enumerate(plot_names)])
+    plt.title(plot_title)
     plt.show()
 
 
