@@ -18,7 +18,7 @@ jobs:
 
   - bash: |
       set -euox pipefail
-      cd src/common/evaluation/QA
+      cd src/common/evaluation/QA/eval_depthmap_models
       source /usr/share/miniconda/etc/profile.d/conda.sh
       conda env create -f environment.yml
       conda activate CGM_QA_Pipeline

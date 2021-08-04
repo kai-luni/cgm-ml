@@ -11,10 +11,10 @@ Then run:
 
 ```bash
 cd cgm-ml
-cd src/common/evaluation/QA/
+cd src/common/evaluation/QA/eval_depthmap_models
 conda env update --file environment.yml
 conda activate CGM_QA_Pipeline
-cd ../../../..
+cd ../../../../..
 conda install notebook ipykernel
 ipython kernel install --user --name CGM_QA_Pipeline
 ```

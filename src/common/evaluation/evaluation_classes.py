@@ -248,9 +248,6 @@ class EnsembleEvaluation(Evaluation):
         if not result_config.USE_UNCERTAINTY:
             return
 
-        assert GOODBAD_IDX in self.data_config.TARGET_INDEXES
-        assert COLUMN_NAME_GOODBAD in df
-
         # Sample one artifact per scan (qrcode, scantype combination)
         df_sample = df.groupby(['qrcode', 'scantype']).apply(lambda x: x.sample(1))
 
@@ -263,12 +260,14 @@ class EnsembleEvaluation(Evaluation):
         assert len(df_sample) == len(uncertainties)
         df_sample['uncertainties'] = uncertainties
 
-        png_fpath = f"{OUTPUT_CSV_PATH}/uncertainty_distribution.png"
-        draw_uncertainty_goodbad_plot(df_sample, png_fpath)
+        if GOODBAD_IDX in self.data_config.TARGET_INDEXES:
+            assert COLUMN_NAME_GOODBAD in df
+            png_fpath = f"{OUTPUT_CSV_PATH}/uncertainty_distribution.png"
+            draw_uncertainty_goodbad_plot(df_sample, png_fpath)
 
-        df_sample_100 = df_sample.iloc[df_sample.index.get_level_values('scantype') == '100']
-        png_fpath = f"{OUTPUT_CSV_PATH}/uncertainty_code100_distribution.png"
-        draw_uncertainty_goodbad_plot(df_sample_100, png_fpath)
+            df_sample_100 = df_sample.iloc[df_sample.index.get_level_values('scantype') == '100']
+            png_fpath = f"{OUTPUT_CSV_PATH}/uncertainty_code100_distribution.png"
+            draw_uncertainty_goodbad_plot(df_sample_100, png_fpath)
 
         png_fpath = f"{OUTPUT_CSV_PATH}/uncertainty_scatter_distribution.png"
         draw_uncertainty_scatterplot(df_sample, png_fpath)

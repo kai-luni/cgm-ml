@@ -70,7 +70,6 @@ RESULT_CONFIG = Bunch(dict(
     USE_UNCERTAINTY=True,  # Flag to enable model uncertainty calculation
     UNCERTAINTY_THRESHOLD_IN_CM=4.,
 
-    TARGET_INDEXES=[0],
     # path of csv file in the experiment which final result is stored
     SAVE_PATH=f'./outputs/{CONFIG_NAME}',
 ))
