@@ -12,10 +12,11 @@ from azureml.core.run import Run
 import wandb
 from wandb.keras import WandbCallback
 
+from common.model_utils.utils import (
+    download_dataset, get_dataset_path, AzureLogCallback, create_tensorboard_callback, setup_wandb)
 from sl_config import CONFIG
 from sl_constants import MODEL_CKPT_FILENAME, REPO_DIR
 from model import create_cnn, set_trainable_below_layers
-from train_util import copy_dir
 from sl_preprocessing import process_path
 
 logger = logging.getLogger(__name__)
@@ -26,15 +27,6 @@ logger.addHandler(handler)
 logger.info('infotest')
 
 run = Run.get_context()
-
-if run.id.startswith("OfflineRun"):
-    # Copy common into the temp folder
-    common_dir_path = REPO_DIR / "src/common"
-    temp_common_dir = Path(__file__).parent / "temp_common"
-    copy_dir(src=common_dir_path, tgt=temp_common_dir, glob_pattern='*/*.py', should_touch_init=True)
-
-from temp_common.model_utils.utils import (  # noqa: E402
-    download_dataset, get_dataset_path, AzureLogCallback, create_tensorboard_callback, setup_wandb)
 
 # Make experiment reproducable
 tf.random.set_seed(CONFIG.SPLIT_SEED)
