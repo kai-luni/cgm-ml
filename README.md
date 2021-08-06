@@ -35,7 +35,7 @@ To set the PYTHONPATH correctly, so that the import statements will work correct
 add the following to your `~/.bashrc` or `~/.zshrc`:
 
 ```bash
-export PYTHONPATH=<INSERT ABSOLUTE PATH TO CGM-ML>/src:${PYTHONPATH}
+export PYTHONPATH=<INSERT ABSOLUTE PATH TO CGM-ML>/cgmml:${PYTHONPATH}
 ```
 
 For installing point cloud libraries, refer to
@@ -43,7 +43,7 @@ For installing point cloud libraries, refer to
 
 ### Dataset access
 
-If you have access to scan data, you can use: `src/data_utils` to understand and visualize the data.
+If you have access to scan data, you can use: `cgmml/data_utils` to understand and visualize the data.
 
 Data access is provided on as-needed basis following signature of the Welthungerhilfe Data Privacy & Commitment to
 Maintain Data Secrecy Agreement. If you need data access (e.g. to train your machine learning models),
@@ -51,14 +51,14 @@ please contact [Markus Matiaschek](mailto:info@childgrowthmonitor.org) for detai
 
 ## Repository structure
 
-The source code is in `src/`.
+The source code is in `cgmml/`.
 
 We make heavy use of AzureML.
 For AzureML, all code for an experiment run needs to reside in one directory.
 Example: All code for one specific training, e.g. a ResNet training, needs to be in this training directory.
 
 However, many of our trainings (and also evaluation runs) share large portions of code.
-In order to reduce code duplication, we copy shared(a.k.a. common) utility code with `copy_dir()` from `src/common/` into the training/evaluation directory.
+In order to reduce code duplication, we copy shared(a.k.a. common) utility code with `copy_dir()` from `cgmml/common/` into the training/evaluation directory.
 This way, during the experiment run, the code is in the directory and can be used during the run.
 
 ## Contributing
@@ -69,7 +69,7 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ```bash
 # Make sure to be in the root dir of this repository
-flake8 src/
+flake8 cgmml/
 pytest
 ```
 
