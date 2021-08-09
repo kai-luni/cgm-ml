@@ -10,7 +10,7 @@ def cgm_environment(workspace: Workspace,
     if env_exist:
         return Environment.get(workspace=workspace, name=curated_env_name)
     if fpath_env_yml is None:
-        from common.endpoints.constants import REPO_DIR  # noqa: E402
+        from cgmml.common.endpoints.constants import REPO_DIR  # noqa: E402
         fpath_env_yml = REPO_DIR / "environment_train.yml"
     else:
         fpath_env_yml = Path(fpath_env_yml)

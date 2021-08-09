@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 import numpy as np
 
-from common.depthmap_toolkit.depthmap import Depthmap
-from common.depthmap_toolkit.visualisation import blur_face, render_rgb
+from cgmml.common.depthmap_toolkit.depthmap import Depthmap
+from cgmml.common.depthmap_toolkit.visualisation import blur_face, render_rgb
 
 TOOLKIT_DIR = Path(__file__).parents[0].absolute()
 OFFSET_X_Y = (0.37, 0.53)

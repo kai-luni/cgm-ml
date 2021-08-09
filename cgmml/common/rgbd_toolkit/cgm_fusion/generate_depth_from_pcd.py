@@ -1,7 +1,7 @@
 import logging
 import logging.config
 
-from common.rgbd_toolkit.cgm_fusion import utility
+from cgmml.common.rgbd_toolkit.cgm_fusion import utility
 
 # flake8: noqa: E501
 

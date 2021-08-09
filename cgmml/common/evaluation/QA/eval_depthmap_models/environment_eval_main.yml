@@ -9,6 +9,8 @@ dependencies:
   - pip==20.2
   - nb_conda_kernels==2.2.1
   - pip:
+    - numpy==1.19.5
+    - pandas==0.25.3
     - glob2==0.7
     - bunch==1.0.1
     - pyyaml

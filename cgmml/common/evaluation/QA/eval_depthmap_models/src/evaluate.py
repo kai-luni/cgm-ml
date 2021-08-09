@@ -41,11 +41,11 @@ def is_offline_run(run: Run) -> bool:
 # Get the current run.
 RUN = Run.get_context()
 
-from common.evaluation.eval_utilities import (  # noqa: E402, F401
+from cgmml.common.evaluation.eval_utilities import (  # noqa: E402, F401
     is_ensemble_evaluation, is_multiartifact_evaluation)
-from common.evaluation.evaluation_classes import (  # noqa: E402, F401
+from cgmml.common.evaluation.evaluation_classes import (  # noqa: E402, F401
     Evaluation, EnsembleEvaluation, MultiartifactEvaluation)
-from common.model_utils.run_initialization import OfflineRunInitializer, OnlineRunInitializer  # noqa: E402
+from cgmml.common.model_utils.run_initialization import OfflineRunInitializer, OnlineRunInitializer  # noqa: E402
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d')

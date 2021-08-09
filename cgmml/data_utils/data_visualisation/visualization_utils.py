@@ -12,7 +12,7 @@ import glob2 as glob
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
-from common.model_utils.preprocessing import preprocess_depthmap, preprocess_targets
+from cgmml.common.model_utils.preprocessing import preprocess_depthmap, preprocess_targets
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

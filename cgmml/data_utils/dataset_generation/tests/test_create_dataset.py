@@ -6,7 +6,7 @@ import pandas as pd
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parents[1]))
-from data_utils import QRCodeCollector  # noqa: E402
+from cgmml.data_utils import QRCodeCollector  # noqa: E402
 
 PARAMETERS = 'cgmml/data_utils/dataset_generation/parameters.yml'
 DB_CONNECTION = 'cgmml/data_utils/dataset_generation/dbconnection.json'

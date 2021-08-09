@@ -3,8 +3,8 @@ import logging.config
 
 import numpy as np
 
-from common.depthmap_toolkit.constants import MASK_CHILD
-from common.depthmap_toolkit.depthmap import Depthmap
+from cgmml.common.depthmap_toolkit.constants import MASK_CHILD
+from cgmml.common.depthmap_toolkit.depthmap import Depthmap
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

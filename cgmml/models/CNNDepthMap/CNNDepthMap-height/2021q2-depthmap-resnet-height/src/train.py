@@ -12,8 +12,8 @@ from azureml.core.run import Run
 import wandb
 from wandb.keras import WandbCallback
 
-from common.model_utils.preprocessing import filter_blacklisted_qrcodes, preprocess_depthmap, preprocess_targets
-from common.model_utils.utils import (
+from cgmml.common.model_utils.preprocessing import filter_blacklisted_qrcodes, preprocess_depthmap, preprocess_targets
+from cgmml.common.model_utils.utils import (
     download_dataset, get_dataset_path, AzureLogCallback, create_tensorboard_callback, get_optimizer, setup_wandb)
 from config import CONFIG
 from constants import MODEL_CKPT_FILENAME, REPO_DIR

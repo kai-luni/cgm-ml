@@ -1,6 +1,6 @@
 import numpy as np
 
-from common.depthmap_toolkit.depthmap_utils import matrix_transform_point
+from cgmml.common.depthmap_toolkit.depthmap_utils import matrix_transform_point
 
 
 def test_matrix_transform_point_identity():

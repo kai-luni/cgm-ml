@@ -1,9 +1,9 @@
 import argparse
-import pandas as pd
 import logging
 from typing import List
 
 from glob2 import glob
+import pandas as pd
 
 OUTPUT_FILE_NAME = 'evaluated_models_result.csv'
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from common.reliability.background_segm.maskrcnn_resizeimage import predict_by_resize
+from cgmml.common.reliability.background_segm.maskrcnn_resizeimage import predict_by_resize
 
 IMAGE_FNAME = "rgb_test.jpg"
 

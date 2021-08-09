@@ -21,6 +21,15 @@ logger.addHandler(handler)
 REPO_DIR = Path(os.getcwd()).parents[2]
 
 
+def calculate_performance_mae(code: str,
+                              df_mae: pd.DataFrame,
+                              result_config: Bunch) -> pd.DataFrame:
+    df_mae_filtered = df_mae.iloc[df_mae.index.get_level_values('scantype') == code]
+    mae = df_mae_filtered['error'].abs().mean()
+    df_out = pd.DataFrame.from_dict({'mae': [mae]})
+    return df_out
+
+
 def calculate_performance(code: str,
                           df_mae: pd.DataFrame,
                           result_config: Bunch) -> pd.DataFrame:

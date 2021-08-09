@@ -48,11 +48,11 @@ if __name__ == "__main__":
 
     # Copy common/ folder
     common_dir_path = REPO_DIR / "cgmml/common"
-    temp_common_dir = temp_path / "common"
+    temp_common_dir = temp_path / "cgmml/common"
     copy_dir(src=common_dir_path, tgt=temp_common_dir, glob_pattern='*/*.py', should_touch_init=True)
 
     from src.constants import DEFAULT_CONFIG  # noqa: E402, F401
-    from temp_eval.common.model_utils.environment import cgm_environment  # noqa: E402, F401
+    from temp_eval.cgmml.common.model_utils.environment import cgm_environment  # noqa: E402, F401
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--qa_config_module", default=DEFAULT_CONFIG, help="Configuration file")

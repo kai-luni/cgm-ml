@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from common.rgbd_toolkit.rgbd import find_closest, get_files
+from cgmml.common.rgbd_toolkit.rgbd import find_closest, get_files
 
 REPO_DIR = str(Path(__file__).parents[0].absolute())
 

@@ -9,7 +9,7 @@ from typing import Iterator, List
 from bunch import Bunch
 import glob2 as glob
 
-from common.model_utils.model_utils_constants import SAMPLING_STRATEGY_SYSTEMATIC, SAMPLING_STRATEGY_WINDOW
+from cgmml.common.model_utils.model_utils_constants import SAMPLING_STRATEGY_SYSTEMATIC, SAMPLING_STRATEGY_WINDOW
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

@@ -13,8 +13,8 @@ from pathlib import Path
 sys.path.append('.')
 sys.path.append(str(Path(__file__).parents[1]))
 
-from data_utils import QRCodeCollector  # noqa: E402
-from src.common.depthmap_toolkit import pcd2depth  # noqa: E402
+from cgmml.data_utils import QRCodeCollector  # noqa: E402
+from cgmml.common.depthmap_toolkit import pcd2depth  # noqa: E402
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

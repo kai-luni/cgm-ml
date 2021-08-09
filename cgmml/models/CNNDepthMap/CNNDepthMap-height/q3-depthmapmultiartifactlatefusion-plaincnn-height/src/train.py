@@ -10,14 +10,14 @@ from azureml.core import Experiment, Workspace
 from azureml.core.run import Run
 from tensorflow.keras import callbacks, layers, models
 
-from common.model_utils.preprocessing import filter_blacklisted_qrcodes
-from common.model_utils.preprocessing_multiartifact_python import (
+from cgmml.common.model_utils.preprocessing import filter_blacklisted_qrcodes
+from cgmml.common.model_utils.preprocessing_multiartifact_python import (
     create_multiartifact_paths_for_qrcodes)
-from common.model_utils.preprocessing_multiartifact_tensorflow import (
+from cgmml.common.model_utils.preprocessing_multiartifact_tensorflow import (
     create_multiartifact_sample)
-from common.model_utils.utils import (
+from cgmml.common.model_utils.utils import (
     download_dataset, get_dataset_path, AzureLogCallback, create_tensorboard_callback, get_optimizer)
-from common.model_utils.model_plaincnn import create_head
+from cgmml.common.model_utils.model_plaincnn import create_head
 from model import get_base_model  # model.py relies on temp_common.model_utils
 from config import CONFIG
 from constants import MODEL_CKPT_FILENAME, REPO_DIR

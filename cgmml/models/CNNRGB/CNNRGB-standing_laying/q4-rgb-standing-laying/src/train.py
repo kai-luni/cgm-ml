@@ -12,7 +12,7 @@ from azureml.core.run import Run
 import wandb
 from wandb.keras import WandbCallback
 
-from common.model_utils.utils import (
+from cgmml.common.model_utils.utils import (
     download_dataset, get_dataset_path, AzureLogCallback, create_tensorboard_callback, setup_wandb)
 from sl_config import CONFIG
 from sl_constants import MODEL_CKPT_FILENAME, REPO_DIR

@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Create a Dataset using Databricks
-# MAGIC 
+# MAGIC
 # MAGIC Steps
 # MAGIC * databricks driver gets list of artifacts from postgres DB
 # MAGIC * databricks driver copies artifacts (from blob stoarage to DBFS)
@@ -26,14 +26,12 @@ import os
 from pathlib import Path
 from typing import Tuple, List
 
-import numpy as np
 import pandas as pd
 import psycopg2
-from skimage.transform import resize
 from tqdm import tqdm
 from azure.storage.blob import BlobServiceClient
 
-from src.common.data_utilities.mlpipeline_utils import ArtifactProcessor
+from cgmml.common.data_utilities.mlpipeline_utils import ArtifactProcessor
 
 # COMMAND ----------
 
@@ -53,12 +51,12 @@ DBFS_DIR = f"/tmp/{ENV}"
 
 # COMMAND ----------
 
-# MAGIC %md 
+# MAGIC %md
 # MAGIC ## Secret scopes
-# MAGIC 
+# MAGIC
 # MAGIC For reading secrets, we use [secret scopes](https://docs.microsoft.com/en-us/azure/databricks/security/secrets/secret-scopes).
-# MAGIC 
-# MAGIC When we create scopes in each environment (sandbox, demo/qa, prod), we name it `cgm-ml-scope`. 
+# MAGIC
+# MAGIC When we create scopes in each environment (sandbox, demo/qa, prod), we name it `cgm-ml-scope`.
 
 # COMMAND ----------
 
@@ -68,17 +66,17 @@ SECRET_SCOPE = "cgm-ml-scope"
 
 # MAGIC %md
 # MAGIC ## Access SQL database to find all the scans/artifacts of interest
-# MAGIC 
+# MAGIC
 # MAGIC #### SQL query
-# MAGIC 
+# MAGIC
 # MAGIC We build our SQL query, so that we get all the required information for the ML dataset creation:
 # MAGIC - the artifacts (depthmap, RGB, pointcloud)
 # MAGIC - the targets (measured height, weight, and MUAC)
-# MAGIC 
+# MAGIC
 # MAGIC The ETL packet shows which tables are involved
-# MAGIC 
+# MAGIC
 # MAGIC ![image info](https://dev.azure.com/cgmorg/e5b67bad-b36b-4475-bdd7-0cf6875414df/_apis/git/repositories/465970a9-a8a5-4223-81c1-2d3f3bd4ab26/Items?path=%2F.attachments%2Fcgm-solution-architecture-etl-draft-ETL-samplling-71a42e64-72c4-4360-a741-1cfa24622dce.png&download=false&resolveLfs=true&%24format=octetStream&api-version=5.0-preview.1&sanitize=true&versionDescriptor.version=wikiMaster)
-# MAGIC 
+# MAGIC
 # MAGIC The query will produce one artifact per row.
 
 # COMMAND ----------
@@ -106,7 +104,7 @@ INNER JOIN scan s     ON s.id = a.scan_id
 INNER JOIN measure m  ON m.person_id = s.person_id"""
 
 # The query select all scans with no results, this is a hack as we cannot add a column for data_version/etl_version right now.
-CONDITION = """ 
+CONDITION = """
  LEFT JOIN result r ON s.id = r.scan_id
 WHERE r.scan_id is NULL and a.format = 'depth';"""
 
@@ -120,9 +118,9 @@ query_results_tmp: List[Tuple[str]] = sql_cursor.fetchall() if NUM_ARTIFACTS is 
 
 # MAGIC %md
 # MAGIC **Explanation of a file_path**
-# MAGIC 
+# MAGIC
 # MAGIC The SQL result provides file_paths which have this format
-# MAGIC 
+# MAGIC
 # MAGIC ```
 # MAGIC Example: '1618896404960/2fe0ee0e-daf0-45a4-931e-cfc7682e1ce6'
 # MAGIC Format: f'{unix-timeatamp}/{random uuid}'
@@ -160,14 +158,14 @@ idx2col = {i: col.name for i, col in enumerate(column_names)}; print(idx2col)
 
 # MAGIC %md
 # MAGIC # Download artifact files to DBFS
-# MAGIC 
+# MAGIC
 # MAGIC In order for databricks to process the blob data, we need to transfer it to the DBFS of the databricks cluster.
-# MAGIC 
+# MAGIC
 # MAGIC Note:
 # MAGIC * Copying from mount is very very slow, therefore we copy the data
-# MAGIC 
+# MAGIC
 # MAGIC ## Download blobs
-# MAGIC 
+# MAGIC
 # MAGIC We use [Manage blobs Python SDK](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-python#download-blobs)
 # MAGIC to download blobs directly from the Storage Account(SA) to [DBFS](https://docs.databricks.com/data/databricks-file-system.html).
 
@@ -209,14 +207,14 @@ for file_path in tqdm(_file_paths):
 
 # MAGIC %md
 # MAGIC # Transform ZIP into pickle
-# MAGIC 
+# MAGIC
 # MAGIC Here we document the format of the artifact path
-# MAGIC 
+# MAGIC
 # MAGIC ```
 # MAGIC f"scans/1583462505-43bak4gvfa/101/pc_1583462505-43bak4gvfa_1591122173510_101_002.p"
 # MAGIC f"qrcode/{scan_id}/{scan_step}/pc_{scan_id}_{timestamp}_{scan_step}_{order_number}.p"
 # MAGIC ```
-# MAGIC 
+# MAGIC
 # MAGIC Idea for a future format could be to include person_id like so:
 # MAGIC ```
 # MAGIC f"qrcode/{person_id}/{scan_step}/pc_{scan_id}_{timestamp}_{scan_step}_{order_number}.p"
@@ -243,7 +241,7 @@ print(processed_fnames[:3])
 
 # MAGIC %md
 # MAGIC # Upload to blob storage
-# MAGIC 
+# MAGIC
 # MAGIC We use [Manage blobs Python SDK](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-python#upload-blobs-to-a-container)
 # MAGIC to upload blobs
 

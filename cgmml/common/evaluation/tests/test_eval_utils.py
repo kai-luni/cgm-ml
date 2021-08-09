@@ -2,9 +2,11 @@ from bunch import Bunch
 import numpy as np
 import pandas as pd
 
-from common.evaluation.constants_eval import COLUMN_NAME_AGE, COLUMN_NAME_SEX
-from common.evaluation.eval_utils import avgerror, calculate_performance, extract_scantype, extract_qrcode
-from common.evaluation.eval_utilities import (
+from cgmml.common.evaluation.constants_eval import COLUMN_NAME_AGE, COLUMN_NAME_SEX
+from cgmml.common.evaluation.eval_utils import (
+    avgerror, calculate_performance, calculate_performance_mae,
+    extract_scantype, extract_qrcode)
+from cgmml.common.evaluation.eval_utilities import (
     calculate_accuracies, calculate_accuracies_on_age_buckets, calculate_performance_age)
 
 QR_CODE_1 = "1585013006-yqwb95138e"
@@ -98,3 +100,17 @@ def test_calculate_performance_50percent():
     df = prepare_df(df)
     df_out = calculate_performance(code='100', df_mae=df, result_config=RESULT_CONFIG)
     np.testing.assert_array_equal(df_out[1.2], 50.0)
+
+
+def test_calculate_performance_mae():
+    data = {
+        'artifacts': [
+            f'scans/{QR_CODE_1}/100/pc_{QR_CODE_1}_1591849321035_100_000.p',
+            f'scans/{QR_CODE_2}/100/pc_{QR_CODE_2}_1591849321035_100_000.p'],
+        'GT': [98.1, 98.9],
+        'predicted': [98.1, 98.9 + 7],
+    }
+    df = pd.DataFrame.from_dict(data)
+    df = prepare_df(df)
+    df_out = calculate_performance_mae(code='100', df_mae=df, result_config=None)
+    assert df_out['mae'][0] == 3.5

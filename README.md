@@ -31,13 +31,6 @@ To install, run:
 pip install -r requirements.txt
 ```
 
-To set the PYTHONPATH correctly, so that the import statements will work correctly,
-add the following to your `~/.bashrc` or `~/.zshrc`:
-
-```bash
-export PYTHONPATH=<INSERT ABSOLUTE PATH TO CGM-ML>/cgmml:${PYTHONPATH}
-```
-
 For installing point cloud libraries, refer to
 [README_installation_details_pcl.md](README_installation_details_pcl.md).
 

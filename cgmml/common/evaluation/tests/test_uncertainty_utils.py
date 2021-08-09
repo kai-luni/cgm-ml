@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 
-from common.evaluation.uncertainty_utils import _predict, _calculate_std
-from common.model_utils.model_plaincnn import create_cnn
+from cgmml.common.evaluation.uncertainty_utils import _predict, _calculate_std
+from cgmml.common.model_utils.model_plaincnn import create_cnn
 
 BATCH_SIZE = 8
 

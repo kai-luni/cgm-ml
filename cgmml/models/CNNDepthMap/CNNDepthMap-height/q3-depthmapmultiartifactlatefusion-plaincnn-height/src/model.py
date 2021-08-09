@@ -7,7 +7,7 @@ from azureml.core import Experiment, Workspace
 from azureml.core.run import Run
 from tensorflow.keras import models
 
-from common.model_utils.model_plaincnn import create_base_cnn
+from cgmml.common.model_utils.model_plaincnn import create_base_cnn
 from config import CONFIG
 from constants import MODEL_CKPT_FILENAME
 

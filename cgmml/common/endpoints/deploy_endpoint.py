@@ -6,7 +6,7 @@ from config_deepensemble_1 import CONFIG
 
 from constants import REPO_DIR
 
-from common.model_utils import environment
+from cgmml.common.model_utils import environment
 
 if __name__ == "__main__":
 

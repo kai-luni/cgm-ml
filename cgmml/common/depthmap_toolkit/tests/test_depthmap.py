@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from common.depthmap_toolkit.depthmap import Depthmap, smoothen_depthmap_array
+from cgmml.common.depthmap_toolkit.depthmap import Depthmap, smoothen_depthmap_array
 
 TOOLKIT_DIR = Path(__file__).parents[0].absolute()
 

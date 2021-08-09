@@ -1,7 +1,7 @@
 import os
 import pytest
 
-from common.model_utils.preprocessing import filter_blacklisted_qrcodes
+from cgmml.common.model_utils.preprocessing import filter_blacklisted_qrcodes
 
 BASE_PATH = "this/is/the/test/path"
 

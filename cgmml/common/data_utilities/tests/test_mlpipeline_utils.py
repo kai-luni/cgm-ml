@@ -2,7 +2,7 @@ from pathlib import Path
 import pickle
 from tempfile import TemporaryDirectory
 
-from common.data_utilities.mlpipeline_utils import (
+from cgmml.common.data_utilities.mlpipeline_utils import (
     load_depth, get_depthmaps, ArtifactProcessor)
 
 DATA_UTILITIES_DIR = Path(__file__).parents[1].absolute()

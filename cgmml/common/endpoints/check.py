@@ -5,7 +5,7 @@ from azureml.core import Webservice, Workspace
 
 from config_deepensemble_1 import CONFIG
 
-from common.data_utilities import mlpipeline_utils
+from cgmml.common.data_utilities import mlpipeline_utils
 
 if __name__ == "__main__":
     if CONFIG.LOCALTEST:

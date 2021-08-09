@@ -13,6 +13,8 @@ from tensorflow.keras.models import load_model
 from azureml.core import Workspace
 from bunch import Bunch
 
+from cgmml.common.model_utils.preprocessing_multiartifact_python import create_multiartifact_paths_for_qrcodes
+from cgmml.common.model_utils.preprocessing_multiartifact_tensorflow import create_multiartifact_sample
 from .constants_eval import (
     COLUMN_NAME_AGE, COLUMN_NAME_GOODBAD, COLUMN_NAME_SEX,
     GOODBAD_IDX, GOODBAD_DICT, SEX_IDX, AGE_IDX, HEIGHT_IDX, WEIGHT_IDX)
@@ -26,9 +28,6 @@ from .eval_utilities import (
     calculate_performance_sex, calculate_performance_goodbad, get_predictions_from_multiple_models,
     draw_uncertainty_goodbad_plot, get_prediction_multiartifact, get_column_list, prepare_sample_dataset,
     draw_uncertainty_scatterplot, is_filter_enabled)
-
-from common.model_utils.preprocessing_multiartifact_python import create_multiartifact_paths_for_qrcodes  # noqa: E402
-from common.model_utils.preprocessing_multiartifact_tensorflow import create_multiartifact_sample  # noqa: E402
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

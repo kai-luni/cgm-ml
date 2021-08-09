@@ -1,6 +1,6 @@
 import pytest
 
-from common.model_utils.preprocessing_multiartifact_python import (
+from cgmml.common.model_utils.preprocessing_multiartifact_python import (
     sample_systematic_from_artifacts, sample_windows_from_artifacts, REGEX_PICKLE)
 
 
