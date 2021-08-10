@@ -49,11 +49,12 @@ def _count_rows_per_age_bucket(artifacts):
     return df_out
 
 
-def calculate_code_age_distribution(artifacts: pd.DataFrame):
-    codes = list(artifacts['key'].unique())
+def calculate_code_age_distribution(artifacts: pd.DataFrame, scan_type_colname: str) -> pd.DataFrame:
+    logger.info(scan_type_colname)
+    codes = list(artifacts[scan_type_colname].unique())
     dfs = []
     for code in codes:
-        df = _count_rows_per_age_bucket(artifacts[artifacts['key'] == code])
+        df = _count_rows_per_age_bucket(artifacts[artifacts[scan_type_colname] == code])
         df.rename(index={0: code}, inplace=True)
         dfs.append(df)
     result = pd.concat(dfs)
@@ -61,15 +62,21 @@ def calculate_code_age_distribution(artifacts: pd.DataFrame):
     return result
 
 
-def find_outlier_qrcodes(df: pd.DataFrame, column: str, condition: str) -> list:
+def find_outliers(df: pd.DataFrame, column: str, condition: str, data_id_name: str) -> list:
     combined_condition = '@df.' + column + condition
     logger.info('Running the following query: %s', combined_condition)
     outlier_artifacts = df.query(combined_condition)
-    unique_outliers = outlier_artifacts.drop_duplicates(subset='qrcode', keep='first')
-    logger.info('Extracting qr_codes...')
-    qrs = unique_outliers.qrcode.tolist()
-    logger.info('No. of qrcodes: %d', len(qrs))
-    return qrs
+    outliers = []
+    if data_id_name == 'qr':
+        unique_outliers = outlier_artifacts.drop_duplicates(subset='qrcode', keep='first')
+        outliers = unique_outliers.qrcode.tolist()
+    elif data_id_name == 'id':
+        unique_outliers = outlier_artifacts.drop_duplicates(subset='id', keep='first')
+        outliers = unique_outliers.id.tolist()
+    else:
+        logger.info('data_id_name not valid')
+    logger.info('No. of outliers: %d', len(outliers))
+    return outliers
 
 
 def display_images(images: list, grid_size: int, axes):

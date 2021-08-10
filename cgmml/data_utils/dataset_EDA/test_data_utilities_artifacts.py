@@ -81,5 +81,5 @@ def test_extractqrcode():
 
 def test_calculate_code_age_distribution():
     artifacts = _generate_df()
-    result = calculate_code_age_distribution(artifacts)
+    result = calculate_code_age_distribution(artifacts, 'key')
     assert result.sum().sum() == artifacts.shape[0]
