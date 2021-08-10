@@ -24,9 +24,9 @@ TOOLKIT_DIR = Path(__file__).parents[0].absolute()
 Segment = namedtuple('Segment', 'id aabb')
 
 
-def extract_depthmap(depthmap_path: str):
+def extract_depthmap(depthmap_fpath: str) -> Path:
     """Extract depthmap from given file"""
-    with zipfile.ZipFile(depthmap_path, 'r') as zip_ref:
+    with zipfile.ZipFile(Path(depthmap_fpath), 'r') as zip_ref:
         zip_ref.extractall(TOOLKIT_DIR)
     return TOOLKIT_DIR / EXTRACTED_DEPTH_FILE_NAME
 
@@ -82,8 +82,8 @@ class Depthmap:
                               - can be used to project into a different space
         rgb_fpath (str): Path to RGB file (e.g. to the jpg)
         rgb_array (np.array): RGB data
+        header: raw depthmap header with metainformation
     """
-
     def __init__(
             self,
             intrinsics: np.ndarray,
@@ -95,7 +95,8 @@ class Depthmap:
             max_confidence: float,
             device_pose: List[float],
             rgb_fpath: Path,
-            rgb_array: np.ndarray):
+            rgb_array: np.ndarray,
+            header: str = None):
         """Constructor
 
         Either `data` or `depthmap_arr` has to be defined
@@ -103,10 +104,8 @@ class Depthmap:
         self.width = width
         self.height = height
 
-        self._intrinsics = intrinsics
         self.intrinsics = np.array(intrinsics)
         self.sensor = 1
-
         self.fx = self.intrinsics[self.sensor, 0] * self.width
         self.fy = self.intrinsics[self.sensor, 1] * self.height
         self.cx = self.intrinsics[self.sensor, 2] * self.width
@@ -116,10 +115,13 @@ class Depthmap:
         self.max_confidence = max_confidence
         self.device_pose = device_pose
         self.device_pose_arr = np.array(device_pose).reshape(4, 4).T
+        if header:
+            self.header = header
+
         self.rgb_fpath = rgb_fpath
-        self.rgb_array = rgb_array  # shape (height, width, 3)
-        assert depthmap_arr is None or data is None
-        self.depthmap_arr = self._parse_depth_data(data) if data else depthmap_arr
+        self.rgb_array = rgb_array  # shape (height, width, 3)  # (180, 240, 3)
+        assert depthmap_arr is not None or data is not None
+        self.depthmap_arr = self._parse_depth_data(data) if data else depthmap_arr  # (240, 180)
 
         # smoothing is only for normals, otherwise there is noise
         self.depthmap_arr_smooth = smoothen_depthmap_array(self.depthmap_arr)
@@ -135,21 +137,21 @@ class Depthmap:
     def create_from_zip_absolute(cls,
                                  depthmap_fpath: str,
                                  rgb_fpath: str,
-                                 calibration_file: str) -> 'Depthmap':
-
+                                 calibration_fpath: str) -> 'Depthmap':
         # read depthmap data
         path = extract_depthmap(depthmap_fpath)
         with open(path, 'rb') as f:
-            line = f.readline().decode().strip()
-            header = line.split('_')
-            res = header[0].split('x')
+            header_line = f.readline().decode().strip()
+            header_parts = header_line.split('_')
+            res = header_parts[0].split('x')
             width = int(res[0])
             height = int(res[1])
-            depth_scale = float(header[1])
-            max_confidence = float(header[2])
-            if len(header) >= 10:
-                position = (float(header[7]), float(header[8]), float(header[9]))
-                rotation = (float(header[3]), float(header[4]), float(header[5]), float(header[6]))
+            depth_scale = float(header_parts[1])
+            max_confidence = float(header_parts[2])
+            if len(header_parts) >= 10:
+                position = (float(header_parts[7]), float(header_parts[8]), float(header_parts[9]))
+                rotation = (float(header_parts[3]), float(header_parts[4]),
+                            float(header_parts[5]), float(header_parts[6]))
                 device_pose = matrix_calculate(position, rotation)
             else:
                 device_pose = IDENTITY_MATRIX_4D
@@ -159,13 +161,17 @@ class Depthmap:
         # read rgb data
         if rgb_fpath:
             pil_im = Image.open(rgb_fpath)
+
+            rgb_width, rgb_height = pil_im.size
+            assert rgb_width / width == rgb_height / height
+
             pil_im = pil_im.resize((width, height), Image.ANTIALIAS)
             rgb_array = np.asarray(pil_im)
         else:
             rgb_array = None
 
         # read calibration file
-        intrinsics = parse_calibration(calibration_file)
+        intrinsics = parse_calibration(calibration_fpath)
         depthmap_arr = None
 
         return cls(intrinsics,
@@ -177,7 +183,8 @@ class Depthmap:
                    max_confidence,
                    device_pose,
                    rgb_fpath,
-                   rgb_array
+                   rgb_array,
+                   header_line,
                    )
 
     @classmethod
@@ -352,6 +359,18 @@ class Depthmap:
         return True
 
     def segment_child(self, floor: float) -> np.ndarray:
+        """Segment the child from the background
+
+        Args:
+            floor: At which y-value the floor is
+
+        Returns:
+            np.ndarray (int): Each pixel has either
+                * -1, -2, -3 (according to number of objects in the scene)
+                * MASK_FLOOR = 1
+                * MASK_CHILD = 2
+                * MASK_INVALID = 3
+        """
         mask, segments = self.detect_objects(floor)
 
         # Select the most focused segment
@@ -368,6 +387,8 @@ class Depthmap:
                 focus = segment.id
 
         mask = np.where(mask == focus, MASK_CHILD, mask)
+
+        assert not (mask == 0).any()  # 0 pixels in output_mask are not allowed
 
         return mask
 

@@ -8,14 +8,14 @@ from cgmml.common.depthmap_toolkit.visualisation import blur_face, render_rgb
 
 TOOLKIT_DIR = Path(__file__).parents[0].absolute()
 OFFSET_X_Y = (0.37, 0.53)
+DEPTHMAP_DIR = TOOLKIT_DIR / 'huawei_p40pro'
+DEPTHMAP_FPATH = DEPTHMAP_DIR / 'depth' / 'depth_dog_1622182020448_100_282.depth'
+RGB_FPATH = DEPTHMAP_DIR / 'rgb' / 'rgb_dog_1622182020448_100_282.jpg'
+CALIBRATION_FPATH = str(TOOLKIT_DIR / 'huawei_p40pro' / 'camera_calibration.txt')
 
 
 def test_blur_face():
-    depthmap_dir = str(TOOLKIT_DIR / 'huawei_p40pro')
-    depthmap_fname = 'depth_dog_1622182020448_100_282.depth'
-    rgb_fname = 'rgb_dog_1622182020448_100_282.jpg'
-    calibration_file = str(TOOLKIT_DIR / 'huawei_p40pro' / 'camera_calibration.txt')
-    dmap = Depthmap.create_from_zip(depthmap_dir, depthmap_fname, rgb_fname, calibration_file)
+    dmap = Depthmap.create_from_zip_absolute(DEPTHMAP_FPATH, RGB_FPATH, CALIBRATION_FPATH)
 
     # Find top of the object
     floor = dmap.get_floor_level()

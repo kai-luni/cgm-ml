@@ -2,8 +2,7 @@ from pathlib import Path
 import pickle
 from tempfile import TemporaryDirectory
 
-from cgmml.common.data_utilities.mlpipeline_utils import (
-    load_depth, get_depthmaps, ArtifactProcessor)
+from cgmml.common.data_utilities.mlpipeline_utils import create_layers, ArtifactProcessor
 
 DATA_UTILITIES_DIR = Path(__file__).parents[1].absolute()
 ARTIFACT_ZIP_PATH = 'be1faf54-69c7-11eb-984b-a3ffd42e7b5a/depth/bd67cd9e-69c7-11eb-984b-77ac9d2b4986'
@@ -21,12 +20,6 @@ _COLUMN_NAMES = ['file_path', 'timestamp', 'scan_id', 'scan_step', 'height', 'we
 IDX2COL = {i: col for i, col in enumerate(_COLUMN_NAMES)}
 
 
-def test_load_depth_hugh():
-    depth_file = DATA_UTILITIES_DIR / 'tests' / 'zip_files' / ARTIFACT_ZIP_PATH
-    data, _width, _height, _depth_scale, _max_confidence = load_depth(depth_file)
-    assert isinstance(data, bytes)
-
-
 def test_artifact_processor():
     input_dir = DATA_UTILITIES_DIR / 'tests' / 'zip_files'
 
@@ -36,7 +29,7 @@ def test_artifact_processor():
 
         depthmap, targets = pickle.load(open(processed_fname, 'rb'))
         assert depthmap.shape == (180, 240, 1), depthmap.shape
-        assert len(targets) == 3
+        assert 'height' in targets
 
         pickle_path_expected = str(
             DATA_UTILITIES_DIR
@@ -49,7 +42,11 @@ def test_artifact_processor():
         assert pickle_path_expected.split('/')[-4:] == processed_fname.split('/')[-4:]
 
 
-def test_get_depthmaps():
+def test_create_layers():
     zip_input_full_path = DATA_UTILITIES_DIR / 'tests' / 'zip_files' / ARTIFACT_ZIP_PATH
-    preprocessed_depthmaps = get_depthmaps([zip_input_full_path])
-    assert preprocessed_depthmaps[0].shape == (180, 240, 1), preprocessed_depthmaps[0].shape
+    layers, metadata = create_layers(zip_input_full_path)
+    assert layers.shape == (180, 240, 1), layers.shape
+
+    assert isinstance(metadata['raw_header'], str), metadata['raw_header']
+    expected_header = '320x240_0.001_7_-0.15561539_-0.07175923_-0.6638096_0.72800505_-8.440511_0.3684988_-1.3508477'
+    assert metadata['raw_header'] == expected_header

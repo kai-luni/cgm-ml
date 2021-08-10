@@ -2,6 +2,7 @@ include LICENSE
 include README.md
 include setup.py
 recursive-include cgmml/common *.py
+recursive-include cgmml/common *.txt
 global-exclude cgmml/data_utils/**
 global-exclude cgmml/models/**
 global-exclude cgmml/analyses/**

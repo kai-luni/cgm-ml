@@ -6,15 +6,14 @@ from cgmml.common.depthmap_toolkit.depthmap import Depthmap, smoothen_depthmap_a
 from cgmml.common.depthmap_toolkit.constants import MASK_CHILD
 
 TOOLKIT_DIR = Path(__file__).parents[0].absolute()
+DEPTHMAP_DIR = TOOLKIT_DIR / 'huawei_p40pro'
+DEPTHMAP_FPATH = DEPTHMAP_DIR / 'depth' / 'depth_dog_1622182020448_100_282.depth'
+RGB_FPATH = DEPTHMAP_DIR / 'rgb' / 'rgb_dog_1622182020448_100_282.jpg'
+CALIBRATION_FILE = str(TOOLKIT_DIR / 'huawei_p40pro' / 'camera_calibration.txt')
 
 
 def test_depthmap():
-    depthmap_dir = str(TOOLKIT_DIR / 'huawei_p40pro')
-    depthmap_fname = 'depth_dog_1622182020448_100_282.depth'
-    rgb_fname = 'rgb_dog_1622182020448_100_282.jpg'
-    calibration_file = str(TOOLKIT_DIR / 'huawei_p40pro' / 'camera_calibration.txt')
-
-    dmap = Depthmap.create_from_zip(depthmap_dir, depthmap_fname, rgb_fname, calibration_file)
+    dmap = Depthmap.create_from_zip_absolute(DEPTHMAP_FPATH, RGB_FPATH, CALIBRATION_FILE)
     assert dmap.width == 240
     assert dmap.height == 180
 
@@ -39,11 +38,7 @@ def test_depthmap():
 
 
 def test_get_highest_point():
-    depthmap_dir = str(TOOLKIT_DIR / 'huawei_p40pro')
-    depthmap_fname = 'depth_dog_1622182020448_100_282.depth'
-    rgb_fname = 'rgb_dog_1622182020448_100_282.jpg'
-    calibration_file = str(TOOLKIT_DIR / 'huawei_p40pro' / 'camera_calibration.txt')
-    dmap = Depthmap.create_from_zip(depthmap_dir, depthmap_fname, rgb_fname, calibration_file)
+    dmap = Depthmap.create_from_zip_absolute(DEPTHMAP_FPATH, RGB_FPATH, CALIBRATION_FILE)
 
     # Find top of the object
     floor = dmap.get_floor_level()
@@ -98,7 +93,3 @@ def test_smoothen_depthmap_array_with_masking():
         [1., 1., 1., 1.],
     ])
     np.testing.assert_array_equal(expected, smoothen_depthmap_array(depthmap))
-
-
-if __name__ == "__main__":
-    test_is_child_fully_visible()

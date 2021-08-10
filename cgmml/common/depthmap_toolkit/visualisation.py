@@ -116,7 +116,7 @@ def render_normal(dmap: Depthmap) -> np.ndarray:
     normal = dmap.calculate_normalmap_array(points_3d_arr)
 
     # We can't see negative values, so we take the absolute value
-    normal = abs(normal)  # 3 x w x h
+    normal = abs(normal)  # shape: (3, width, height)
 
     output = np.moveaxis(normal, 0, -1)
     output = np.fliplr(output)  # flip left-right
