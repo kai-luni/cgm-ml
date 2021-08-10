@@ -9,18 +9,24 @@ from scipy import ndimage
 import numpy as np
 from PIL import Image
 
-from cgmml.common.depthmap_toolkit.depthmap_utils import matrix_calculate, IDENTITY_MATRIX_4D, parse_numbers
+from cgmml.common.depthmap_toolkit.depthmap_utils import (
+    matrix_calculate, IDENTITY_MATRIX_4D, parse_numbers, calculate_boundary)
 from cgmml.common.depthmap_toolkit.constants import EXTRACTED_DEPTH_FILE_NAME, MASK_FLOOR, MASK_CHILD, MASK_INVALID
 
+NEIGHBOUR_PIXELS_MAX_DISTANCE_IN_METER = 0.05
+FLOOR_THRESHOLD_IN_METER = 0.1
+SCREEN_BORDER_MARGIN_PERCENTAGE = 0.05
+SCREEN_BORDER_PERCENTAGE = 0.025
+STANDING_CHILD_MAX_HORIZONTAL_DIFF_IN_METER = 0.075
 TOOLKIT_DIR = Path(__file__).parents[0].absolute()
 
 
 Segment = namedtuple('Segment', 'id aabb')
 
 
-def extract_depthmap(depthmap_dir: str, depthmap_fname: str):
+def extract_depthmap(depthmap_path: str):
     """Extract depthmap from given file"""
-    with zipfile.ZipFile(Path(depthmap_dir) / 'depth' / depthmap_fname, 'r') as zip_ref:
+    with zipfile.ZipFile(depthmap_path, 'r') as zip_ref:
         zip_ref.extractall(TOOLKIT_DIR)
     return TOOLKIT_DIR / EXTRACTED_DEPTH_FILE_NAME
 
@@ -126,14 +132,13 @@ class Depthmap:
         return self.rgb_array is not None
 
     @classmethod
-    def create_from_zip(cls,
-                        depthmap_dir: str,
-                        depthmap_fname: str,
-                        rgb_fname: str,
-                        calibration_file: str) -> 'Depthmap':
+    def create_from_zip_absolute(cls,
+                                 depthmap_fpath: str,
+                                 rgb_fpath: str,
+                                 calibration_file: str) -> 'Depthmap':
 
         # read depthmap data
-        path = extract_depthmap(depthmap_dir, depthmap_fname)
+        path = extract_depthmap(depthmap_fpath)
         with open(path, 'rb') as f:
             line = f.readline().decode().strip()
             header = line.split('_')
@@ -152,13 +157,11 @@ class Depthmap:
             f.close()
 
         # read rgb data
-        if rgb_fname:
-            rgb_fpath = Path(depthmap_dir) / 'rgb' / rgb_fname
+        if rgb_fpath:
             pil_im = Image.open(rgb_fpath)
             pil_im = pil_im.resize((width, height), Image.ANTIALIAS)
             rgb_array = np.asarray(pil_im)
         else:
-            rgb_fpath = rgb_fname
             rgb_array = None
 
         # read calibration file
@@ -176,6 +179,19 @@ class Depthmap:
                    rgb_fpath,
                    rgb_array
                    )
+
+    @classmethod
+    def create_from_zip(cls,
+                        depthmap_dir: str,
+                        depthmap_fname: str,
+                        rgb_fname: str,
+                        calibration_file: str) -> 'Depthmap':
+
+        depthmap_path = Path(depthmap_dir) / 'depth' / depthmap_fname
+        rgb_fpath = 0
+        if rgb_fname:
+            rgb_fpath = Path(depthmap_dir) / 'rgb' / rgb_fname
+        return cls.create_from_zip_absolute(depthmap_path, rgb_fpath, calibration_file)
 
     @classmethod
     def create_from_array(cls,
@@ -237,6 +253,35 @@ class Depthmap:
         output[:, 1:, 1:] = normal
         return output
 
+    def calculate_standing_confidence(self, mask: np.array, highest_point: list) -> float:
+        """Calculates the confidence if the child is standing straight.
+
+        The result is calculated by calculating difference of x,z coordinates of highest point and every child point.
+        The more unstraight child stays, the bigger the difference is.
+        The confidence is 1.0 when the child is fully straight, 0.5 when it could be still count as straight.
+        """
+
+        points_3d_arr = self.convert_2d_to_3d_oriented(should_smooth=False)
+
+        # count average horizontal diff of child points to highest_point
+        count = 0
+        horizontal_diff = 0.
+        for x in range(self.width):
+            for y in range(self.height):
+                if mask[x, y] != MASK_CHILD:
+                    continue
+
+                diff_x = points_3d_arr[0, x, y] - highest_point[0]
+                diff_z = points_3d_arr[2, x, y] - highest_point[2]
+                horizontal_diff += math.sqrt(diff_x * diff_x + diff_z * diff_z)
+                count += 1
+        if count > 0:
+            horizontal_diff /= float(count)
+
+        # STANDING_CHILD_MAX_HORIZONTAL_DIFF_IN_METER for confidence=0.5, fully straight standing for confidence=1
+        confidence = 1.0 - horizontal_diff / STANDING_CHILD_MAX_HORIZONTAL_DIFF_IN_METER / 2.0
+        return min(confidence, 1.)
+
     def convert_2d_to_3d(self, sensor: int, x: float, y: float, depth: float) -> np.ndarray:
         """Convert point in pixels into point in meters
 
@@ -288,6 +333,24 @@ class Depthmap:
         res[1, :, :] = -res[1, :, :]
         return res
 
+    def is_child_fully_visible(self, mask: np.array) -> bool:
+
+        # Get the boundary of child and of valid data
+        margin = max(self.width, self.height) * SCREEN_BORDER_MARGIN_PERCENTAGE
+        child_aabb = calculate_boundary(mask == MASK_CHILD)
+        valid_aabb = calculate_boundary(self.depthmap_arr > 0)
+
+        # Check if the child boundary is inside valid boundary
+        if child_aabb[0] < valid_aabb[0] + margin:
+            return False
+        if child_aabb[1] < valid_aabb[1] + margin:
+            return False
+        if child_aabb[2] > valid_aabb[2] - margin:
+            return False
+        if child_aabb[3] > valid_aabb[3] - margin:
+            return False
+        return True
+
     def segment_child(self, floor: float) -> np.ndarray:
         mask, segments = self.detect_objects(floor)
 
@@ -317,7 +380,7 @@ class Depthmap:
         normal = self.calculate_normalmap_array(points_3d_arr)
 
         cond1 = np.abs(normal[1, :, :]) > 0.5
-        cond2 = (points_3d_arr[1, :, :] - floor) < 0.1
+        cond2 = (points_3d_arr[1, :, :] - floor) < FLOOR_THRESHOLD_IN_METER
         per_pixel_cond = cond1 & cond2
         mask[per_pixel_cond] = MASK_FLOOR
         return mask
@@ -338,12 +401,12 @@ class Depthmap:
         segments = []
         dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]]
         mask = self.detect_floor(floor)
+        points_3d_arr = self.convert_2d_to_3d_oriented(should_smooth=False)
         for x in range(self.width):
             for y in range(self.height):
                 if mask[x, y] != 0:
                     continue
                 pixel = [x, y]
-                aabb = [pixel[0], pixel[1], pixel[0], pixel[1]]
                 stack = [pixel]
                 while len(stack) > 0:
 
@@ -353,22 +416,19 @@ class Depthmap:
 
                     # Add neighbor points (if there is no floor and they are connected)
                     if mask[pixel[0], pixel[1]] == 0:
-                        for direction in dirs:
-                            pixel_dir = [pixel[0] + direction[0], pixel[1] + direction[1]]
-                            depth_dir = self.depthmap_arr[pixel_dir[0], pixel_dir[1]]
-                            if depth_dir > 0 and abs(depth_dir - depth_center) < 0.1:
-                                stack.append(pixel_dir)
-
-                    # Update AABB
-                    aabb[0] = min(pixel[0], aabb[0])
-                    aabb[1] = min(pixel[1], aabb[1])
-                    aabb[2] = max(pixel[0], aabb[2])
-                    aabb[3] = max(pixel[1], aabb[3])
+                        if points_3d_arr[1, pixel[0], pixel[1]] - floor > FLOOR_THRESHOLD_IN_METER:
+                            for direction in dirs:
+                                pixel_dir = [pixel[0] + direction[0], pixel[1] + direction[1]]
+                                depth_dir = self.depthmap_arr[pixel_dir[0], pixel_dir[1]]
+                                if depth_dir > 0 and abs(
+                                        depth_dir - depth_center) < NEIGHBOUR_PIXELS_MAX_DISTANCE_IN_METER:
+                                    stack.append(pixel_dir)
 
                     # Update the mask
                     mask[pixel[0], pixel[1]] = current_id
 
                 # Check if the object size is valid
+                aabb = calculate_boundary(mask == current_id)
                 object_size_pixels = max(aabb[2] - aabb[0], aabb[3] - aabb[1])
                 if object_size_pixels > self.width / 4:
                     segments.append(Segment(current_id, aabb))
@@ -502,4 +562,5 @@ def normalize(vectors: np.ndarray) -> np.ndarray:
         This achieves: abs(x) + abs(y) + abs(z) = 1
     """
     length = abs(vectors[0]) + abs(vectors[1]) + abs(vectors[2])
+    length[length == 0] = 1
     return vectors / length

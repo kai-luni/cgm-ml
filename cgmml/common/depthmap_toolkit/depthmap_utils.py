@@ -8,6 +8,39 @@ IDENTITY_MATRIX_4D = [1., 0., 0., 0.,
                       0., 0., 0., 1.]
 
 
+def calculate_boundary(array: np.ndarray) -> np.ndarray:
+    width = array.shape[0]
+    height = array.shape[1]
+    xbig = np.expand_dims(np.array(range(width)), -1).repeat(height, axis=1)
+    ybig = np.expand_dims(np.array(range(height)), 0).repeat(width, axis=0)
+    cond = array == 0
+
+    aabb = []
+    xbig[cond] = np.iinfo(np.intc).max
+    ybig[cond] = np.iinfo(np.intc).max
+    aabb.append(np.min(xbig))
+    aabb.append(np.min(ybig))
+    xbig[cond] = 0
+    ybig[cond] = 0
+    aabb.append(np.max(xbig))
+    aabb.append(np.max(ybig))
+    return aabb
+
+
+def get_smoothed_pixel(data: np.ndarray, x: int, y: int, step: int) -> np.array:
+    width = data.shape[0]
+    height = data.shape[1]
+    pixel = np.array([0, 0, 0])
+    count = 0
+    for tx in range(x - step, x + step):
+        for ty in range(y - step, y + step):
+            if not (0 < tx < width and 0 < ty < height):
+                continue
+            pixel = pixel + data[tx, ty, 0]
+            count = count + 1
+    return pixel / max(count, 1)
+
+
 def matrix_calculate(position: List[float], rotation: List[float]) -> List[float]:
     """Calculate a matrix image->world from device position and rotation"""
 

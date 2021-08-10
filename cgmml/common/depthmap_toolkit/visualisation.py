@@ -5,6 +5,7 @@ import numpy as np
 
 from cgmml.common.depthmap_toolkit.constants import MASK_CHILD
 from cgmml.common.depthmap_toolkit.depthmap import Depthmap
+from cgmml.common.depthmap_toolkit.depthmap_utils import calculate_boundary, get_smoothed_pixel
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -13,7 +14,7 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)
 logger.addHandler(handler)
 
 CHILD_HEAD_HEIGHT_IN_METERS = 0.25
-PATTERN_LENGTH_IN_METERS = 0.1
+PATTERN_LENGTH_IN_METERS = 0.2
 IDX_RED = 0
 IDX_GREEN = 1
 IDX_BLUE = 2
@@ -51,20 +52,23 @@ def blur_face(data: np.ndarray, highest_point: np.ndarray, dmap: Depthmap) -> np
                 continue
 
             # Gausian blur
-            pixel = np.array([0, 0, 0])
-            count = 0
-            step = 5
-            for tx in range(x - step, x + step):
-                for ty in range(y - step, y + step):
-                    if not (0 < tx < dmap.width and 0 < ty < dmap.height):
-                        continue
-                    index = dmap.height - ty - 1
-                    pixel = pixel + data[tx, index, 0]
-                    count = count + 1
             index = dmap.height - y - 1
-            output[x, index] = pixel / count
+            output[x, index] = get_smoothed_pixel(data, x, index, 5)
 
     return output
+
+
+def draw_boundary(output: np.ndarray, aabb: np.array, color: np.array):
+    height = output.shape[1]
+    x1 = aabb[0]
+    x2 = aabb[2]
+    y1 = height - aabb[3] - 1
+    y2 = height - aabb[1] - 1
+
+    output[x1:x2, y1, :] = color
+    output[x1:x2, y2, :] = color
+    output[x1, y1:y2, :] = color
+    output[x2, y1:y2, :] = color
 
 
 def render_confidence(dmap: Depthmap):
@@ -144,10 +148,12 @@ def render_segmentation(floor: float,
                 continue
 
             # segmentation visualisation
-            horizontal = (point[1, x, y] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS
-            vertical_x = (point[0, x, y] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS
-            vertical_z = (point[2, x, y] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS
-            vertical = (vertical_x + vertical_z) / 2.0
+            fog = depth * depth
+            elevation = point[1, x, y] - floor
+            horizontal = (elevation % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS / fog
+            vertical_x = (point[0, x, y] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS / fog
+            vertical_z = (point[2, x, y] % PATTERN_LENGTH_IN_METERS) / PATTERN_LENGTH_IN_METERS / fog
+            vertical = (vertical_x + vertical_z) / 2.0 / fog
             index = dmap.height - y - 1
 
             if mask[x, y] == MASK_CHILD:
@@ -162,13 +168,15 @@ def render_segmentation(floor: float,
                 else:
                     output[x, index, IDX_GREEN] = vertical
 
-    # Fog effect: achieved by deviding by depth*depth
-    fog_normalization = np.expand_dims(dmap.depthmap_arr * dmap.depthmap_arr, axis=-1)
-    fog_normalization[fog_normalization == 0.] = 1.
-    output = output / fog_normalization
-
     # Ensure pixel clipping
     np.clip(output, 0., 1., output)
+
+    # Show the boundary of the child
+    color = [1, 0, 1]  # purple
+    if dmap.is_child_fully_visible(mask):
+        color = [0, 1, 0]  # green
+    aabb = calculate_boundary(mask == MASK_CHILD)
+    draw_boundary(output, aabb, color)
 
     return output
 
@@ -178,7 +186,6 @@ def render_plot(dmap: Depthmap) -> np.ndarray:
     floor: float = dmap.get_floor_level()
     mask = dmap.segment_child(floor)  # dmap.detect_floor(floor)
     highest_point: np.ndarray = dmap.get_highest_point(mask)
-    logger.info('height=%fm', highest_point[1] - floor)
 
     # prepare plots
     output_plots = [
@@ -193,4 +200,5 @@ def render_plot(dmap: Depthmap) -> np.ndarray:
         output_plots.append(output_rgb)
 
     output = np.concatenate(output_plots, axis=1)
+    logger.info('height=%fm', highest_point[1] - floor)
     return output

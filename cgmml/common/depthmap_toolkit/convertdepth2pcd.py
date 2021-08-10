@@ -16,8 +16,8 @@ logger.addHandler(handler)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        logger.info('You did not enter depthmap_dir folder and calibration file path')
-        logger.info('E.g.: python convertdepth2pcd.py depthmap_dir calibration file')
+        print('You did not enter depthmap_dir folder and calibration file path')
+        print('E.g.: python convertdepth2pcd.py depthmap_dir calibration file')
         sys.exit(1)
 
     depthmap_dir = sys.argv[1]

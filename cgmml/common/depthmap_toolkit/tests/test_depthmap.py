@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 
 from cgmml.common.depthmap_toolkit.depthmap import Depthmap, smoothen_depthmap_array
+from cgmml.common.depthmap_toolkit.constants import MASK_CHILD
 
 TOOLKIT_DIR = Path(__file__).parents[0].absolute()
 
@@ -53,6 +54,27 @@ def test_get_highest_point():
     assert 0.3 < object_height_in_m < 0.6
 
 
+def test_is_child_fully_visible():
+    depthmap_dir = str(TOOLKIT_DIR / 'huawei_p40pro')
+    depthmap_fname = 'depth_dog_1622182020448_100_282.depth'
+    calibration_file = str(TOOLKIT_DIR / 'huawei_p40pro' / 'camera_calibration.txt')
+    dmap = Depthmap.create_from_zip(depthmap_dir, depthmap_fname, 0, calibration_file)
+
+    # Run standard normal visibility check
+    floor = dmap.get_floor_level()
+    mask = dmap.segment_child(floor)
+    assert dmap.is_child_fully_visible(mask)
+
+    # Run visibility check when child is covering most of the camera
+    margin = 5
+    x1 = margin
+    x2 = dmap.width - margin
+    y1 = margin
+    y2 = dmap.height - margin
+    mask[x1:x2, y1:y2] = MASK_CHILD
+    assert not dmap.is_child_fully_visible(mask)
+
+
 def test_smoothen_depthmap_array_no_masking():
     depthmap = np.array([
         [1., 1., 1.],
@@ -76,3 +98,7 @@ def test_smoothen_depthmap_array_with_masking():
         [1., 1., 1., 1.],
     ])
     np.testing.assert_array_equal(expected, smoothen_depthmap_array(depthmap))
+
+
+if __name__ == "__main__":
+    test_is_child_fully_visible()

@@ -1,6 +1,24 @@
 import numpy as np
 
-from cgmml.common.depthmap_toolkit.depthmap_utils import matrix_transform_point
+from cgmml.common.depthmap_toolkit.depthmap_utils import calculate_boundary, get_smoothed_pixel, matrix_transform_point
+
+
+def test_calculate_boundary():
+    input = np.array([
+        [0, 0, 0, 0],
+        [0, 1, 1, 0],
+        [0, 1, 1, 0],
+        [0, 0, 0, 0],
+    ])
+    expected = np.array([1, 1, 2, 2])
+    np.testing.assert_array_equal(expected, calculate_boundary(input))
+
+
+def test_get_smoothed_pixel():
+    rgb = np.zeros((5, 5, 3))  # black
+    rgb[2, 2] = 1.  # white
+    expected = np.array([0.25, 0.25, 0.25])
+    np.testing.assert_array_equal(expected, get_smoothed_pixel(rgb, 2, 2, 1))
 
 
 def test_matrix_transform_point_identity():
@@ -38,4 +56,4 @@ def test_matrix_transform_point_nonsym():
 
 
 if __name__ == "__main__":
-    test_matrix_transform_point_nonsym()
+    test_get_smoothed_pixel()

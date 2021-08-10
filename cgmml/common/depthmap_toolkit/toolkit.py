@@ -113,8 +113,8 @@ def assemble_filenames(input_dir: Path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        logging.info('You did not enter depthmap_dir folder and calibration file path')
-        logging.info('E.g.: python toolkit.py depthmap_dir calibration_file')
+        print('You did not enter depthmap_dir folder and calibration file path')
+        print('E.g.: python toolkit.py depthmap_dir calibration_file')
         sys.exit(1)
 
     depthmap_dir = sys.argv[1]

@@ -17,8 +17,8 @@ logger.addHandler(handler)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        logger.info('You did not enter pcd_dir folder and calibration file path')
-        logger.info('E.g.: python convertpcd2depth.py pcd_dir calibration_file')
+        print('You did not enter pcd_dir folder and calibration file path')
+        print('E.g.: python convertpcd2depth.py pcd_dir calibration_file')
         sys.exit(1)
 
     pcd_dir = sys.argv[1]
