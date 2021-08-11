@@ -19,7 +19,7 @@ from .constants_eval import (
     COLUMN_NAME_AGE, COLUMN_NAME_GOODBAD, COLUMN_NAME_SEX,
     GOODBAD_IDX, GOODBAD_DICT, SEX_IDX, AGE_IDX, HEIGHT_IDX, WEIGHT_IDX)
 from .eval_utils import (
-    avgerror, calculate_performance)
+    avgerror, calculate_performance, calculate_performance_mae_scan, calculate_performance_mae_artifact)
 from .uncertainty_utils import get_prediction_uncertainty_deepensemble
 from .eval_utilities import (
     download_model, get_model_path, get_depthmap_files, filter_dataset_according_to_standing_lying, tf_load_pickle,
@@ -60,11 +60,8 @@ class Evaluation:
         logger.info('Dataset path: %s', dataset_path)
         logger.info('Getting QR-code paths...')
         qrcode_paths = glob.glob(os.path.join(dataset_path, "*"))
-        logger.info('qrcode_paths: %d', len(qrcode_paths))
+        logger.info('There are %d qrcode_paths', len(qrcode_paths))
         assert len(qrcode_paths) != 0
-
-        logger.info('Paths for evaluation: \n\t' + '\n\t'.join(qrcode_paths))
-        logger.info(len(qrcode_paths))
         return qrcode_paths
 
     def prepare_dataset(self,
@@ -150,6 +147,15 @@ class Evaluation:
                  eval_config: Bunch,
                  OUTPUT_CSV_PATH: str,
                  descriptor: str):
+        # Artifact-level evaluation
+        df['error'] = df.apply(avgerror, axis=1)
+
+        csv_fpath = f"{OUTPUT_CSV_PATH}/test_mae_artifact_level_{descriptor}.csv"
+        logger.info("Calculate and save the results to %s", csv_fpath)
+        calculate_and_save_results(df, eval_config.NAME, csv_fpath,
+                                   self.data_config, result_config, fct=calculate_performance_mae_artifact)
+
+        # Scan-level evaluation
         df_grouped = df.groupby(['qrcode', 'scantype']).mean()
         logger.info("Mean Avg Error: %s", df_grouped)
 
@@ -159,6 +165,11 @@ class Evaluation:
         logger.info("Calculate and save the results to %s", csv_fpath)
         calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
                                    self.data_config, result_config, fct=calculate_performance)
+
+        csv_fpath = f"{OUTPUT_CSV_PATH}/test_mae_scan_level_{descriptor}.csv"
+        logger.info("Calculate and save the results to %s", csv_fpath)
+        calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
+                                   self.data_config, result_config, fct=calculate_performance_mae_scan)
 
         sample_csv_fpath = f"{OUTPUT_CSV_PATH}/inaccurate_scans_{descriptor}.csv"
         df_grouped.to_csv(sample_csv_fpath, index=True)

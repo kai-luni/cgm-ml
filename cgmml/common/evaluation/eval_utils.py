@@ -21,12 +21,21 @@ logger.addHandler(handler)
 REPO_DIR = Path(os.getcwd()).parents[2]
 
 
-def calculate_performance_mae(code: str,
-                              df_mae: pd.DataFrame,
-                              result_config: Bunch) -> pd.DataFrame:
+def calculate_performance_mae_scan(code: str,
+                                   df_mae: pd.DataFrame,
+                                   result_config: Bunch) -> pd.DataFrame:
     df_mae_filtered = df_mae.iloc[df_mae.index.get_level_values('scantype') == code]
     mae = df_mae_filtered['error'].abs().mean()
-    df_out = pd.DataFrame.from_dict({'mae': [mae]})
+    df_out = pd.DataFrame.from_dict({'test_mae': [mae], 'amount of scan steps': [df_mae_filtered.shape[0]]})
+    return df_out
+
+
+def calculate_performance_mae_artifact(code: str,
+                                       df_mae: pd.DataFrame,
+                                       result_config: Bunch) -> pd.DataFrame:
+    df_mae_filtered = df_mae[df_mae.scantype == code]
+    mae = df_mae_filtered['error'].abs().mean()
+    df_out = pd.DataFrame.from_dict({'test_mae': [mae], 'amount of artifacts': [df_mae_filtered.shape[0]]})
     return df_out
 
 

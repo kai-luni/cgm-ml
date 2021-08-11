@@ -4,7 +4,7 @@ import pandas as pd
 
 from cgmml.common.evaluation.constants_eval import COLUMN_NAME_AGE, COLUMN_NAME_SEX
 from cgmml.common.evaluation.eval_utils import (
-    avgerror, calculate_performance, calculate_performance_mae,
+    avgerror, calculate_performance, calculate_performance_mae_scan, calculate_performance_mae_artifact,
     extract_scantype, extract_qrcode)
 from cgmml.common.evaluation.eval_utilities import (
     calculate_accuracies, calculate_accuracies_on_age_buckets, calculate_performance_age)
@@ -106,11 +106,19 @@ def test_calculate_performance_mae():
     data = {
         'artifacts': [
             f'scans/{QR_CODE_1}/100/pc_{QR_CODE_1}_1591849321035_100_000.p',
-            f'scans/{QR_CODE_2}/100/pc_{QR_CODE_2}_1591849321035_100_000.p'],
-        'GT': [98.1, 98.9],
-        'predicted': [98.1, 98.9 + 7],
+            f'scans/{QR_CODE_2}/100/pc_{QR_CODE_2}_1591849321035_100_000.p',
+            f'scans/{QR_CODE_2}/100/pc_{QR_CODE_2}_1591849321035_100_001.p'],
+        'GT': [98.1, 98.9, 98.9],
+        'predicted': [98.1, 98.9 + 3, 98.9 + 3],
     }
     df = pd.DataFrame.from_dict(data)
+
+    df['scantype'] = df.apply(extract_scantype, axis=1)
+    df['qrcode'] = df.apply(extract_qrcode, axis=1)
+    df['error'] = df.apply(avgerror, axis=1)
+    df_out = calculate_performance_mae_artifact(code='100', df_mae=df, result_config=None)
+    assert df_out['test_mae'][0] == (0 + 3 + 3) / 3
+
     df = prepare_df(df)
-    df_out = calculate_performance_mae(code='100', df_mae=df, result_config=None)
-    assert df_out['mae'][0] == 3.5
+    df_out = calculate_performance_mae_scan(code='100', df_mae=df, result_config=None)
+    assert df_out['test_mae'][0] == (0 + 3) / 2

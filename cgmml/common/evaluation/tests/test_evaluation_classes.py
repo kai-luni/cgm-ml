@@ -116,7 +116,7 @@ def test_evaluation_evaluate():
     # Run
     with TemporaryDirectory() as output_csv_path:
         evaluation.evaluate(df, RESULT_CONFIG, EVAL_CONFIG, output_csv_path, descriptor=MODEL_CONFIG.RUN_ID)
-        assert len(list(Path(output_csv_path).glob('*'))) == 2
+        assert len(list(Path(output_csv_path).glob('*'))) == 4
 
 
 def test_ensembleevaluation_evaluate():
@@ -134,7 +134,7 @@ def test_ensembleevaluation_evaluate():
     # Run
     with TemporaryDirectory() as output_csv_path:
         evaluation.evaluate(df, RESULT_CONFIG, EVAL_CONFIG, output_csv_path, descriptor=MODEL_CONFIG.EXPERIMENT_NAME)
-        assert len(list(Path(output_csv_path).glob('*'))) == 2
+        assert len(list(Path(output_csv_path).glob('*'))) == 4
 
 
 def test_multiartifactevaluation_evaluate():
@@ -154,4 +154,4 @@ def test_multiartifactevaluation_evaluate():
     # Run
     with TemporaryDirectory() as output_csv_path:
         evaluation.evaluate(df, RESULT_CONFIG, EVAL_CONFIG, output_csv_path, descriptor=MODEL_CONFIG.RUN_ID)
-        assert len(list(Path(output_csv_path).glob('*'))) == 2
+        assert len(list(Path(output_csv_path).glob('*'))) == 4
