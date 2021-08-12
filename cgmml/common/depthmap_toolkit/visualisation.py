@@ -124,10 +124,8 @@ def render_normal(dmap: Depthmap) -> np.ndarray:
 
 
 def render_rgb(dmap: Depthmap) -> np.ndarray:
-    output = np.copy(dmap.rgb_array)  # shape (height, width, 3)
+    output = np.copy(dmap.rgb_array)  # shape (width, width, 3)
     output = output / 255.
-    output = np.moveaxis(output, 0, 1)
-    output = np.fliplr(output)  # flip left-right
     return output
 
 

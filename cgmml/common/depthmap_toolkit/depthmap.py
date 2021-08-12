@@ -69,8 +69,8 @@ class Depthmap:
 
     Args:
         intrinsic (np.array): Camera intrinsic
-        width (int): Width of the depthmap
-        height (int): Height of the depthmap
+        width (int): The longer side of the depthmap (and RGB)
+        height (int): The shorter side of the depthmap (and RGB)
         data (bytes): pixel_data
         depth_scale (float): Scalar to scale depthmap pixel to meters
         max_confidence (float): Confidence is amount of IR light reflected
@@ -119,9 +119,14 @@ class Depthmap:
             self.header = header
 
         self.rgb_fpath = rgb_fpath
-        self.rgb_array = rgb_array  # shape (height, width, 3)  # (180, 240, 3)
+        self.rgb_array = rgb_array  # shape (width, height, 3)  # (180, 240, 3)
+
         assert depthmap_arr is not None or data is not None
         self.depthmap_arr = self._parse_depth_data(data) if data else depthmap_arr  # (240, 180)
+
+        assert self.depthmap_arr.shape[:2] == (self.width, self.height)
+        if self.rgb_array is not None:
+            assert self.rgb_array.shape[:2] == (self.width, self.height)
 
         # smoothing is only for normals, otherwise there is noise
         self.depthmap_arr_smooth = smoothen_depthmap_array(self.depthmap_arr)
@@ -138,7 +143,31 @@ class Depthmap:
                                  depthmap_fpath: str,
                                  rgb_fpath: str,
                                  calibration_fpath: str) -> 'Depthmap':
-        # read depthmap data
+        width, height, data, depth_scale, max_confidence, device_pose, header_line = (
+            Depthmap.read_depthmap_data(depthmap_fpath))
+        rgb_array = Depthmap.read_rgb_data(rgb_fpath, width, height)
+        intrinsics = parse_calibration(calibration_fpath)
+        depthmap_arr = None
+
+        return cls(intrinsics, width, height, data, depthmap_arr,
+                   depth_scale, max_confidence, device_pose,
+                   rgb_fpath, rgb_array, header_line)
+
+    @staticmethod
+    def read_rgb_data(rgb_fpath, width, height):
+        if rgb_fpath:
+            pil_im = Image.open(rgb_fpath)
+            pil_im = pil_im.rotate(-90, expand=True)
+            rgb_height, rgb_width = pil_im.width, pil_im.height  # Weird switch
+            assert rgb_width / width == rgb_height / height, f'{rgb_width} / {width} != {rgb_height} / {height}'
+            pil_im = pil_im.resize((height, width), Image.ANTIALIAS)
+            rgb_array = np.asarray(pil_im)
+        else:
+            rgb_array = None
+        return rgb_array
+
+    @staticmethod
+    def read_depthmap_data(depthmap_fpath):
         path = extract_depthmap(depthmap_fpath)
         with open(path, 'rb') as f:
             header_line = f.readline().decode().strip()
@@ -157,74 +186,20 @@ class Depthmap:
                 device_pose = IDENTITY_MATRIX_4D
             data = f.read()
             f.close()
-
-        # read rgb data
-        if rgb_fpath:
-            pil_im = Image.open(rgb_fpath)
-
-            rgb_width, rgb_height = pil_im.size
-            assert rgb_width / width == rgb_height / height
-
-            pil_im = pil_im.resize((width, height), Image.ANTIALIAS)
-            rgb_array = np.asarray(pil_im)
-        else:
-            rgb_array = None
-
-        # read calibration file
-        intrinsics = parse_calibration(calibration_fpath)
-        depthmap_arr = None
-
-        return cls(intrinsics,
-                   width,
-                   height,
-                   data,
-                   depthmap_arr,
-                   depth_scale,
-                   max_confidence,
-                   device_pose,
-                   rgb_fpath,
-                   rgb_array,
-                   header_line,
-                   )
+        return width, height, data, depth_scale, max_confidence, device_pose, header_line
 
     @classmethod
     def create_from_zip(cls,
                         depthmap_dir: str,
                         depthmap_fname: str,
                         rgb_fname: str,
-                        calibration_file: str) -> 'Depthmap':
+                        calibration_fpath: str) -> 'Depthmap':
 
         depthmap_path = Path(depthmap_dir) / 'depth' / depthmap_fname
         rgb_fpath = 0
         if rgb_fname:
             rgb_fpath = Path(depthmap_dir) / 'rgb' / rgb_fname
-        return cls.create_from_zip_absolute(depthmap_path, rgb_fpath, calibration_file)
-
-    @classmethod
-    def create_from_array(cls,
-                          depthmap_arr: np.ndarray,
-                          rgb_arr: np.ndarray,
-                          calibration_file: str) -> 'Depthmap':
-        intrinsics = parse_calibration(calibration_file)
-        height, width = depthmap_arr.shape
-        data = None  # bytes
-        depth_scale = 0.001
-        max_confidence = 7.0
-        device_pose = None
-        rgb_fpath = None
-        rgb_array = rgb_arr
-
-        return cls(intrinsics,
-                   width,
-                   height,
-                   data,
-                   depthmap_arr,
-                   depth_scale,
-                   max_confidence,
-                   device_pose,
-                   rgb_fpath,
-                   rgb_array,
-                   )
+        return cls.create_from_zip_absolute(depthmap_path, rgb_fpath, calibration_fpath)
 
     def calculate_normalmap_array(self, points_3d_arr: np.ndarray) -> np.ndarray:
         """Calculate normalmap consisting of normal vectors.

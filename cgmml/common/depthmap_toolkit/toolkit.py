@@ -80,7 +80,10 @@ def show(depthmap_dir: str, calibration_file: str):
     global DMAP
     fig.canvas.manager.set_window_title(depth_filenames[IDX_CUR_DMAP])
     rgb_filename = rgb_filenames[IDX_CUR_DMAP] if rgb_filenames else 0
-    DMAP = Depthmap.create_from_zip(depthmap_dir, depth_filenames[IDX_CUR_DMAP], rgb_filename, calibration_file)
+    DMAP = Depthmap.create_from_zip(depthmap_dir,
+                                    depth_filenames[IDX_CUR_DMAP],
+                                    rgb_filename,
+                                    calibration_file)
 
     angle = DMAP.get_angle_between_camera_and_floor()
     logging.info('angle between camera and floor is %f', angle)
@@ -114,11 +117,11 @@ def assemble_filenames(input_dir: Path):
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print('You did not enter depthmap_dir folder and calibration file path')
-        print('E.g.: python toolkit.py depthmap_dir calibration_file')
+        print('E.g.: python toolkit.py depthmap_dir calibration_fpath')
         sys.exit(1)
 
     depthmap_dir = sys.argv[1]
-    calibration_file = sys.argv[2]
+    calibration_fpath = sys.argv[2]
 
     depth_dir = Path(depthmap_dir) / 'depth'
     rgb_dir = Path(depthmap_dir) / 'rgb'
@@ -142,12 +145,12 @@ if __name__ == "__main__":
     fig = plt.figure()
     fig.canvas.mpl_connect('button_press_event', functools.partial(onclick))
     bprev = Button(plt.axes([0.0, 0.0, 0.1, 0.075]), '<<', color='gray')
-    bprev.on_clicked(functools.partial(prev_click, calibration_file=calibration_file, depthmap_dir=depthmap_dir))
+    bprev.on_clicked(functools.partial(prev_click, calibration_fpath=calibration_fpath, depthmap_dir=depthmap_dir))
     bnext = Button(plt.axes([0.9, 0.0, 0.1, 0.075]), '>>', color='gray')
-    bnext.on_clicked(functools.partial(next_click, calibration_file=calibration_file, depthmap_dir=depthmap_dir))
+    bnext.on_clicked(functools.partial(next_click, calibration_fpath=calibration_fpath, depthmap_dir=depthmap_dir))
     bexport_obj = Button(plt.axes([0.3, 0.0, 0.2, 0.05]), 'Export OBJ', color='gray')
     bexport_obj.on_clicked(functools.partial(export_object))
     bexport_pcd = Button(plt.axes([0.5, 0.0, 0.2, 0.05]), 'Export PCD', color='gray')
     bexport_pcd.on_clicked(functools.partial(export_pointcloud))
     background = Button(plt.axes([0.0, 0.0, 1.0, 1.0]), '', color='white')
-    show(depthmap_dir, calibration_file)
+    show(depthmap_dir, calibration_fpath)

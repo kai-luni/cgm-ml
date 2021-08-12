@@ -30,8 +30,7 @@ def test_depthmap():
     highest_point = dmap.get_highest_point(mask)
     child_height_in_m = highest_point[1] - floor
     assert 0 < child_height_in_m < 1.2
-    assert mask.shape[0] == dmap.rgb_array.shape[1]
-    assert mask.shape[1] == dmap.rgb_array.shape[0]
+    assert mask.shape[:2] == dmap.rgb_array.shape[:2]
 
     angle_in_degrees = dmap.get_angle_between_camera_and_floor()
     assert -90 < angle_in_degrees < 90

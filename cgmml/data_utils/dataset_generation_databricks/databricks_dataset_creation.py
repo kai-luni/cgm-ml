@@ -16,7 +16,7 @@
 ! pip install tqdm
 ! pip install azure-storage-blob
 
-! pip install --upgrade cgm-ml-common
+! pip install cgm-ml-common==3.0.0a20
 
 # COMMAND ----------
 
@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from multiprocessing.dummy import Pool as ThreadPool
 import os
 from pathlib import Path
-from typing import Tuple, List
+from typing import Dict, List, Tuple
 
 import pandas as pd
 import psycopg2
@@ -32,6 +32,7 @@ from tqdm import tqdm
 from azure.storage.blob import BlobServiceClient
 
 from cgmml.common.data_utilities.mlpipeline_utils import ArtifactProcessor
+from cgmml.common.data_utilities.rgbd_matching import match_df_with_depth_and_image_artifacts
 
 # COMMAND ----------
 
@@ -48,6 +49,8 @@ ENV = ENV_SANDBOX
 MOUNT_POINT = f"/mnt/{ENV}_input"
 MOUNT_DATASET = f"/mnt/{ENV}_dataset"
 DBFS_DIR = f"/tmp/{ENV}"
+
+DATASET_TYPE = 'depthmap'  # Supported: 'rgbd' and 'depthmap'
 
 # COMMAND ----------
 
@@ -93,22 +96,37 @@ sql_cursor = conn.cursor()
 
 # COMMAND ----------
 
-SQL_QUERY = """
-SELECT f.file_path, f.created as timestamp,
-       s.id as scan_id, s.scan_type_id as scan_step,
-       m.height, m.weight, m.muac,
-       a.ord as order_number
-FROM file f
-INNER JOIN artifact a ON f.id = a.file_id
-INNER JOIN scan s     ON s.id = a.scan_id
-INNER JOIN measure m  ON m.person_id = s.person_id"""
+if DATASET_TYPE == 'depthmap':
+    SQL_QUERY = """
+    SELECT f.file_path, f.created as timestamp,
+           s.id as scan_id, s.scan_type_id as scan_step,
+           m.height, m.weight, m.muac,
+           a.ord as order_number
+    FROM file f
+    INNER JOIN artifact a ON f.id = a.file_id
+    INNER JOIN scan s     ON s.id = a.scan_id
+    INNER JOIN measure m  ON m.person_id = s.person_id"""
 
-# The query select all scans with no results, this is a hack as we cannot add a column for data_version/etl_version right now.
-CONDITION = """
- LEFT JOIN result r ON s.id = r.scan_id
-WHERE r.scan_id is NULL and a.format = 'depth';"""
+    # The query select all scans with no results, this is a hack as we cannot add a column for data_version/etl_version right now.
+    SQL_QUERY += """
+    LEFT JOIN result r ON s.id = r.scan_id
+    WHERE r.scan_id is NULL and a.format = 'depth';"""
 
-sql_cursor.execute(SQL_QUERY + CONDITION)
+elif DATASET_TYPE == 'rgbd':
+    SQL_QUERY = """
+    SELECT f.file_path, f.created as timestamp,
+           s.id as scan_id, s.scan_type_id as scan_step,
+    --       m.height, m.weight, m.muac,
+           a.ord as order_number, a.format
+    FROM file f
+    INNER JOIN artifact a ON f.id = a.file_id
+    INNER JOIN scan s     ON s.id = a.scan_id
+    --INNER JOIN measure m  ON m.person_id = s.person_id
+    WHERE s.person_id = '1271f0a0-f5a8-11eb-882f-2f15de6166e4';"""
+else:
+  raise NameError(f'Unknown dataset type: {DATASET_TYPE}')
+
+sql_cursor.execute(SQL_QUERY)
 
 # Get multiple query_result rows
 NUM_ARTIFACTS = 300  # None
@@ -130,6 +148,15 @@ query_results_tmp: List[Tuple[str]] = sql_cursor.fetchall() if NUM_ARTIFACTS is 
 
 column_names: Tuple[psycopg2.extensions.Column] = sql_cursor.description
 df = pd.DataFrame(query_results_tmp, columns=list(map(lambda x: x.name, column_names)))
+
+# hack to insert fake manual measurements in case there are none
+if 'muac' not in df.columns:
+    df.insert(4, 'muac', 10)
+if 'weight' not in df.columns:
+    df.insert(4, 'weight', 30)
+if 'height' not in df.columns:
+    df.insert(4, 'height', 90)
+
 df['timestamp'] = df['timestamp'].astype(str)
 print(df.shape)
 df = df.drop_duplicates(subset=['scan_id', 'scan_step', 'timestamp', 'order_number'])
@@ -222,18 +249,33 @@ for file_path in tqdm(_file_paths):
 
 # COMMAND ----------
 
-rdd = spark.sparkContext.parallelize(query_results)
+def artifact_tuple2dict(artifact_tuple: tuple, idx2col: Dict[int, str]):
+    """Side effect: Saves and returns file path"""
+    artifact_dict = {idx2col[i]: el for i, el in enumerate(artifact_tuple)}
+    return artifact_dict
+
+# COMMAND ----------
+
+if DATASET_TYPE == 'rgbd':
+    fused_artifacts_dicts = match_df_with_depth_and_image_artifacts(df)
+    query_results_dicts = fused_artifacts_dicts
+else:
+    query_results_dicts: List[dict] = [artifact_tuple2dict(res, idx2col) for res in query_results]
+
+# COMMAND ----------
+
+rdd = spark.sparkContext.parallelize(query_results_dicts)
 print(rdd.getNumPartitions())
 
 # COMMAND ----------
 
 input_dir = f"/dbfs{DBFS_DIR}"
 output_dir = f"/dbfs{DBFS_DIR}"
-artifact_processor = ArtifactProcessor(input_dir, output_dir, idx2col)
+artifact_processor = ArtifactProcessor(input_dir, output_dir, dataset_type=DATASET_TYPE, should_rotate_rgb=False)
 
 # COMMAND ----------
 
-rdd_processed = rdd.map(artifact_processor.process_artifact_tuple)
+rdd_processed = rdd.map(artifact_processor.create_and_save_pickle)
 processed_fnames = rdd_processed.collect()
 print(processed_fnames[:3])
 
