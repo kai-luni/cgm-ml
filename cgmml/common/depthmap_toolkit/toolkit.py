@@ -10,6 +10,7 @@ from typing import Union
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
+from scipy import ndimage
 
 from cgmml.common.depthmap_toolkit.depthmap import Depthmap
 from cgmml.common.depthmap_toolkit.exporter import export_obj, export_pcd
@@ -34,7 +35,7 @@ def onclick(event):
     global LAST_CLICK_COORD
     if event.xdata is not None and event.ydata is not None:
         x = int(event.ydata)
-        y = DMAP.height - int(event.xdata) - 1
+        y = int(event.xdata)
         if x > 1 and y > 1 and x < DMAP.width - 2 and y < DMAP.height - 2:
             depth = DMAP.depthmap_arr[x, y]
             if not depth:
@@ -60,23 +61,23 @@ def export_pointcloud(event):
     export_pcd(EXPORT_DIR / f'output{IDX_CUR_DMAP}.pcd', DMAP)
 
 
-def next_click(event, calibration_file: str, depthmap_dir: str):
+def next_click(event, calibration_fpath: str, depthmap_dir: str):
     global IDX_CUR_DMAP
     IDX_CUR_DMAP = IDX_CUR_DMAP + 1
     if (IDX_CUR_DMAP == size):
         IDX_CUR_DMAP = 0
-    show(depthmap_dir, calibration_file)
+    show(depthmap_dir, calibration_fpath)
 
 
-def prev_click(event, calibration_file: str, depthmap_dir: str):
+def prev_click(event, calibration_fpath: str, depthmap_dir: str):
     global IDX_CUR_DMAP
     IDX_CUR_DMAP = IDX_CUR_DMAP - 1
     if (IDX_CUR_DMAP == -1):
         IDX_CUR_DMAP = size - 1
-    show(depthmap_dir, calibration_file)
+    show(depthmap_dir, calibration_fpath)
 
 
-def show(depthmap_dir: str, calibration_file: str):
+def show(depthmap_dir: str, calibration_file: str, original_orientation=False):
     global DMAP
     fig.canvas.manager.set_window_title(depth_filenames[IDX_CUR_DMAP])
     rgb_filename = rgb_filenames[IDX_CUR_DMAP] if rgb_filenames else 0
@@ -88,7 +89,10 @@ def show(depthmap_dir: str, calibration_file: str):
     angle = DMAP.get_angle_between_camera_and_floor()
     logging.info('angle between camera and floor is %f', angle)
 
-    plt.imshow(render_plot(DMAP))
+    output = render_plot(DMAP)
+    if original_orientation:
+        output = ndimage.rotate(output, 90)
+    plt.imshow(output)
     plot_names = ['depth', 'normals', 'child/background segmentation', 'confidence']
     if DMAP.has_rgb:
         plot_names.append('rgb')

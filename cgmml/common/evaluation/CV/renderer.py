@@ -47,5 +47,4 @@ if __name__ == "__main__":
 
         # Render data
         file = str(EXPORT_DIR) + '/' + str(index + 1) + '.png'
-        print(file)
         plt.imsave(file, render_plot(dmap))

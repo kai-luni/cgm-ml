@@ -16,8 +16,8 @@ def calculate_boundary(array: np.ndarray) -> np.ndarray:
     cond = array == 0
 
     aabb = []
-    xbig[cond] = np.iinfo(np.intc).max
-    ybig[cond] = np.iinfo(np.intc).max
+    xbig[cond] = width - 1
+    ybig[cond] = height - 1
     aabb.append(np.min(xbig))
     aabb.append(np.min(ybig))
     xbig[cond] = 0
@@ -36,7 +36,7 @@ def get_smoothed_pixel(data: np.ndarray, x: int, y: int, step: int) -> np.array:
         for ty in range(y - step, y + step):
             if not (0 < tx < width and 0 < ty < height):
                 continue
-            pixel = pixel + data[tx, ty, 0]
+            pixel = pixel + data[tx, ty, :]
             count = count + 1
     return pixel / max(count, 1)
 

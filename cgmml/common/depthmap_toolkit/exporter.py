@@ -53,7 +53,7 @@ def export_obj(fpath: Union[str, Path],
                 y_coord = points_3d_arr[1, x, y] - floor_altitude_in_meters
                 z_coord = points_3d_arr[2, x, y]
                 f.write(f'v {x_coord} {y_coord} {z_coord}\n')
-                f.write(f'vt {x / dmap.width} {1 - y / dmap.height}\n')
+                f.write(f'vt {x / dmap.width} {y / dmap.height}\n')
 
         if triangulate:
             _do_triangulation(dmap, indices, f)
@@ -146,21 +146,21 @@ def _write_obj_cube(
 
     # cube points
     f.write(f'v {x_coord - size} {y_coord - size} {z_coord - size}\n')
-    f.write(f'vt {x / dmap.width} {1 - y / dmap.height}\n')  # 0 ---
+    f.write(f'vt {x / dmap.width} {y / dmap.height}\n')
     f.write(f'v {x_coord + size} {y_coord - size} {z_coord - size}\n')
-    f.write(f'vt {x / dmap.width} {1 - y / dmap.height}\n')  # 1 +--
+    f.write(f'vt {x / dmap.width} {y / dmap.height}\n')
     f.write(f'v {x_coord - size} {y_coord + size} {z_coord - size}\n')
-    f.write(f'vt {x / dmap.width} {1 - y / dmap.height}\n')  # 2 -+-
+    f.write(f'vt {x / dmap.width} {y / dmap.height}\n')
     f.write(f'v {x_coord + size} {y_coord + size} {z_coord - size}\n')
-    f.write(f'vt {x / dmap.width} {1 - y / dmap.height}\n')  # 3 ++-
+    f.write(f'vt {x / dmap.width} {y / dmap.height}\n')
     f.write(f'v {x_coord - size} {y_coord - size} {z_coord + size}\n')
-    f.write(f'vt {x / dmap.width} {1 - y / dmap.height}\n')  # 4 --+
+    f.write(f'vt {x / dmap.width} {y / dmap.height}\n')
     f.write(f'v {x_coord + size} {y_coord - size} {z_coord + size}\n')
-    f.write(f'vt {x / dmap.width} {1 - y / dmap.height}\n')  # 5 +-+
+    f.write(f'vt {x / dmap.width} {y / dmap.height}\n')
     f.write(f'v {x_coord - size} {y_coord + size} {z_coord + size}\n')
-    f.write(f'vt {x / dmap.width} {1 - y / dmap.height}\n')  # 6 -++
+    f.write(f'vt {x / dmap.width} {y / dmap.height}\n')
     f.write(f'v {x_coord + size} {y_coord + size} {z_coord + size}\n')
-    f.write(f'vt {x / dmap.width} {1 - y / dmap.height}\n')  # 7 +++
+    f.write(f'vt {x / dmap.width} {y / dmap.height}\n')
 
     # front face
     _write_obj_triangle_indices(f, str(count + 2), str(count + 1), str(count + 0))

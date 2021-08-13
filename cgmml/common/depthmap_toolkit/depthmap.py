@@ -302,7 +302,7 @@ class Depthmap:
         tx = depth * (xbig - self.cx) / self.fx
         ty = depth * (ybig - self.cy) / self.fy
         dim4 = np.ones((self.width, self.height))
-        res = np.stack([-tx, ty, depth, dim4], axis=0)
+        res = np.stack([-tx, -ty, depth, dim4], axis=0)
 
         # Transformation of point by device pose matrix
         points_4d = res.reshape((4, self.width * self.height))
@@ -373,12 +373,8 @@ class Depthmap:
         mask[self.depthmap_arr_smooth == 0] = MASK_INVALID
 
         points_3d_arr = self.convert_2d_to_3d_oriented(should_smooth=True)
-        normal = self.calculate_normalmap_array(points_3d_arr)
-
-        cond1 = np.abs(normal[1, :, :]) > 0.5
-        cond2 = (points_3d_arr[1, :, :] - floor) < FLOOR_THRESHOLD_IN_METER
-        per_pixel_cond = cond1 & cond2
-        mask[per_pixel_cond] = MASK_FLOOR
+        cond = (points_3d_arr[1, :, :] - floor) < FLOOR_THRESHOLD_IN_METER
+        mask[cond] = MASK_FLOOR
         return mask
 
     def detect_objects(self, floor: float) -> Tuple[np.array, List[Segment]]:
@@ -480,7 +476,8 @@ class Depthmap:
 
     def _parse_confidence(self, data: bytes, tx: int, ty) -> float:
         """Get confidence of the point in scale 0-1"""
-        return data[(int(ty) * self.width + int(tx)) * 3 + 2] / self.max_confidence
+        index = self.height - int(ty) - 1
+        return data[(index * self.width + int(tx)) * 3 + 2] / self.max_confidence
 
     def _parse_depth_data(self, data) -> np.ndarray:
         output = np.zeros((self.width, self.height))
@@ -493,8 +490,9 @@ class Depthmap:
         """Get depth of the point in meters"""
         if tx < 1 or ty < 1 or tx >= self.width or ty >= self.height:
             return 0.
-        depth = data[(int(ty) * self.width + int(tx)) * 3 + 0] << 8
-        depth += data[(int(ty) * self.width + int(tx)) * 3 + 1]
+        index = self.height - int(ty) - 1
+        depth = data[(index * self.width + int(tx)) * 3 + 0] << 8
+        depth += data[(index * self.width + int(tx)) * 3 + 1]
         depth *= self.depth_scale
         return depth
 
