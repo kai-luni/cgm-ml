@@ -64,8 +64,8 @@ def test_tf_load_pickle():
 
 
 def test_tf_load_not_a_pickle():
-    wrong_path = str(REPO_DIR + "/cgmml/common/data_utilities/tests/zip_files/be1faf54-"
-                     + "69c7-11eb-984b-a3ffd42e7b5a/depth/bd67cd9e-69c7-11eb-984b-77ac9d2b4986")
+    wrong_path = str(REPO_DIR + "/cgmml/common/depthmap_toolkit/tests/huawei_p40pro/depth/"
+                     + "depth_dog_1622182020448_100_282.depth")
     normalization_value = 7.5
     with pytest.raises(Exception, match='UnpicklingError'):
         tf_load_pickle(wrong_path, normalization_value, DATA_CONFIG)

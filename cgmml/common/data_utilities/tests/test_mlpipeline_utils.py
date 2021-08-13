@@ -9,7 +9,7 @@ COMMON_DIR = DATA_UTILITIES_DIR.parent
 TEST_DATA_DIR = COMMON_DIR / 'depthmap_toolkit/tests/huawei_p40pro'
 ARTIFACT_ZIP_PATH = 'be1faf54-69c7-11eb-984b-a3ffd42e7b5a/depth/bd67cd9e-69c7-11eb-984b-77ac9d2b4986'
 ARTIFACT_DICT = {
-    'file_path': ARTIFACT_ZIP_PATH,
+    'file_path': 'depth/depth_dog_1622182020448_100_282.depth',
     'timestamp': '2021-04-22_13-34-33-302557',
     'scan_id': 'c571de02-a723-11eb-8845-bb6589a1fbe8',
     'scan_step': 102,
@@ -21,10 +21,8 @@ ARTIFACT_DICT = {
 
 
 def test_artifact_processor_depthmap():
-    input_dir = DATA_UTILITIES_DIR / 'tests' / 'zip_files'
-
     with TemporaryDirectory() as output_dir:
-        artifact_processor = ArtifactProcessor(input_dir, output_dir, dataset_type='depthmap')
+        artifact_processor = ArtifactProcessor(TEST_DATA_DIR, output_dir, dataset_type='depthmap')
         processed_fname = artifact_processor.create_and_save_pickle(ARTIFACT_DICT)
 
         depthmap, targets = pickle.load(open(processed_fname, 'rb'))
@@ -43,28 +41,25 @@ def test_artifact_processor_depthmap():
 
 
 def test_create_layers():
-    zip_input_full_path = DATA_UTILITIES_DIR / 'tests' / 'zip_files' / ARTIFACT_ZIP_PATH
-    layers, metadata = create_layers(zip_input_full_path)
+    depthmap_fpath = TEST_DATA_DIR / 'depth/depth_dog_1622182020448_100_282.depth'
+    layers, metadata = create_layers(depthmap_fpath)
     assert layers.shape == (240, 180, 1), layers.shape
 
     assert isinstance(metadata['raw_header'], str), metadata['raw_header']
-    expected_header = '320x240_0.001_7_-0.15561539_-0.07175923_-0.6638096_0.72800505_-8.440511_0.3684988_-1.3508477'
-    assert metadata['raw_header'] == expected_header
+    assert metadata['raw_header'].startswith('240x180')
 
 
 def test_artifact_processor_rgbd():
-    input_dir = TEST_DATA_DIR
-
     with TemporaryDirectory() as output_dir:
-        artifact_processor = ArtifactProcessor(input_dir, output_dir, dataset_type='rgbd', should_rotate_rgb=True)
+        artifact_processor = ArtifactProcessor(TEST_DATA_DIR, output_dir, dataset_type='rgbd', should_rotate_rgb=True)
 
         ARTIFACT_DICT['file_path_rgb'] = 'rgb/rgb_dog_1622182020448_100_282.jpg'
         ARTIFACT_DICT['file_path'] = 'depth/depth_dog_1622182020448_100_282.depth'
 
         processed_fname = artifact_processor.create_and_save_pickle(ARTIFACT_DICT)
 
-        depthmap, targets = pickle.load(open(processed_fname, 'rb'))
-        assert depthmap.shape == (240, 180, 4), depthmap.shape
+        layers, targets = pickle.load(open(processed_fname, 'rb'))
+        assert layers.shape == (240, 180, 4), layers.shape
         assert 'height' in targets
         assert 'raw_header' in targets
 
