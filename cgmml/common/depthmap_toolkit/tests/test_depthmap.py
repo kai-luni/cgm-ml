@@ -35,6 +35,9 @@ def test_depthmap():
     angle_in_degrees = dmap.get_angle_between_camera_and_floor()
     assert -90 < angle_in_degrees < 90
 
+    distance_in_m = dmap.get_distance_of_child_from_camera(mask)
+    assert 0.1 < distance_in_m < 5.
+
 
 def test_get_highest_point():
     dmap = Depthmap.create_from_zip_absolute(DEPTHMAP_FPATH, RGB_FPATH, CALIBRATION_FILE)

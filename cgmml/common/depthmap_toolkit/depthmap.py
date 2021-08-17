@@ -435,6 +435,19 @@ class Depthmap:
 
         return mask, segments
 
+    def get_distance_of_child_from_camera(self, mask: np.ndarray) -> float:
+        """Find the child's distance to the camera using depthmap.
+
+        Args:
+            mask: segmentation mask with MASK_FLOOR and MASK_INVALID
+
+        Returns:
+            distance in meters
+        """
+        cond1 = mask != MASK_FLOOR
+        cond2 = mask != MASK_INVALID
+        return min(self.depthmap_arr[cond1 & cond2])
+
     def get_angle_between_camera_and_floor(self) -> float:
         """Calculate an angle between camera and floor based on device pose
 
