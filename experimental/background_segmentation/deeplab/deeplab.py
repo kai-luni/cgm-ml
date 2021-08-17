@@ -1,8 +1,7 @@
 import os
 import tarfile
-from pathlib import Path
 import time
-from typing import Tuple, List, Any
+from typing import Tuple, Any
 
 from matplotlib import gridspec
 import matplotlib.pyplot as plt
@@ -59,9 +58,8 @@ class DeepLabModel(object):
         resize_ratio = 1.0 * self.INPUT_SIZE / max(width, height)
         target_size = (int(resize_ratio * width), int(resize_ratio * height))
         resized_image = image.convert('RGB').resize(target_size, Image.ANTIALIAS)
-        batch_seg_map = self.sess.run(
-                self.OUTPUT_TENSOR_NAME,
-                feed_dict={self.INPUT_TENSOR_NAME: [np.asarray(resized_image)]})
+        batch_seg_map = self.sess.run(self.OUTPUT_TENSOR_NAME,
+                                      feed_dict={self.INPUT_TENSOR_NAME: [np.asarray(resized_image)]})
         seg_map = batch_seg_map[0]
         return resized_image, seg_map
 
@@ -111,7 +109,7 @@ def label_to_color_image(label):
 
 def vis_segmentation(image, seg_map):
     """Visualizes input image, segmentation map and overlay view."""
-    plt.figure(figsize=(15, 5));
+    plt.figure(figsize=(15, 5))
     grid_spec = gridspec.GridSpec(1, 4, width_ratios=[6, 6, 6, 1])
 
     plt.subplot(grid_spec[0])
@@ -139,7 +137,7 @@ def vis_segmentation(image, seg_map):
     plt.xticks([], [])
     ax.tick_params(width=0.0)
     plt.grid('off')
-    plt.show();
+    plt.show()
 
 
 LABEL_NAMES = np.asarray([
