@@ -70,6 +70,7 @@ def create_layers(depthmap_fpath: str) -> Tuple[np.ndarray, dict]:
     metadata = {
         'device_pose': dmap.device_pose,
         'raw_header': dmap.header,
+        'angle': dmap.get_angle_between_camera_and_floor(),
     }
     return layers, metadata
 
@@ -109,6 +110,7 @@ def create_layers_rgbd(depthmap_fpath: str, rgb_fpath: str, should_rotate_rgb: b
     metadata = {
         'device_pose': dmap.device_pose,
         'raw_header': dmap.header,
+        'angle': dmap.get_angle_between_camera_and_floor(),
     }
     return layers, metadata
 

@@ -16,7 +16,7 @@
 ! pip install tqdm
 ! pip install azure-storage-blob
 
-! pip install cgm-ml-common==3.0.0a20
+! pip install cgm-ml-common==3.0.0a23
 
 # COMMAND ----------
 

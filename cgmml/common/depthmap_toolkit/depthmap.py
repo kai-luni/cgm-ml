@@ -1,4 +1,5 @@
 from collections import namedtuple
+import logging
 import zipfile
 import math
 import sys
@@ -10,8 +11,14 @@ import numpy as np
 from PIL import Image
 
 from cgmml.common.depthmap_toolkit.depthmap_utils import (
-    matrix_calculate, IDENTITY_MATRIX_4D, parse_numbers, calculate_boundary)
+    matrix_calculate, IDENTITY_MATRIX_4D, parse_numbers, calculate_boundary, matrix_transform_point)
 from cgmml.common.depthmap_toolkit.constants import EXTRACTED_DEPTH_FILE_NAME, MASK_FLOOR, MASK_CHILD, MASK_INVALID
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
+logger.addHandler(handler)
 
 NEIGHBOUR_PIXELS_MAX_DISTANCE_IN_METER = 0.05
 FLOOR_THRESHOLD_IN_METER = 0.1
@@ -429,15 +436,18 @@ class Depthmap:
         return mask, segments
 
     def get_angle_between_camera_and_floor(self) -> float:
-        """Calculate an angle between camera and floor based on device pose"""
-        centerx = int(self.width / 2)
-        centery = int(self.height / 2)
-        points_3d_arr = self.convert_2d_to_3d_oriented()  # shape: (3, width, height)
-        # TODO revert to original code (depth=1 is important)
+        """Calculate an angle between camera and floor based on device pose
 
-        point = points_3d_arr[:, centerx, centery]  # shape: (3,)
-        angle = 90 + math.degrees(math.atan2(point[0], point[1]))
-        return angle
+        The angle is often a negative values because the phone is pointing down.
+
+        Angle examples:
+        angle=-90deg: The phone's camera is fully facing the floor
+        angle=0deg: The horizon is in the center
+        angle=90deg: The phone's camera is facing straight up to the sky.
+        """
+        forward = matrix_transform_point([0, 0, 1], self.device_pose_arr)
+        camera = matrix_transform_point([0, 0, 0], self.device_pose_arr)
+        return 90.0 * (camera[1] - forward[1])
 
     def get_floor_level(self) -> float:
         """Calculate an altitude of the floor in the world coordinates"""

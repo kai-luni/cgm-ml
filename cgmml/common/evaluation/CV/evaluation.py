@@ -29,6 +29,7 @@ METADATA_MANUAL_DATE = 10
 METADATA_SCAN_DATE = 11
 METADATA_HEIGHT = 12
 METADATA_ERROR = 13
+METADATA_ANGLE = 14
 
 
 def filter_metadata(indata: list) -> list:
@@ -170,10 +171,12 @@ if __name__ == "__main__":
             continue
 
         # Update output
+        angle = dmap.get_angle_between_camera_and_floor()
         error = abs(height - float(indata[index][METADATA_MANUAL_HEIGHT]))
         logger.info('Height=%fcm, error=%fcm', height, error)
         data.append(height)
         data.append(error)
+        data.append(angle)
         output.append(data)
         avg_err += error
         info = 'Average error=' + str(avg_err / float(len(output))) + 'cm'

@@ -62,6 +62,7 @@ def test_artifact_processor_rgbd():
         assert layers.shape == (240, 180, 4), layers.shape
         assert 'height' in targets
         assert 'raw_header' in targets
+        assert -90 < targets['angle'] < 0
 
         pickle_path_expected = str(
             DATA_UTILITIES_DIR
@@ -83,6 +84,7 @@ def test_create_layers_rgbd():
     assert isinstance(metadata['raw_header'], str), metadata['raw_header']
     expected_header = '240x180_0.001_7_-0.15386176_0.6911723_0.6840933_-0.17500913_0.024252899_-0.09748171_0.07438941'
     assert metadata['raw_header'] == expected_header
+    assert -90 < metadata['angle'] < 0
 
 
 if __name__ == "__main__":
