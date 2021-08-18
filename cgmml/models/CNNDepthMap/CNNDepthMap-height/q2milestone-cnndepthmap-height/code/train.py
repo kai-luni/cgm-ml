@@ -180,11 +180,11 @@ dataset_current = dataset_current.map(lambda path: calculate_pickle(path))
 dataset_max = get_max(dataset_current)
 logger.info('Maximum value of training dataset: %.2f', dataset_max)
 dataset = tf.data.Dataset.from_tensor_slices(paths)
-dataset_norm = dataset.map(lambda path: tf_load_pickle(path, dataset_max))
-dataset_norm = dataset_norm.cache()
-dataset_norm = dataset_norm.prefetch(tf.data.experimental.AUTOTUNE)
-dataset_training = dataset_norm
-del dataset_norm
+dataset = dataset.map(lambda path: tf_load_pickle(path, dataset_max))
+dataset = dataset.cache()
+dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+dataset_training = dataset
+del dataset
 
 # Create dataset for validation.
 # Note: No shuffle necessary.
@@ -194,11 +194,11 @@ dataset_current = dataset_current.map(lambda path: calculate_pickle(path))
 dataset_max = get_max(dataset_current)
 logger.info('Maximum value of validation dataset: %.2f', dataset_max)
 dataset = tf.data.Dataset.from_tensor_slices(paths)
-dataset_norm = dataset.map(lambda path: tf_load_pickle(path, dataset_max))
-dataset_norm = dataset_norm.cache()
-dataset_norm = dataset_norm.prefetch(tf.data.experimental.AUTOTUNE)
-dataset_validation = dataset_norm
-del dataset_norm
+dataset = dataset.map(lambda path: tf_load_pickle(path, dataset_max))
+dataset = dataset.cache()
+dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+dataset_validation = dataset
+del dataset
 
 #Create dataset for validation
 paths = paths_activate
@@ -207,11 +207,11 @@ dataset_current = dataset_current.map(lambda path: calculate_pickle(path))
 dataset_max = get_max(dataset_current)
 logger.info('Maximum value of activation dataset: %.2f', dataset_max)
 dataset = tf.data.Dataset.from_tensor_slices(paths)
-dataset_norm = dataset.map(lambda path: tf_load_pickle(path, dataset_max))
-dataset_norm = dataset_norm.cache()
-dataset_norm = dataset_norm.prefetch(tf.data.experimental.AUTOTUNE)
-dataset_activation = dataset_norm
-del dataset_norm
+dataset = dataset.map(lambda path: tf_load_pickle(path, dataset_max))
+dataset = dataset.cache()
+dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+dataset_activation = dataset
+del dataset
 
 # Note: Now the datasets are prepared.
 

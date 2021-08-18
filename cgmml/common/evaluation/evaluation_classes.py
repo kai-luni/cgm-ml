@@ -83,20 +83,20 @@ class Evaluation:
         logger.info("Creating dataset for training.")
         paths = paths_belonging_to_predictions
         dataset = tf.data.Dataset.from_tensor_slices(paths)
-        dataset_norm = dataset.map(
+        dataset = dataset.map(
             lambda path: tf_load_pickle(path, self.data_config.NORMALIZATION_VALUE, self.data_config)
         )
 
         # filter goodbad==delete
         if GOODBAD_IDX in self.data_config.TARGET_INDEXES:
             goodbad_index = self.data_config.TARGET_INDEXES.index(GOODBAD_IDX)
-            dataset_norm = dataset_norm.filter(
+            dataset = dataset.filter(
                 lambda _path, _depthmap, targets: targets[goodbad_index] != GOODBAD_DICT['delete'])
 
-        dataset_norm = dataset_norm.cache()
-        dataset_norm = dataset_norm.prefetch(tf.data.experimental.AUTOTUNE)
-        temp_dataset_evaluation = dataset_norm
-        del dataset_norm
+        dataset = dataset.cache()
+        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        temp_dataset_evaluation = dataset
+        del dataset
         logger.info("Created dataset for training.")
 
         # Update paths_belonging_to_predictions after filtering

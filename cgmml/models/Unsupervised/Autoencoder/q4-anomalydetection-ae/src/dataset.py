@@ -136,18 +136,18 @@ def __create_anon_rgb_training(dataset_path, CONFIG):
     # Note: Model will do caching et cetera.
     paths = paths_training
     dataset = tf.data.Dataset.from_tensor_slices(paths)
-    dataset_norm = dataset.map(lambda path: tf_load_sample(path))
-    dataset_train = dataset_norm
-    del dataset_norm
+    dataset = dataset.map(lambda path: tf_load_sample(path))
+    dataset_train = dataset
+    del dataset
 
     # Create dataset for validation.
     # Note: No shuffle necessary.
     # Note: Model will do caching et cetera.
     paths = paths_validate
     dataset = tf.data.Dataset.from_tensor_slices(paths)
-    dataset_norm = dataset.map(lambda path: tf_load_sample(path))
-    dataset_validate = dataset_norm
-    del dataset_norm
+    dataset = dataset.map(lambda path: tf_load_sample(path))
+    dataset_validate = dataset
+    del dataset
 
     # Create dataset for anomaly detection.
     # Note: Model will do caching et cetera.
@@ -200,26 +200,26 @@ def __create_anomaly_detection_data(dataset_path, CONFIG):
     # Note: Model will do caching et cetera.
     paths = paths_training
     dataset = tf.data.Dataset.from_tensor_slices(paths)
-    dataset_norm = dataset.map(lambda path: tf_load_sample(path))
-    dataset_train = dataset_norm
-    del dataset_norm
+    dataset = dataset.map(lambda path: tf_load_sample(path))
+    dataset_train = dataset
+    del dataset
 
     # Create dataset for validation.
     # Note: No shuffle necessary.
     # Note: Model will do caching et cetera.
     paths = paths_validate
     dataset = tf.data.Dataset.from_tensor_slices(paths)
-    dataset_norm = dataset.map(lambda path: tf_load_sample(path))
-    dataset_validate = dataset_norm
-    del dataset_norm
+    dataset = dataset.map(lambda path: tf_load_sample(path))
+    dataset_validate = dataset
+    del dataset
 
     # Create dataset for validation.
     # Note: No shuffle necessary.
     # Note: Model will do caching et cetera.
     paths = paths_anomaly
     dataset = tf.data.Dataset.from_tensor_slices(paths)
-    dataset_norm = dataset.map(lambda path: tf_load_sample(path))
-    dataset_anomaly = dataset_norm
-    del dataset_norm
+    dataset = dataset.map(lambda path: tf_load_sample(path))
+    dataset_anomaly = dataset
+    del dataset
 
     return dataset_train, dataset_validate, dataset_anomaly
