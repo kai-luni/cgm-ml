@@ -2,7 +2,6 @@ from pathlib import Path
 import os
 import random
 import logging
-import logging.config
 import numpy as np
 
 import glob2 as glob

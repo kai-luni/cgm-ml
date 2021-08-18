@@ -26,7 +26,6 @@ import numpy as np
 import tensorflow as tf
 import os
 import logging
-import logging.config
 import pickle
 
 logger = logging.getLogger(__name__)

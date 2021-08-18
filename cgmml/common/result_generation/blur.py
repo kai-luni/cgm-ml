@@ -1,6 +1,5 @@
 import os
 import logging
-import logging.config
 from typing import Iterable
 
 import cv2

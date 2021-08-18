@@ -6,7 +6,6 @@ import re
 from pathlib import Path
 
 import logging
-import logging.config
 
 import glob2 as glob
 import matplotlib.pyplot as plt

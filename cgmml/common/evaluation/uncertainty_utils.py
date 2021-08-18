@@ -1,5 +1,4 @@
 import logging
-import logging.config
 import time
 from typing import List
 

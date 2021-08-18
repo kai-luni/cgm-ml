@@ -23,7 +23,6 @@ import datetime
 import glob
 import os
 import logging
-import logging.config
 try:
     import vtk
 except Exception:

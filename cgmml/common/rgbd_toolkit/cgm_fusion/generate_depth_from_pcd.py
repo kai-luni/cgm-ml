@@ -1,5 +1,4 @@
 import logging
-import logging.config
 
 from cgmml.common.rgbd_toolkit.cgm_fusion import utility
 

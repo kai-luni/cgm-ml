@@ -1,7 +1,6 @@
 # examples/Python/Basic/pointcloud.py
 
 import logging
-import logging.config
 import numpy as np
 import open3d
 

@@ -2,7 +2,6 @@ import argparse
 import concurrent.futures
 import datetime
 import logging
-import logging.config
 import os
 import pickle
 import sys

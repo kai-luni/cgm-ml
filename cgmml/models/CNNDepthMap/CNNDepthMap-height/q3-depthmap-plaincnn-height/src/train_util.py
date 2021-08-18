@@ -1,7 +1,6 @@
 from pathlib import Path
 import shutil
 import logging
-import logging.config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

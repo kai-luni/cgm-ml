@@ -1,6 +1,5 @@
 import argparse
 import logging
-import logging.config
 import random
 import shutil
 from importlib import import_module

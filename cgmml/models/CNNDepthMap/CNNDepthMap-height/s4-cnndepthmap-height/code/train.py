@@ -4,7 +4,6 @@ from azureml.core import Experiment
 from azureml.core.run import Run
 import os
 import logging
-import logging.config
 import glob2 as glob
 import tensorflow as tf
 from tensorflow.keras import models, layers, callbacks, optimizers

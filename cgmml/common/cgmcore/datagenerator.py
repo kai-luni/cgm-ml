@@ -7,7 +7,6 @@ Note: This file is only here for historical reasons. And it might be gone anytim
 from __future__ import absolute_import
 import os
 import logging
-import logging.config
 import numpy as np
 import glob2
 import json

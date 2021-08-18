@@ -1,7 +1,6 @@
 import pickle
 from typing import List, Tuple, Union
 import logging
-import logging.config
 
 import numpy as np
 import tensorflow as tf

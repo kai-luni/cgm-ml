@@ -1,6 +1,5 @@
 import argparse
 import logging
-import logging.config
 import shutil
 import sys
 import time

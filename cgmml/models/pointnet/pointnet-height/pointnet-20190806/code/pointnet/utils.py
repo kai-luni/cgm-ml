@@ -25,7 +25,6 @@ from mpl_toolkits.mplot3d import Axes3D
 import glob
 import os
 import logging
-import logging.config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

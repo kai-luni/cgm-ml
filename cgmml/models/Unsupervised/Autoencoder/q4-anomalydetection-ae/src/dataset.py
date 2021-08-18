@@ -2,7 +2,6 @@ import os
 import random
 from pathlib import Path
 import logging
-import logging.config
 
 import glob2 as glob
 import tensorflow as tf

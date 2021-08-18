@@ -21,7 +21,6 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import json
 import os
 import logging
-import logging.config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

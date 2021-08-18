@@ -3,7 +3,6 @@ import itertools
 import os
 import time
 import logging
-import logging.config
 
 import imageio
 import matplotlib.pyplot as plt

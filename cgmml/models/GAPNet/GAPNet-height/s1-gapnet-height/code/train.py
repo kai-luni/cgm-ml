@@ -4,7 +4,6 @@ from azureml.core import Experiment
 from azureml.core.run import Run
 import os
 import logging
-import logging.config
 import glob2 as glob
 from gapnet.models import GAPNet
 import tensorflow as tf

@@ -2,7 +2,6 @@ import os
 import shutil
 import sys
 import logging
-import logging.config
 
 import depthmap
 import exporter

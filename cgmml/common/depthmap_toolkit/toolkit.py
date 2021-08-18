@@ -2,7 +2,6 @@ import shutil
 import sys
 from os import walk
 import logging
-import logging.config
 from pathlib import Path
 import functools
 from typing import Union

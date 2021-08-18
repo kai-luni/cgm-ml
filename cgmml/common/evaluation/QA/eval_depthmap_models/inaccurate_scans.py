@@ -1,6 +1,5 @@
 import pandas as pd
 import logging
-import logging.config
 
 from glob2 import glob
 from pathlib import Path

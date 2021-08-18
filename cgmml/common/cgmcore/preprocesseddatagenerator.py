@@ -8,7 +8,6 @@ Note: It currently works on pointcloud-data only!
 from __future__ import absolute_import
 import os
 import logging
-import logging.config
 import numpy as np
 import glob2 as glob
 import random

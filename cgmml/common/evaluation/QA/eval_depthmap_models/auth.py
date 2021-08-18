@@ -1,6 +1,5 @@
 import argparse
 import logging
-import logging.config
 from azureml.core import Workspace
 from azureml.core.authentication import AuthenticationException, AzureCliAuthentication
 

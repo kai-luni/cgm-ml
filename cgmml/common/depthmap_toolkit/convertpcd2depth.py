@@ -3,7 +3,6 @@ import shutil
 
 import sys
 import logging
-import logging.config
 
 import pcd2depth
 from depthmap import parse_calibration

@@ -8,7 +8,6 @@ body pixels to total image pixels
 """
 import time
 import logging
-import logging.config
 
 import numpy as np
 from torchvision.models.detection import maskrcnn_resnet50_fpn

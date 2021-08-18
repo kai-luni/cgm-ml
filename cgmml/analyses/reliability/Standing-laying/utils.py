@@ -1,7 +1,6 @@
 import re
 from pathlib import Path
 import logging
-import logging.config
 
 import numpy as np
 import tensorflow as tf

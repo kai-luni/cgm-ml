@@ -1,6 +1,5 @@
 import os
 import logging
-import logging.config
 from pathlib import Path
 import pickle
 import tensorflow as tf

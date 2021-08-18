@@ -3,7 +3,6 @@ import json
 import numpy as np
 import os
 import logging
-import logging.config
 import sys
 import time
 from scipy.ndimage.filters import gaussian_filter

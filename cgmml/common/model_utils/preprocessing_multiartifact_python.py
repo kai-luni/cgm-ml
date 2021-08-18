@@ -1,7 +1,6 @@
 import os
 import re
 import logging
-import logging.config
 from functools import partial
 from itertools import groupby, islice
 from typing import Iterator, List

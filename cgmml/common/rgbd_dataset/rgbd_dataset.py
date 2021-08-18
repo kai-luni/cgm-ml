@@ -3,7 +3,6 @@ import pickle
 import multiprocessing
 import json
 import logging
-import logging.config
 from typing import Tuple
 
 import numpy as np

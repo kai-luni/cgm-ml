@@ -5,7 +5,6 @@ from pyntcloud import PyntCloud
 import pathlib
 import os
 import logging
-import logging.config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

@@ -3,7 +3,6 @@ import os
 import pickle
 import random
 import logging
-import logging.config
 
 import glob2 as glob
 import tensorflow as tf

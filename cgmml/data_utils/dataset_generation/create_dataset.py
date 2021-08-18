@@ -1,6 +1,5 @@
 import yaml
 import logging
-import logging.config
 import pickle
 import os
 import multiprocessing

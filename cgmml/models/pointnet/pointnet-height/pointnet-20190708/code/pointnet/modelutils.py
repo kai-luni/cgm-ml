@@ -29,7 +29,6 @@ import tensorflow as tf
 import os
 import pickle
 import logging
-import logging.config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

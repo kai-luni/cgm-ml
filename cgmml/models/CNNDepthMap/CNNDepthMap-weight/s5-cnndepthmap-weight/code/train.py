@@ -2,7 +2,6 @@ import os
 import pickle
 import random
 import logging
-import logging.config
 
 from azureml.core import Workspace
 from azureml.core import Experiment
