@@ -1,5 +1,5 @@
 """https://www.who.int/childgrowth/standards/Chap_7.pdf"""
-from decimal import Decimal as D
+from decimal import Decimal as D  # noqa: N817
 
 
 class Zscore:
@@ -27,15 +27,15 @@ class Zscore:
                 |       Zind            if |Zind| <= 3
                 |
                 |
-                |       y - SD3pos
+                |       y - sd3pos
         Zind* = | 3 + ( ----------- )   if Zind > 3
-                |         SD23pos
+                |         sd23pos
                 |
                 |
                 |
-                |        y - SD3neg
+                |        y - sd3neg
                 | -3 + ( ----------- )  if Zind < -3
-                |          SD23neg
+                |          sd23neg
         """
 
         numerator = (self.measurement / self.median)**self.skew - D(1.0)
@@ -43,22 +43,22 @@ class Zscore:
         z_score = numerator / denominator
 
         if D(z_score) > D(3):
-            SD2pos = self.calc_stdev(2)
-            SD3pos = self.calc_stdev(3)
+            sd2pos = self.calc_stdev(2)
+            sd3pos = self.calc_stdev(3)
 
-            SD23pos = SD3pos - SD2pos
+            sd23pos = sd3pos - sd2pos
 
-            z_score = 3 + ((self.measurement - SD3pos) / SD23pos)
+            z_score = 3 + ((self.measurement - sd3pos) / sd23pos)
 
             z_score = float(z_score.quantize(D('0.01')))
 
         elif D(z_score) < -3:
-            SD2neg = self.calc_stdev(-2)
-            SD3neg = self.calc_stdev(-3)
+            sd2neg = self.calc_stdev(-2)
+            sd3neg = self.calc_stdev(-3)
 
-            SD23neg = SD2neg - SD3neg
+            sd23neg = sd2neg - sd3neg
 
-            z_score = -3 + ((self.measurement - SD3neg) / SD23neg)
+            z_score = -3 + ((self.measurement - sd3neg) / sd23neg)
             z_score = float(z_score.quantize(D('0.01')))
 
         else:

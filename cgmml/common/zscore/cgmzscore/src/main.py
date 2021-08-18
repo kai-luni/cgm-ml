@@ -1,5 +1,5 @@
 import json
-from decimal import Decimal as D
+from decimal import Decimal as D  # noqa: N817
 
 from .calculate import Zscore
 from .constant import REPO_DIR, WHO_TABLES

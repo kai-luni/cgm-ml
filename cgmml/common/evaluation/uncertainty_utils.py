@@ -45,8 +45,8 @@ def _load_and_predict(model_path, dataset):
 
 def _predict(model: tf.Module, dataset: tf.data.Dataset) -> np.ndarray:
     predictions_batches = []
-    for X, _y in dataset.as_numpy_iterator():
-        prediction_batch = model.predict(X)  # shape (BATCH_SIZE, 1)
+    for x, _y in dataset.as_numpy_iterator():
+        prediction_batch = model.predict(x)  # shape (BATCH_SIZE, 1)
         predictions_batches.append(prediction_batch)
     predictions = np.concatenate(predictions_batches)
     return predictions

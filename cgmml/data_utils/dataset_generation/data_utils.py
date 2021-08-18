@@ -93,8 +93,8 @@ class QRCodeCollector:
             logger.warning("Amount scans given is less than already used scans")
             return
         remain_data = available_data.sample(n=amount - len(used_data))
-        dataList = [used_data, remain_data]
-        complete_data = pd.concat(dataList)
+        data_list = [used_data, remain_data]
+        complete_data = pd.concat(data_list)
         return complete_data
 
     def merge_qrcode_dataset(self, qrcodes, dataset):

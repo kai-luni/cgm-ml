@@ -4,7 +4,7 @@ from PIL import Image
 from pyntcloud import PyntCloud
 
 
-def selectData(artifacts, model_id):
+def select_data(artifacts, model_id):
     df = artifacts[artifacts['model_id'] == model_id]
     df = df.sort_values(by=['error'])
     df = df.reset_index()

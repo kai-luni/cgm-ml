@@ -25,13 +25,13 @@ FILE_PATH = 'pose_resnet_152_384x288.csv'
 
 
 class PosePrediction:
-    def __init__(self, CTX):
-        self.CTX = CTX
+    def __init__(self, ctx):
+        self.ctx = ctx
 
     def load_box_model(self):
         self.box_model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
             pretrained=True)
-        self.box_model.to(self.CTX)
+        self.box_model.to(self.ctx)
         self.box_model.eval()
 
     def load_pose_model(self):
@@ -39,7 +39,7 @@ class PosePrediction:
         self.pose_model.load_state_dict(torch.load(
             cfg.TEST.MODEL_FILE, map_location=torch.device('cpu')), strict=False)
         self.pose_model = torch.nn.DataParallel(self.pose_model, device_ids=cfg.GPUS)
-        self.pose_model.to(self.CTX)
+        self.pose_model.to(self.ctx)
         self.pose_model.eval()
         self.pose_model
 
@@ -50,7 +50,7 @@ class PosePrediction:
         self.input = []
         self.img = cv2.cvtColor(self.rotated_image, cv2.COLOR_BGR2RGB)
         img_tensor = torch.from_numpy(
-            self.img / 255.).permute(2, 0, 1).float().to(self.CTX)
+            self.img / 255.).permute(2, 0, 1).float().to(self.ctx)
         self.input.append(img_tensor)
 
     def orient_image_using_scan_type(self, scan_type):
@@ -171,7 +171,7 @@ class ResultGeneration:
 
 
 def main():
-    CTX = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    ctx = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     # cudnn related setting
     cudnn.benchmark = cfg.CUDNN.BENCHMARK
@@ -181,7 +181,7 @@ def main():
     args = 'src/models/HRNET/inference-config-hrnet.yaml'
     update_config(cfg, args)
 
-    pose_prediction = PosePrediction(CTX)
+    pose_prediction = PosePrediction(ctx)
     pose_prediction.load_box_model()
     pose_prediction.load_pose_model()
 

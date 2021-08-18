@@ -1,28 +1,28 @@
-from yacs.config import CfgNode as CN
+from yacs.config import CfgNode
 
 
-_C = CN()
+_C = CfgNode()
 
 _C.GPUS = (0,)
 _C.WORKERS = 4
 
 # Cudnn related params
-_C.CUDNN = CN()
+_C.CUDNN = CfgNode()
 _C.CUDNN.BENCHMARK = True
 _C.CUDNN.DETERMINISTIC = False
 _C.CUDNN.ENABLED = True
 
 # common params for NETWORK
-_C.MODEL = CN()
+_C.MODEL = CfgNode()
 _C.MODEL.NAME = 'pose_hrnet'
 _C.MODEL.NUM_JOINTS = 17
 _C.MODEL.TAG_PER_JOINT = True
 _C.MODEL.IMAGE_SIZE = [256, 256]  # width * height, ex: 192 * 256
-_C.MODEL.EXTRA = CN(new_allowed=True)
+_C.MODEL.EXTRA = CfgNode(new_allowed=True)
 
 
 # testing
-_C.TEST = CN()
+_C.TEST = CfgNode()
 
 # size of images for each device
 # Test Model Epoch

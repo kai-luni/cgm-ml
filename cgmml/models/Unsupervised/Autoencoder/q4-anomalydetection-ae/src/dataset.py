@@ -18,42 +18,42 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)
 logger.addHandler(handler)
 
 
-def create_datasets(workspace, experiment, run, offline_run, CONFIG):
+def create_datasets(workspace, experiment, run, offline_run, config):
 
-    DATA_DIR = REPO_DIR / 'data' if offline_run else Path(".")
-    logger.info('DATA_DIR: %s', DATA_DIR)
+    data_dir = REPO_DIR / 'data' if offline_run else Path(".")
+    logger.info('data_dir: %s', data_dir)
 
     # Offline run. Download the sample dataset and run locally. Still push results to Azure.
     if offline_run:
-        dataset_name = CONFIG.DATASET_NAME_LOCAL
-        dataset_path = get_dataset_path(DATA_DIR, dataset_name)
+        dataset_name = config.DATASET_NAME_LOCAL
+        dataset_path = get_dataset_path(data_dir, dataset_name)
         download_dataset(workspace, dataset_name, dataset_path)
 
     # Online run. Use dataset provided by training notebook.
     else:
-        dataset_name = CONFIG.DATASET_NAME
+        dataset_name = config.DATASET_NAME
 
         # Mount or download
-        if CONFIG.DATASET_MODE == DATASET_MODE_MOUNT:
+        if config.DATASET_MODE == DATASET_MODE_MOUNT:
             dataset_path = run.input_datasets["dataset"]
-        elif CONFIG.DATASET_MODE == DATASET_MODE_DOWNLOAD:
+        elif config.DATASET_MODE == DATASET_MODE_DOWNLOAD:
             dataset_path = get_dataset_path(DATA_DIR_ONLINE_RUN, dataset_name)
             download_dataset(workspace, dataset_name, dataset_path)
         else:
-            raise NameError(f"Unknown DATASET_MODE: {CONFIG.DATASET_MODE}")
+            raise NameError(f"Unknown DATASET_MODE: {config.DATASET_MODE}")
 
     logger.info('Using dataset path: %s', dataset_path)
 
     # Branch into specific datasets.
     if dataset_name == "anon_rgb_training":
-        return __create_anon_rgb_training(dataset_path, CONFIG)
+        return __create_anon_rgb_training(dataset_path, config)
     elif dataset_name == "anomaly_detection_data":
-        return __create_anomaly_detection_data(dataset_path, CONFIG)
+        return __create_anomaly_detection_data(dataset_path, config)
     else:
         assert False, f"Unexpected dataset {dataset_name}."
 
 
-def __create_anon_rgb_training(dataset_path, CONFIG):
+def __create_anon_rgb_training(dataset_path, config):
 
     # Get the QR-code paths.
     dataset_path = os.path.join(dataset_path, "scans")
@@ -66,9 +66,9 @@ def __create_anon_rgb_training(dataset_path, CONFIG):
 
     # Restricting to a fixed number of scans.
     logger.info("Slicing scans...")
-    qrcode_paths = qrcode_paths[:CONFIG.DATASET_MAX_SCANS]
+    qrcode_paths = qrcode_paths[:config.DATASET_MAX_SCANS]
     logger.info('qrcode_paths: %d', len(qrcode_paths))
-    #assert len(qrcode_paths) == CONFIG.DATASET_MAX_SCANS
+    #assert len(qrcode_paths) == config.DATASET_MAX_SCANS
 
     # Shuffle and split into train and validate.
     random.shuffle(qrcode_paths)
@@ -95,7 +95,7 @@ def __create_anon_rgb_training(dataset_path, CONFIG):
         for scan_path in scan_paths:
             sample_paths = glob.glob(os.path.join(scan_path, "**", "*." + extension))
             random.shuffle(sample_paths)
-            sample_paths = sample_paths[:CONFIG.DATASET_MAX_SAMPLES_PER_SCAN]
+            sample_paths = sample_paths[:config.DATASET_MAX_SAMPLES_PER_SCAN]
             result_paths.extend(sample_paths)
         return result_paths
 
@@ -122,13 +122,13 @@ def __create_anon_rgb_training(dataset_path, CONFIG):
             image_string = tf.io.read_file(path)
             image_decoded = tf.image.decode_jpeg(image_string, channels=3)
             image = tf.cast(image_decoded, tf.float32)
-            image = tf.image.resize(image, (CONFIG.IMAGE_TARGET_HEIGHT, CONFIG.IMAGE_TARGET_WIDTH))
+            image = tf.image.resize(image, (config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH))
             image = tf.image.rot90(image, k=3)
             image = image / 255.0
             return image
 
         image = tf.py_function(py_load_sample, [path], [tf.float32])[0]
-        image.set_shape((CONFIG.IMAGE_TARGET_HEIGHT, CONFIG.IMAGE_TARGET_WIDTH, 3))
+        image.set_shape((config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH, 3))
         return image
 
     # Create dataset for training.
@@ -151,7 +151,7 @@ def __create_anon_rgb_training(dataset_path, CONFIG):
     # Create dataset for anomaly detection.
     # Note: Model will do caching et cetera.
     def tf_preprocess(image):
-        image = tf.image.resize(image, (CONFIG.IMAGE_TARGET_HEIGHT, CONFIG.IMAGE_TARGET_WIDTH)) / 255.0
+        image = tf.image.resize(image, (config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH)) / 255.0
         return image
 
     dataset_anomaly = tfds.load("cats_vs_dogs", split="train[:10%]")
@@ -161,7 +161,7 @@ def __create_anon_rgb_training(dataset_path, CONFIG):
     return dataset_train, dataset_validate, dataset_anomaly
 
 
-def __create_anomaly_detection_data(dataset_path, CONFIG):
+def __create_anomaly_detection_data(dataset_path, config):
 
     #dataset_path = os.path.join(dataset_path, "scans")
     logger.info(glob.glob(os.path.join(dataset_path, "*")))
@@ -186,13 +186,13 @@ def __create_anomaly_detection_data(dataset_path, CONFIG):
             image_string = tf.io.read_file(path)
             image_decoded = tf.image.decode_jpeg(image_string, channels=3)
             image = tf.cast(image_decoded, tf.float32)
-            image = tf.image.resize(image, (CONFIG.IMAGE_TARGET_HEIGHT, CONFIG.IMAGE_TARGET_WIDTH))
+            image = tf.image.resize(image, (config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH))
             image = tf.image.rot90(image, k=3)
             image = image / 255.0
             return image
 
         image = tf.py_function(py_load_sample, [path], [tf.float32])[0]
-        image.set_shape((CONFIG.IMAGE_TARGET_HEIGHT, CONFIG.IMAGE_TARGET_WIDTH, 3))
+        image.set_shape((config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH, 3))
         return image
 
     # Create dataset for training.

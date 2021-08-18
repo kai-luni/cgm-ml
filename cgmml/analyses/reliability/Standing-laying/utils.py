@@ -29,13 +29,13 @@ def get_timestamp_from_pcd(pcd_path):
     filename = str(pcd_path)
     infile = open(filename, 'r')
     try:
-        firstLine = infile.readline()
+        first_line = infile.readline()
     except Exception as error:
         logger.info(error)
         logger.info(pcd_path)
         return -1
     # get the time from the header of the pcd file
-    timestamp = re.findall(r'\d+\.\d+', firstLine)
+    timestamp = re.findall(r'\d+\.\d+', first_line)
 
     # check if a timestamp is parsed from the header of the pcd file
     try:

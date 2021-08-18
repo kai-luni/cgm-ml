@@ -26,10 +26,10 @@ def test_calculate_percentage_confusion_matrix():
     data = np.array([[2, 4, 0],
                      [2, 2, 1],
                      [1, 1, 2]])
-    T, FP, FN = calculate_percentage_confusion_matrix(data)
-    assert T == 40
-    assert FP == 33.33
-    assert FN == 26.67
+    trues, fp, fn = calculate_percentage_confusion_matrix(data)
+    assert trues == 40
+    assert fp == 33.33
+    assert fn == 26.67
 
 
 def test_get_dataset_path():

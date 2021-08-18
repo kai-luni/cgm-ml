@@ -202,8 +202,8 @@ def create_point_net(input_shape, output_size, hidden_sizes=[512, 256], use_lamb
 
     num_points = input_shape[0]
 
-    def mat_mul(A, B):
-        result = tf.matmul(A, B)
+    def mat_mul(a, b):
+        result = tf.matmul(a, b)
         return result
 
     input_points = layers.Input(shape=input_shape)
@@ -220,13 +220,13 @@ def create_point_net(input_shape, output_size, hidden_sizes=[512, 256], use_lamb
     x = layers.BatchNormalization()(x)
     x = layers.Dense(9, weights=[np.zeros([256, 9]), np.array(
         [1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(np.float32)])(x)
-    input_T = layers.Reshape((input_shape[1], input_shape[1]))(x)
+    input_t = layers.Reshape((input_shape[1], input_shape[1]))(x)
 
     # forward net
     if use_lambda is True:
-        g = layers.Lambda(mat_mul, arguments={'B': input_T})(input_points)
+        g = layers.Lambda(mat_mul, arguments={'B': input_t})(input_points)
     else:
-        g = layers.dot([input_points, input_T], axes=-1, normalize=True)
+        g = layers.dot([input_points, input_t], axes=-1, normalize=True)
     g = layers.Convolution1D(64, 1, input_shape=input_shape, activation='relu')(input_points)
     g = layers.BatchNormalization()(g)
     g = layers.Convolution1D(64, 1, input_shape=input_shape, activation='relu')(g)
@@ -246,13 +246,13 @@ def create_point_net(input_shape, output_size, hidden_sizes=[512, 256], use_lamb
     f = layers.BatchNormalization()(f)
     f = layers.Dense(64 * 64, weights=[np.zeros([256, 64 * 64]),
                                        np.eye(64).flatten().astype(np.float32)])(f)
-    feature_T = layers.Reshape((64, 64))(f)
+    feature_t = layers.Reshape((64, 64))(f)
 
     # forward net
     if use_lambda is True:
-        g = layers.Lambda(mat_mul, arguments={'B': feature_T})(g)
+        g = layers.Lambda(mat_mul, arguments={'B': feature_t})(g)
     else:
-        g = layers.dot([g, feature_T], axes=-1, normalize=True)
+        g = layers.dot([g, feature_t], axes=-1, normalize=True)
     g = layers.Convolution1D(64, 1, activation='relu')(g)
     g = layers.BatchNormalization()(g)
     g = layers.Convolution1D(128, 1, activation='relu')(g)
@@ -293,7 +293,7 @@ def create_dense_net(input_shape, output_size, hidden_sizes=[]):
     return model
 
 
-def create_2dCNN(input_shape, output_size):
+def create_2d_cnn(input_shape, output_size):
     """
     Creates a 2dCNN.
 

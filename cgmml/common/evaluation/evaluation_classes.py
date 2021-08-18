@@ -144,12 +144,12 @@ class Evaluation:
                  df: pd.DataFrame,
                  result_config: Bunch,
                  eval_config: Bunch,
-                 OUTPUT_CSV_PATH: str,
+                 output_csv_path: str,
                  descriptor: str):
         # Artifact-level evaluation
         df['error'] = df.apply(avgerror, axis=1)
 
-        csv_fpath = f"{OUTPUT_CSV_PATH}/test_mae_artifact_level_{descriptor}.csv"
+        csv_fpath = f"{output_csv_path}/test_mae_artifact_level_{descriptor}.csv"
         logger.info("Calculate and save the results to %s", csv_fpath)
         calculate_and_save_results(df, eval_config.NAME, csv_fpath,
                                    self.data_config, result_config, fct=calculate_performance_mae_artifact)
@@ -160,32 +160,32 @@ class Evaluation:
 
         df_grouped['error'] = df_grouped.apply(avgerror, axis=1)
 
-        csv_fpath = f"{OUTPUT_CSV_PATH}/{descriptor}.csv"
+        csv_fpath = f"{output_csv_path}/{descriptor}.csv"
         logger.info("Calculate and save the results to %s", csv_fpath)
         calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
                                    self.data_config, result_config, fct=calculate_performance)
 
-        csv_fpath = f"{OUTPUT_CSV_PATH}/test_mae_scan_level_{descriptor}.csv"
+        csv_fpath = f"{output_csv_path}/test_mae_scan_level_{descriptor}.csv"
         logger.info("Calculate and save the results to %s", csv_fpath)
         calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
                                    self.data_config, result_config, fct=calculate_performance_mae_scan)
 
-        sample_csv_fpath = f"{OUTPUT_CSV_PATH}/inaccurate_scans_{descriptor}.csv"
+        sample_csv_fpath = f"{output_csv_path}/inaccurate_scans_{descriptor}.csv"
         df_grouped.to_csv(sample_csv_fpath, index=True)
 
         if 'AGE_BUCKETS' in result_config.keys():
-            csv_fpath = f"{OUTPUT_CSV_PATH}/age_evaluation_{descriptor}.csv"
+            csv_fpath = f"{output_csv_path}/age_evaluation_{descriptor}.csv"
             logger.info("Calculate and save age results to %s", csv_fpath)
             calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
                                        self.data_config, result_config, fct=calculate_performance_age)
-            png_fpath = f"{OUTPUT_CSV_PATH}/age_evaluation_scatter_{descriptor}.png"
+            png_fpath = f"{output_csv_path}/age_evaluation_scatter_{descriptor}.png"
             logger.info("Calculate and save scatterplot results to %s", png_fpath)
             draw_age_scatterplot(df, png_fpath)
 
         if (HEIGHT_IDX in self.data_config.TARGET_INDEXES
                 and AGE_IDX in self.data_config.TARGET_INDEXES
                 and descriptor != self.model_config.EXPERIMENT_NAME):
-            png_fpath = f"{OUTPUT_CSV_PATH}/stunting_diagnosis_{descriptor}.png"
+            png_fpath = f"{output_csv_path}/stunting_diagnosis_{descriptor}.png"
             logger.info("Calculate zscores and save confusion matrix results to %s", png_fpath)
             start = time.time()
             draw_stunting_diagnosis(df, png_fpath)
@@ -195,7 +195,7 @@ class Evaluation:
         if (WEIGHT_IDX in self.data_config.TARGET_INDEXES
                 and AGE_IDX in self.data_config.TARGET_INDEXES
                 and descriptor != self.model_config.EXPERIMENT_NAME):
-            png_fpath = f"{OUTPUT_CSV_PATH}/wasting_diagnosis_{descriptor}.png"
+            png_fpath = f"{output_csv_path}/wasting_diagnosis_{descriptor}.png"
             logger.info("Calculate and save wasting confusion matrix results to %s", png_fpath)
             start = time.time()
             draw_wasting_diagnosis(df, png_fpath)
@@ -203,12 +203,12 @@ class Evaluation:
             logger.info("Total time for Calculate zscores and save wasting confusion matrix: %.2f", end - start)
 
         if SEX_IDX in self.data_config.TARGET_INDEXES:
-            csv_fpath = f"{OUTPUT_CSV_PATH}/sex_evaluation_{descriptor}.csv"
+            csv_fpath = f"{output_csv_path}/sex_evaluation_{descriptor}.csv"
             logger.info("Calculate and save sex results to %s", csv_fpath)
             calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
                                        self.data_config, result_config, fct=calculate_performance_sex)
         if GOODBAD_IDX in self.data_config.TARGET_INDEXES:
-            csv_fpath = f"{OUTPUT_CSV_PATH}/goodbad_evaluation_{descriptor}.csv"
+            csv_fpath = f"{output_csv_path}/goodbad_evaluation_{descriptor}.csv"
             logger.info("Calculate performance on bad/good scans and save results to %s", csv_fpath)
             calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
                                        self.data_config, result_config, fct=calculate_performance_goodbad)
@@ -247,9 +247,9 @@ class EnsembleEvaluation(Evaluation):
                  df: pd.DataFrame,
                  result_config: Bunch,
                  eval_config: Bunch,
-                 OUTPUT_CSV_PATH: str,
+                 output_csv_path: str,
                  descriptor: str):
-        super().evaluate(df, result_config, eval_config, OUTPUT_CSV_PATH, descriptor)
+        super().evaluate(df, result_config, eval_config, output_csv_path, descriptor)
 
         if not result_config.USE_UNCERTAINTY:
             return
@@ -268,20 +268,20 @@ class EnsembleEvaluation(Evaluation):
 
         if GOODBAD_IDX in self.data_config.TARGET_INDEXES:
             assert COLUMN_NAME_GOODBAD in df
-            png_fpath = f"{OUTPUT_CSV_PATH}/uncertainty_distribution.png"
+            png_fpath = f"{output_csv_path}/uncertainty_distribution.png"
             draw_uncertainty_goodbad_plot(df_sample, png_fpath)
 
             df_sample_100 = df_sample.iloc[df_sample.index.get_level_values('scantype') == '100']
-            png_fpath = f"{OUTPUT_CSV_PATH}/uncertainty_code100_distribution.png"
+            png_fpath = f"{output_csv_path}/uncertainty_code100_distribution.png"
             draw_uncertainty_goodbad_plot(df_sample_100, png_fpath)
 
-        png_fpath = f"{OUTPUT_CSV_PATH}/uncertainty_scatter_distribution.png"
+        png_fpath = f"{output_csv_path}/uncertainty_scatter_distribution.png"
         draw_uncertainty_scatterplot(df_sample, png_fpath)
 
         # Filter for scans with high certainty and calculate their accuracy/results
         df_sample['error'] = df_sample.apply(avgerror, axis=1).abs()
         df_sample_better_threshold = df_sample[df_sample['uncertainties'] < result_config.UNCERTAINTY_THRESHOLD_IN_CM]
-        csv_fpath = f"{OUTPUT_CSV_PATH}/uncertainty_smaller_than_{result_config.UNCERTAINTY_THRESHOLD_IN_CM}cm.csv"
+        csv_fpath = f"{output_csv_path}/uncertainty_smaller_than_{result_config.UNCERTAINTY_THRESHOLD_IN_CM}cm.csv"
         logger.info("Uncertainty: For more certain than %.2f cm, calculate and save the results to %s",
                     result_config.UNCERTAINTY_THRESHOLD_IN_CM, csv_fpath)
         calculate_and_save_results(df_sample_better_threshold, eval_config.NAME, csv_fpath,

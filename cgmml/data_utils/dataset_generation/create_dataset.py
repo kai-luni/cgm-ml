@@ -105,7 +105,7 @@ if __name__ == "__main__":
         Path(pcd_complete_path).mkdir(parents=True, exist_ok=True)
         shutil.copy(source_path, pcd_complete_path)
 
-    def process_RGB(data):
+    def process_rgb(data):
         """
         Function to process the RGB images, store them in
         corresponding folder structre
@@ -134,18 +134,18 @@ if __name__ == "__main__":
 
     if DEBUG:
         for index, row in get_posenet_results.iterrows():
-            process_RGB(row)
+            process_rgb(row)
     else:
         proc = multiprocessing.Pool()
         for index, row in get_posenet_results.iterrows():
-            proc.apply_async(process_RGB, [row])
+            proc.apply_async(process_rgb, [row])
         proc.close()
         proc.join()  # Wait for all child processes to close.
 
     proc = multiprocessing.Pool()
 
     for index, row in get_posenet_results.iterrows():
-        proc.apply_async(process_RGB, [row])  # Activate multiprocessing
+        proc.apply_async(process_rgb, [row])  # Activate multiprocessing
 
     proc.close()
     proc.join()

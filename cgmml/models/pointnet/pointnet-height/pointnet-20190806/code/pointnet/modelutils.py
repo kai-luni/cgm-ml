@@ -293,7 +293,7 @@ def create_dense_net(input_shape, output_size, hidden_sizes=[]):
     return model
 
 
-def create_2dCNN(input_shape, output_size):
+def create_2d_cnn(input_shape, output_size):
     """
     Creates a 2dCNN.
 

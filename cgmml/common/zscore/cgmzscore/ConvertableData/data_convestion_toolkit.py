@@ -25,7 +25,7 @@ output_file_name = sys.argv[3]
 zscore_type = sys.argv[4]
 
 
-def convertTxtToJSON(percentile_data_path, sd_data_path, output_file_name, zscore_type):
+def convert_txt_to_json(percentile_data_path, sd_data_path, output_file_name, zscore_type):
     lsm_sd_data = []
 
     percentile_data_path = REPO_DIR / 'ConvertableData' / percentile_data_path
@@ -55,5 +55,5 @@ def convertTxtToJSON(percentile_data_path, sd_data_path, output_file_name, zscor
 
 
 if __name__ == "__main__":
-    convertTxtToJSON(percentile_data_path, sd_data_path,
-                     output_file_name, zscore_type)
+    convert_txt_to_json(percentile_data_path, sd_data_path,
+                        output_file_name, zscore_type)
