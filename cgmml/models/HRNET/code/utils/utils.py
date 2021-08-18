@@ -1,6 +1,6 @@
 
 import cv2
-import models.HRNET.code.models.pose_hrnet  # noqa
+import cgmml.models.HRNET.code.models.pose_hrnet  # noqa
 import numpy as np
 import torch
 import torch.nn.parallel
@@ -8,10 +8,10 @@ import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
-from models.HRNET.code.config import cfg
-from models.HRNET.code.config.constants import COCO_INSTANCE_CATEGORY_NAMES, NUM_KPTS, SKELETON, CocoColors
-from models.HRNET.code.utils.post_processing import get_final_preds
-from models.HRNET.code.utils.transforms import get_affine_transform
+from cgmml.models.HRNET.code.config import cfg
+from cgmml.models.HRNET.code.config.constants import COCO_INSTANCE_CATEGORY_NAMES, NUM_KPTS, SKELETON, CocoColors
+from cgmml.models.HRNET.code.utils.post_processing import get_final_preds
+from cgmml.models.HRNET.code.utils.transforms import get_affine_transform
 
 
 def get_person_detection_boxes(model, img, threshold=0.5):

@@ -68,5 +68,5 @@ MODEL:
 
 
 TEST:
-  MODEL_FILE: 'src/models/HRNET/weights/pytorch/pose_coco/pose_hrnet_w48_384x288.pth'
+  MODEL_FILE: 'cgmml/models/HRNET/weights/pytorch/pose_coco/pose_hrnet_w48_384x288.pth'
   POST_PROCESS: true

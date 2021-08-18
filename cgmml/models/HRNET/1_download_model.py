@@ -1,6 +1,6 @@
 from azureml.core import Workspace
 from azureml.core.model import Model
-from models.HRNET.code.config import cfg, update_config
+from cgmml.models.HRNET.code.config import cfg, update_config
 
 
 def download_model(workspace, model_name, target_path):
@@ -18,6 +18,6 @@ def download_model(workspace, model_name, target_path):
 if __name__ == '__main__':
     workspace = Workspace.from_config()
 
-    args = 'src/models/HRNET/inference-config-hrnet.yaml'
+    args = 'cgmml/models/HRNET/inference-config-hrnet.yaml'
     update_config(cfg, args)
-    download_model(workspace=workspace, model_name=cfg.MODEL.NAME, target_path='src/models/HRNET')
+    download_model(workspace=workspace, model_name=cfg.MODEL.NAME, target_path='cgmml/models/HRNET')

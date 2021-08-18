@@ -3,7 +3,7 @@ import time
 
 import cv2
 import glob2 as glob
-import models.HRNET.code.models.pose_hrnet  # noqa
+import cgmml.models.HRNET.code.models.pose_hrnet  # noqa
 import pandas as pd
 import torch
 import torch.backends.cudnn as cudnn
@@ -12,13 +12,13 @@ import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision
-from models.HRNET.code.config import cfg, update_config
-from models.HRNET.code.config.constants import COCO_KEYPOINT_INDEXES, NUM_KPTS
-from models.HRNET.code.models.pose_hrnet import get_pose_net
-from models.HRNET.code.utils.utils import (box_to_center_scale,
-                                           calculate_pose_score,
-                                           get_person_detection_boxes,
-                                           get_pose_estimation_prediction, draw_pose)
+from cgmml.models.HRNET.code.config import cfg, update_config
+from cgmml.models.HRNET.code.config.constants import COCO_KEYPOINT_INDEXES, NUM_KPTS
+from cgmml.models.HRNET.code.models.pose_hrnet import get_pose_net
+from cgmml.models.HRNET.code.utils.utils import (box_to_center_scale,
+                                                 calculate_pose_score,
+                                                 get_person_detection_boxes,
+                                                 get_pose_estimation_prediction, draw_pose)
 
 
 FILE_PATH = 'pose_resnet_152_384x288.csv'
@@ -140,7 +140,6 @@ class ResultGeneration:
         # self.artifact_pose_result = []
 
         artifact_paths = glob.glob(os.path.join(scan_parent, "**/**/*.jpg"))
-        artifact_paths = artifact_paths[:3]
 
         for jpg_path in artifact_paths:
             split_path = jpg_path.split('/')
@@ -178,7 +177,7 @@ def main():
     torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
 
-    args = 'src/models/HRNET/inference-config-hrnet.yaml'
+    args = 'cgmml/models/HRNET/inference-config-hrnet.yaml'
     update_config(cfg, args)
 
     pose_prediction = PosePrediction(ctx)
