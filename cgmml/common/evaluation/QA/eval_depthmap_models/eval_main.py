@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
     start = time.time()
 
-    cgm_env = cgm_environment(workspace, curated_env_name="cgm-QA-v01", env_exist=False,
+    cgm_env = cgm_environment(workspace, curated_env_name="cgm-QA-v01", env_exist=True,
                               fpath_env_yml=CWD / "environment.yml")
 
     script_run_config = ScriptRunConfig(source_directory=temp_path,
