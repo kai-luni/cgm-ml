@@ -1,9 +1,10 @@
+import logging
 import os
 import time
 
+import cgmml.models.HRNET.code.models.pose_hrnet  # noqa
 import cv2
 import glob2 as glob
-import cgmml.models.HRNET.code.models.pose_hrnet  # noqa
 import pandas as pd
 import torch
 import torch.backends.cudnn as cudnn
@@ -13,15 +14,13 @@ import torch.utils.data
 import torch.utils.data.distributed
 import torchvision
 from cgmml.models.HRNET.code.config import cfg, update_config
-from cgmml.models.HRNET.code.config.constants import COCO_KEYPOINT_INDEXES, NUM_KPTS
+from cgmml.models.HRNET.code.config.constants import (COCO_KEYPOINT_INDEXES, NUM_KPTS)
 from cgmml.models.HRNET.code.models.pose_hrnet import get_pose_net
-from cgmml.models.HRNET.code.utils.utils import (box_to_center_scale,
-                                                 calculate_pose_score,
-                                                 get_person_detection_boxes,
-                                                 get_pose_estimation_prediction, draw_pose)
+from cgmml.models.HRNET.code.utils.utils import (box_to_center_scale, calculate_pose_score, draw_pose,
+                                                 get_person_detection_boxes, get_pose_estimation_prediction)
 
-
-FILE_PATH = 'pose_resnet_152_384x288.csv'
+logging.basicConfig(level=logging.INFO, filename='pose_prediction.log',
+                    format='Date-Time : %(asctime)s : Line No. : %(lineno)d - %(message)s', filemode='w')
 
 
 class PosePrediction:
@@ -56,12 +55,16 @@ class PosePrediction:
     def orient_image_using_scan_type(self, scan_type):
         if scan_type in ['100', '101', '102']:
             self.rotated_image = cv2.rotate(self.image_bgr, cv2.ROTATE_90_CLOCKWISE)  # Standing
-        else:
+        elif scan_type in ['200', '201', '202']:
             self.rotated_image = cv2.rotate(self.image_bgr, cv2.ROTATE_90_COUNTERCLOCKWISE)  # Laying
+        else:
+            logging.info("%s %s %s", "Provided scan type", scan_type, "not supported")
+            logging.info("Keeping the image in the same orientation as provided")
+            self.rotated_image = self.image_bgr
 
     def perform_box_on_image(self):
         self.pred_boxes, self.pred_score = get_person_detection_boxes(
-            self.box_model, self.input, threshold=0.9)
+            self.box_model, self.input, threshold=cfg.BOX_MODEL.THRESHOLD)
         return self.pred_boxes, self.pred_score
 
     def perform_pose_on_image(self, idx):
@@ -104,6 +107,10 @@ class ResultGeneration:
 
             pose_bbox = pred_boxes[idx]
             pose_preds, pose_score = self.pose_prediction.perform_pose_on_image(idx)
+            if self.save_pose_overlay:
+                self.pose_prediction.pose_draw_on_image()
+                # TODO Ensure save image path
+                self.pose_prediction.save_final_image(jpg_path.split('/')[-1])
             for i in range(0, NUM_KPTS):
                 key_points_coordinate_list.append(
                     {COCO_KEYPOINT_INDEXES[i]: {'x': pose_preds[0][i][0], 'y': pose_preds[0][i][1]}})
@@ -124,10 +131,6 @@ class ResultGeneration:
                                    'pose_result': pose_result,
                                    'time': end_time - start_time
                                    }
-        if self.save_pose_overlay:
-            self.pose_prediction.pose_draw_on_image()
-            # TODO Ensure save image path
-            self.pose_prediction.save_final_image(jpg_path.split('/')[-1])
         return pose_result_of_artifact
 
     def result_on_scan_level(self, scan_parent):
@@ -138,9 +141,11 @@ class ResultGeneration:
         self.pose_result = []
         self.time = []
         # self.artifact_pose_result = []
+        logging.info("Extracting artifacts from scans")
 
         artifact_paths = glob.glob(os.path.join(scan_parent, "**/**/*.jpg"))
 
+        logging.info("Result Generation Started")
         for jpg_path in artifact_paths:
             split_path = jpg_path.split('/')
 
@@ -171,12 +176,12 @@ class ResultGeneration:
 
 def main():
     ctx = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    logging.info("%s %s", "cuda is available", torch.cuda.is_available())
 
     # cudnn related setting
     cudnn.benchmark = cfg.CUDNN.BENCHMARK
     torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
-
     args = 'cgmml/models/HRNET/inference-config-hrnet.yaml'
     update_config(cfg, args)
 
@@ -187,8 +192,10 @@ def main():
     result_generation = ResultGeneration(pose_prediction, False)
     result_generation.result_on_scan_level('data/anon_rgb_training/scans')
 
+    logging.info("Result Generation done")
+
     result_generation.store_result_in_dataframe()
-    result_generation.save_to_csv(FILE_PATH)
+    result_generation.save_to_csv(cfg.MODEL.NAME + '.csv')
 
 
 if __name__ == '__main__':

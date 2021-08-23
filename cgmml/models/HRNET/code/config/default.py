@@ -20,6 +20,9 @@ _C.MODEL.TAG_PER_JOINT = True
 _C.MODEL.IMAGE_SIZE = [256, 256]  # width * height, ex: 192 * 256
 _C.MODEL.EXTRA = CfgNode(new_allowed=True)
 
+_C.BOX_MODEL = CfgNode()
+_C.BOX_MODEL.THRESHOLD = 0.8
+
 
 # testing
 _C.TEST = CfgNode()

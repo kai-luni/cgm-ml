@@ -22,7 +22,7 @@ def get_person_detection_boxes(model, img, threshold=0.5):
                   for i in list(pred[0]['boxes'].detach().cpu().numpy())]  # Bounding boxes
     pred_score = list(pred[0]['scores'].detach().cpu().numpy())
     if not pred_score or max(pred_score) < threshold:
-        return []
+        return [], 0
     # Get list of index with score greater than threshold
     pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1]
     pred_boxes = pred_boxes[:pred_t + 1]
