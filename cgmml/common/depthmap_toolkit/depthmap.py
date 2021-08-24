@@ -460,7 +460,7 @@ class Depthmap:
         """
         forward = matrix_transform_point([0, 0, 1], self.device_pose_arr)
         camera = matrix_transform_point([0, 0, 0], self.device_pose_arr)
-        return 90.0 * (camera[1] - forward[1])
+        return math.degrees(math.asin(camera[1] - forward[1]))
 
     def get_floor_level(self) -> float:
         """Calculate an altitude of the floor in the world coordinates"""
