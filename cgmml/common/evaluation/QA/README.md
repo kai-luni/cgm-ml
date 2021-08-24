@@ -5,8 +5,9 @@
 Inside `QA/`, we have implemented logic to evaluate different models and to perform evaluation of different use cases.
 
 - The steps to evaluate the model are run in an azure pipeline (see `test-pipeline.yml`)
-- This runs `src/common/evaluation/QA/eval_depthmap_models/eval_configs.sh` which contains the list of configs to run
-- The azure pipeline will sporn AzureML runs for each config (for heavy computations)
+- This runs `src/common/evaluation/QA/eval_depthmap_models/eval_configs.sh`,
+- The azure pipeline will sporn one node in the cluster in AzureML to run all configs (for heavy computations)
+- On the node of the cluster, `evaluate.py` is run, which contains the list of configs to evaluate
 - Once the job on the cluster is done, this gets the resulting model evaluation results (e.g., CSV, png, or similar)
 
 ## Evaluation on Depthmap Model: `eval_depthmap_models/`

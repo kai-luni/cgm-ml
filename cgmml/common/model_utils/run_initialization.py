@@ -10,6 +10,7 @@ from cgmml.common.model_utils.utils import download_dataset, get_dataset_path
 
 DATA_DIR_ONLINE_RUN = Path("/tmp/data/")
 REPO_DIR = Path(__file__).parents[3].absolute()
+EVAL_EXPERIMENT_NAME = 'QA-pipeline'
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -42,7 +43,7 @@ class OfflineRunInitializer(RunInitializer):
         logger.info("Running in offline mode...")
         logger.info("Accessing workspace...")
         self.workspace = Workspace.from_config()
-        self.experiment = Experiment(self.workspace, self._eval_config.EXPERIMENT_NAME)
+        self.experiment = Experiment(self.workspace, EVAL_EXPERIMENT_NAME)
         self.run = self.experiment.start_logging(outputs=None, snapshot_directory=None)
 
     def get_dataset(self):

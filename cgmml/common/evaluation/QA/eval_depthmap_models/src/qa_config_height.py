@@ -18,8 +18,6 @@ EVAL_CONFIG = Bunch(dict(
     NAME='q3-depthmap-plaincnn-height-95k_run_09',
 
     # Experiment in Azure ML which will be used for evaluation
-    EXPERIMENT_NAME="QA-pipeline",
-    CLUSTER_NAME="gpu-cluster",
 
     # Used for Debug the QA pipeline
     DEBUG_RUN=False,

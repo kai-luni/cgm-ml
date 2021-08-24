@@ -1,4 +1,3 @@
-import argparse
 import logging
 import random
 import shutil
@@ -8,7 +7,7 @@ from pathlib import Path
 import tensorflow as tf
 from azureml.core.run import Run
 
-from constants import DEFAULT_CONFIG, REPO_DIR
+from constants import REPO_DIR
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -49,61 +48,65 @@ from cgmml.common.model_utils.run_initialization import OfflineRunInitializer, O
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d')
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--qa_config_module", default=DEFAULT_CONFIG, help="Configuration file")
-    args = parser.parse_args()
-    qa_config_module = args.qa_config_module
-    qa_config = import_module(qa_config_module)
-else:
-    qa_config_module = DEFAULT_CONFIG
-    qa_config = import_module(qa_config_module)
-logger.info('Using the following config: %s', qa_config_module)
 
-
-MODEL_CONFIG = qa_config.MODEL_CONFIG
-EVAL_CONFIG = qa_config.EVAL_CONFIG
-DATA_CONFIG = qa_config.DATA_CONFIG
-RESULT_CONFIG = qa_config.RESULT_CONFIG
-FILTER_CONFIG = qa_config.FILTER_CONFIG if getattr(qa_config, 'FILTER_CONFIG', False) else None
-
+QA_CONFIG_MODULES = [
+    'qa_config_height',  # takes 14min in CI
+    'qa_config_height_clean',  # takes 9min in CI
+    # 'qa_config_height_dropout',  # takes 14min in CI
+    # 'qa_config_height_deep_ensemble',  # takes 50min in CI
+    # 'qa_config_height_mcnn',  # takes 19min in CI
+    # 'qa_config_height_filter',
+    'qa_config_weight',  # takes 13min in CI
+    # 'qa_config_weight_dropout',  # takes 13min in CI
+]
 
 if __name__ == "__main__":
-    # Make experiment reproducible
-    tf.random.set_seed(EVAL_CONFIG.SPLIT_SEED)
-    random.seed(EVAL_CONFIG.SPLIT_SEED)
 
-    if is_offline_run(RUN):
-        OUTPUT_CSV_PATH = str(REPO_DIR / 'data' / RESULT_CONFIG.SAVE_PATH)
-        initializer = OfflineRunInitializer(DATA_CONFIG, EVAL_CONFIG)
-    else:
-        OUTPUT_CSV_PATH = RESULT_CONFIG.SAVE_PATH
-        initializer = OnlineRunInitializer(DATA_CONFIG, EVAL_CONFIG, RUN)
+    for qa_config_module in QA_CONFIG_MODULES:
+        qa_config = import_module(qa_config_module)
+        logger.info('Using the following config: %s', qa_config_module)
 
-    if is_ensemble_evaluation(MODEL_CONFIG):
-        MODEL_BASE_DIR = (REPO_DIR / 'data' / MODEL_CONFIG.EXPERIMENT_NAME) if is_offline_run(RUN) else Path('.')
-        eval_class = EnsembleEvaluation
-        descriptor = MODEL_CONFIG.EXPERIMENT_NAME
-    else:
-        MODEL_BASE_DIR = REPO_DIR / 'data' / MODEL_CONFIG.RUN_ID if is_offline_run(RUN) else Path('.')
-        eval_class = MultiartifactEvaluation if is_multiartifact_evaluation(DATA_CONFIG) else Evaluation
-        descriptor = MODEL_CONFIG.RUN_ID
-    evaluation = eval_class(MODEL_CONFIG, DATA_CONFIG, MODEL_BASE_DIR, initializer.dataset_path)
-    evaluation.get_the_model_path(initializer.workspace)
+        model_config = qa_config.MODEL_CONFIG
+        eval_config = qa_config.EVAL_CONFIG
+        data_config = qa_config.DATA_CONFIG
+        result_config = qa_config.RESULT_CONFIG
+        filter_config = qa_config.FILTER_CONFIG if getattr(qa_config, 'FILTER_CONFIG', False) else None
 
-    # Get the QR-code paths
-    qrcode_paths = evaluation.get_the_qr_code_path()
-    if getattr(EVAL_CONFIG, 'DEBUG_RUN', False) and len(qrcode_paths) > EVAL_CONFIG.DEBUG_NUMBER_OF_SCAN:
-        qrcode_paths = qrcode_paths[:EVAL_CONFIG.DEBUG_NUMBER_OF_SCAN]
-        logger.info("Executing on %d qrcodes for FAST RUN", EVAL_CONFIG.DEBUG_NUMBER_OF_SCAN)
+        # Make experiment reproducible
+        tf.random.set_seed(eval_config.SPLIT_SEED)
+        random.seed(eval_config.SPLIT_SEED)
 
-    dataset_evaluation, paths_belonging_to_predictions = evaluation.prepare_dataset(qrcode_paths, FILTER_CONFIG)
-    prediction_array = evaluation.get_prediction_(evaluation.model_path_or_paths, dataset_evaluation)
-    logger.info("Prediction made by model on the depthmaps...")
-    logger.info(prediction_array)
+        if is_offline_run(RUN):
+            output_csv_path = str(REPO_DIR / 'data' / result_config.SAVE_PATH)
+            initializer = OfflineRunInitializer(data_config, eval_config)
+        else:
+            output_csv_path = result_config.SAVE_PATH
+            initializer = OnlineRunInitializer(data_config, eval_config, RUN)
 
-    df = evaluation.prepare_dataframe(paths_belonging_to_predictions, prediction_array, RESULT_CONFIG)
-    evaluation.evaluate(df, RESULT_CONFIG, EVAL_CONFIG, OUTPUT_CSV_PATH, descriptor)
+        if is_ensemble_evaluation(model_config):
+            model_base_dir = (REPO_DIR / 'data' / model_config.EXPERIMENT_NAME) if is_offline_run(RUN) else Path('.')
+            eval_class = EnsembleEvaluation
+            descriptor = model_config.EXPERIMENT_NAME
+        else:
+            model_base_dir = REPO_DIR / 'data' / model_config.RUN_ID if is_offline_run(RUN) else Path('.')
+            eval_class = MultiartifactEvaluation if is_multiartifact_evaluation(data_config) else Evaluation
+            descriptor = model_config.RUN_ID
+        evaluation = eval_class(model_config, data_config, model_base_dir, initializer.dataset_path)
+        evaluation.get_the_model_path(initializer.workspace)
 
-    # Done.
-    initializer.run.complete()
+        # Get the QR-code paths
+        qrcode_paths = evaluation.get_the_qr_code_path()
+        if getattr(eval_config, 'DEBUG_RUN', False) and len(qrcode_paths) > eval_config.DEBUG_NUMBER_OF_SCAN:
+            qrcode_paths = qrcode_paths[:eval_config.DEBUG_NUMBER_OF_SCAN]
+            logger.info("Executing on %d qrcodes for FAST RUN", eval_config.DEBUG_NUMBER_OF_SCAN)
+
+        dataset_evaluation, paths_belonging_to_predictions = evaluation.prepare_dataset(qrcode_paths, filter_config)
+        prediction_array = evaluation.get_prediction_(evaluation.model_path_or_paths, dataset_evaluation)
+        logger.info("Prediction made by model on the depthmaps...")
+        logger.info(prediction_array)
+
+        df = evaluation.prepare_dataframe(paths_belonging_to_predictions, prediction_array, result_config)
+        evaluation.evaluate(df, result_config, eval_config, output_csv_path, descriptor)
+
+        # Done.
+        initializer.run.complete()

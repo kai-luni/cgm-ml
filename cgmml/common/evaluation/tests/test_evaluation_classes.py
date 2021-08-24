@@ -20,7 +20,6 @@ MODEL_CONFIG = Bunch(dict(
 ))
 EVAL_CONFIG = Bunch(dict(
     NAME='my-experiment-run_09',
-    EXPERIMENT_NAME="QA-pipeline",
 ))
 DATA_CONFIG = Bunch(dict(
     NAME='dataset-anontest',
