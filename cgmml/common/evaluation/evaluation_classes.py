@@ -190,7 +190,7 @@ class Evaluation:
             start = time.time()
             draw_stunting_diagnosis(df, png_fpath)
             end = time.time()
-            logger.info("Total time for Calculate zscores and save confusion matrix: %.2f", end - start)
+            logger.info("Total time for Calculate zscores and save confusion matrix: %.2fsec", end - start)
 
         if (WEIGHT_IDX in self.data_config.TARGET_INDEXES
                 and AGE_IDX in self.data_config.TARGET_INDEXES
@@ -200,7 +200,7 @@ class Evaluation:
             start = time.time()
             draw_wasting_diagnosis(df, png_fpath)
             end = time.time()
-            logger.info("Total time for Calculate zscores and save wasting confusion matrix: %.2f", end - start)
+            logger.info("Total time for Calculate zscores and save wasting confusion matrix: %.2fsec", end - start)
 
         if SEX_IDX in self.data_config.TARGET_INDEXES:
             csv_fpath = f"{output_csv_path}/sex_evaluation_{descriptor}.csv"

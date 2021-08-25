@@ -1,7 +1,6 @@
 import logging
 import os
 import pickle
-from multiprocessing import Pool
 from pathlib import Path
 import time
 from typing import Callable, List, Tuple
@@ -296,7 +295,7 @@ def draw_stunting_diagnosis(df: pd.DataFrame, png_out_fpath: str):
         df: Dataframe with columns: qrcode, scantype, COLUMN_NAME_AGE, GT, predicted
         png_out_fpath: File path where plot image will be saved
     """
-    df = parallelize_dataframe(df, calculate_zscore_lhfa)
+    df = calculate_zscore_lhfa(df)
     actual = np.where(df['Z_actual'].values < -3, 'Severly Stunted',
                       np.where(df['Z_actual'].values > -2, 'Not Stunted', 'Moderately Stunted'))
     predicted = np.where(df['Z_predicted'].values < -3, 'Severly Stunted',
@@ -333,7 +332,7 @@ def draw_wasting_diagnosis(df: pd.DataFrame, png_out_fpath: str):
         df_: Dataframe with columns: qrcode, scantype, COLUMN_NAME_AGE, GT, predicted
         png_out_fpath: File path where plot image will be saved
     """
-    df = parallelize_dataframe(df, calculate_zscore_wfa)
+    df = calculate_zscore_wfa(df)
     actual = np.where(df['Z_actual'].values < -3, 'Severly Under-weight',
                       np.where(df['Z_actual'].values > -2, 'Not Under-weight', 'Moderately Under-weight'))
     predicted = np.where(df['Z_predicted'].values < -3, 'Severly Under-weight',
@@ -373,15 +372,6 @@ def draw_confusion_matrix(data, png_out_fpath, display_labels, title):
     Path(png_out_fpath).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(png_out_fpath)
     plt.close()
-
-
-def parallelize_dataframe(df, calculate_confusion_matrix, n_cores=8):
-    df_split = np.array_split(df, n_cores)
-    pool = Pool(n_cores)
-    df = pd.concat(pool.map(calculate_confusion_matrix, df_split))
-    pool.close()
-    pool.join()
-    return df
 
 
 def calculate_percentage_confusion_matrix(data):
