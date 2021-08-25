@@ -1,6 +1,6 @@
-'''
+"""
 This file contains a data-generator that works on the data as it is provided by the ETL.
-'''
+"""
 
 from __future__ import absolute_import
 import os

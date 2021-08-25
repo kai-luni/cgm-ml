@@ -320,12 +320,12 @@ def get_viz_channel(calibration_file,
 
 
 def get_viz_rgb(ply_path):
-    '''Function to get the rgb from a point cloud as an image for visualization'''
+    """Function to get the rgb from a point cloud as an image for visualization"""
     get_viz_channel(ply_path, channel=Channel.red, output_path="/tmp/red.png")
 
 
 def get_viz_confidence(ply_path):
-    '''Function to get the confidence from a point cloud as an image for visualization'''
+    """Function to get the confidence from a point cloud as an image for visualization"""
     get_viz_channel(ply_path,
                     channel=Channel.confidence,
                     output_path="/tmp/confidence.png")
@@ -336,7 +336,7 @@ def get_viz_depth(ply_path):
 
 
 def get_viz_segmentation(ply_path):
-    '''Function to get the segmentation from a point cloud as an image for visualization'''
+    """Function to get the segmentation from a point cloud as an image for visualization"""
     get_viz_channel(ply_path,
                     channel=Channel.segmentation,
                     output_path="/tmp/segmentation.png")

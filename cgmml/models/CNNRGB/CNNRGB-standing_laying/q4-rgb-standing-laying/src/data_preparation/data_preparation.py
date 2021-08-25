@@ -27,10 +27,10 @@ del artifacts['tag']
 del artifacts['scan_group']
 del artifacts['id']
 
-'''label the Data between standing and laying
+"""label the Data between standing and laying
 1 is standing
 0 is laying
-'''
+"""
 artifacts['label'] = artifacts.apply(lambda x: 1 if int(int(x['key']) / 100) == 1 else 0, axis=1)
 
 # Print the value count in artifacts level

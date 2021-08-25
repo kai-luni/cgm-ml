@@ -201,7 +201,7 @@ def fuse_rgbd(calibration_file,
 
 
 def apply_fusion(calibration_file, pcd_file, jpg_file, seg_path):
-    '''Check the path if everything is correct'''
+    """Check the path if everything is correct"""
     if not os.path.exists(pcd_file):  # check all files exist
         logger.error('Point cloud does not exist')
         return

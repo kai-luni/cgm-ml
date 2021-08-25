@@ -265,9 +265,9 @@ def get_latest_model(path=".", filter=""):
 
 
 def pointcloud_to_rgb_map(original_pointcloud, target_width=512, target_height=512, scale_factor=1.5, axis="vertical"):
-    '''
+    """
     Maps a pointcloud to a RGB-image. Stores height, density and intensity as separate channels.
-    '''
+    """
     if axis == "horizontal":
 
         # Transform to pixel-space.
@@ -370,9 +370,9 @@ def pointcloud_to_rgb_map(original_pointcloud, target_width=512, target_height=5
 
 
 def show_rgb_map(rgb_map):
-    '''
+    """
     Renders a RGB-map.
-    '''
+    """
 
     plt.figure(figsize=(10, 10))
     plt.subplots_adjust(wspace=0.1, hspace=0.1)
@@ -389,9 +389,9 @@ def show_rgb_map(rgb_map):
 
 
 def show_rgb_map_channel(data, title, cmap=None):
-    '''
+    """
     Renders a channel of a RGB-map.
-    '''
+    """
 
     fig = plt.imshow(data, cmap=cmap)
     fig.axes.get_xaxis().set_visible(False)
@@ -400,9 +400,9 @@ def show_rgb_map_channel(data, title, cmap=None):
 
 
 def find_timestamps_of_trained_models(root_path):
-    '''
+    """
     Extracts the timestamps. Different timestamps will represent different models/trainings.
-    '''
+    """
     all_paths = find_all_history_paths(root_path)
     date_times = []
     for path in all_paths:

@@ -1,8 +1,8 @@
-'''
+"""
 This file contains a data-generator that the preprocessed data. Note: It does not work on ETL-data.
 
 Note: It currently works on pointcloud-data only!
-'''
+"""
 
 
 from __future__ import absolute_import

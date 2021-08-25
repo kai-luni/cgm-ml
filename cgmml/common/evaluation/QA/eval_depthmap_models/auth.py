@@ -11,9 +11,9 @@ logger.addHandler(handler)
 
 
 def get_auth():
-    '''
+    """
     Azure CLI Authentication to access workspace
-    '''
+    """
     try:
         auth = AzureCliAuthentication()
         auth.get_authentication_header()

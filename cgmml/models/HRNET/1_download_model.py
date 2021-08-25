@@ -4,13 +4,13 @@ from cgmml.models.HRNET.code.config import cfg, update_config
 
 
 def download_model(workspace, model_name, target_path):
-    '''
+    """
     Download the pretrained model
     Input:
          workspace: workspace to access the experiment
          model_name: Name of the model in which model is registered
          target_path: Where model should download
-    '''
+    """
     model = Model(workspace, name=model_name)
     model.download(target_dir=target_path, exist_ok=True, exists_ok=None)
 

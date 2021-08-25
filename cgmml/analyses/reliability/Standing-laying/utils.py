@@ -84,7 +84,7 @@ def standing_laying_predict(qrcode_pcd_rgb, model):
 
 
 def download_model(workspace, experiment_name, run_id, input_location, output_location):
-    '''
+    """
     Download the pretrained model
     Input:
          workspace: workspace to access the experiment
@@ -92,7 +92,7 @@ def download_model(workspace, experiment_name, run_id, input_location, output_lo
          run_id: Run Id of the experiment in which model is pre-trained
          input_location: Input location in a RUN Id
          output_location: Location for saving the model
-    '''
+    """
     experiment = Experiment(workspace=workspace, name=experiment_name)
     #Download the model on which evaluation need to be done
     run = Run(experiment, run_id=run_id)
