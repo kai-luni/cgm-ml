@@ -16,7 +16,7 @@
 ! pip install tqdm
 ! pip install azure-storage-blob
 
-! pip install cgm-ml-common==3.0.0a23
+! pip install cgm-ml-common==3.0.0rc2
 
 # COMMAND ----------
 
@@ -38,7 +38,7 @@ from cgmml.common.data_utilities.rgbd_matching import match_df_with_depth_and_im
 
 # Constants
 ENV_PROD = "env_prod"
-ENV_PROD = "env_qa"
+ENV_QA = "env_qa"
 ENV_SANDBOX = "env_dev"
 
 # COMMAND ----------
@@ -51,6 +51,8 @@ MOUNT_DATASET = f"/mnt/{ENV}_dataset"
 DBFS_DIR = f"/tmp/{ENV}"
 
 DATASET_TYPE = 'depthmap'  # Supported: 'rgbd' and 'depthmap'
+
+DATA_CATEGORY = 'Train'  # Supported: 'Train' and 'Test'
 
 # COMMAND ----------
 
@@ -97,32 +99,37 @@ sql_cursor = conn.cursor()
 # COMMAND ----------
 
 if DATASET_TYPE == 'depthmap':
-    SQL_QUERY = """
+    SQL_QUERY = f"""
     SELECT f.file_path, f.created as timestamp,
-           s.id as scan_id, s.scan_type_id as scan_step,
+           s.id as scan_id, s.scan_type_id as scan_step, s.version as scan_version, 
            m.height, m.weight, m.muac,
-           a.ord as order_number
+           a.ord as order_number, a.timestamp, 
+           p.id as person_id, p.age, p.sex
     FROM file f
     INNER JOIN artifact a ON f.id = a.file_id
     INNER JOIN scan s     ON s.id = a.scan_id
-    INNER JOIN measure m  ON m.person_id = s.person_id"""
-
-    # The query select all scans with no results, this is a hack as we cannot add a column for data_version/etl_version right now.
-    SQL_QUERY += """
-    LEFT JOIN result r ON s.id = r.scan_id
-    WHERE r.scan_id is NULL and a.format = 'depth';"""
+    INNER JOIN measure m  ON m.person_id = s.person_id
+    INNER JOIN person p ON p.id = s.person_id
+    INNER JOIN child_data_category cdc ON p.id = cdc.person_id
+    INNER JOIN data_category dc ON dc.id = cdc.data_category_id
+    WHERE a.format IN ('depth', 'application/zip') 
+    AND dc.description = '{DATA_CATEGORY}';"""
 
 elif DATASET_TYPE == 'rgbd':
-    SQL_QUERY = """
+    SQL_QUERY = f"""
     SELECT f.file_path, f.created as timestamp,
-           s.id as scan_id, s.scan_type_id as scan_step,
-    --       m.height, m.weight, m.muac,
-           a.ord as order_number, a.format
+           s.id as scan_id, s.scan_type_id as scan_step, s.version as scan_version, 
+           m.height, m.weight, m.muac,
+           a.ord as order_number, a.timestamp, a.format,
+           p.id as person_id, p.age, p.sex
     FROM file f
     INNER JOIN artifact a ON f.id = a.file_id
     INNER JOIN scan s     ON s.id = a.scan_id
-    --INNER JOIN measure m  ON m.person_id = s.person_id
-    WHERE s.person_id = '1271f0a0-f5a8-11eb-882f-2f15de6166e4';"""
+    INNER JOIN measure m  ON m.person_id = s.person_id
+    INNER JOIN person p ON p.id = s.person_id
+    INNER JOIN child_data_category cdc ON p.id = cdc.person_id
+    INNER JOIN data_category dc ON dc.id = cdc.data_category_id
+    WHERE a.ord IS NOT Null AND dc.description = '{DATA_CATEGORY}';"""
 else:
   raise NameError(f'Unknown dataset type: {DATASET_TYPE}')
 
@@ -226,9 +233,17 @@ _file_paths = [query_result[file_path_idx] for query_result in query_results]
 _file_paths = list(set(_file_paths))
 print(f"Number of files to download: {len(_file_paths)}")
 
+# COMMAND ----------
+
 # Download
-for file_path in tqdm(_file_paths):
-    download_from_blob_storage(src=file_path, dest=f"/dbfs{DBFS_DIR}/{file_path}", container=CONTAINER_NAME_SRC_SA)
+def _download(full_name):
+    download_from_blob_storage(src=full_name, dest=f"/dbfs{DBFS_DIR}/{full_name}", container=CONTAINER_NAME_SRC_SA)
+
+# COMMAND ----------
+
+NUM_THREADS = 8
+pool = ThreadPool(NUM_THREADS)
+results = pool.map(_download, _file_paths)
 
 # COMMAND ----------
 
@@ -310,7 +325,7 @@ def upload_to_blob_storage(src: str, dest_container: str, dest_fpath: str):
 # COMMAND ----------
 
 DATASET_NAME = "dataset"
-dest_dir = datetime.now(timezone.utc).strftime(f"{DATASET_NAME}-%Y-%m-%d-%H-%M-%S")
+dest_dir = datetime.now(timezone.utc).strftime(f"{DATASET_NAME}-{DATASET_TYPE}-{DATA_CATEGORY}-%Y-%m-%d-%H-%M-%S")
 
 def _upload(full_name):
     assert PREFIX in full_name, full_name
@@ -320,6 +335,30 @@ def _upload(full_name):
 NUM_THREADS = 8
 pool = ThreadPool(NUM_THREADS)
 results = pool.map(_upload, processed_fnames)
+
+# COMMAND ----------
+
+labels_columns = ["scan_id", "scan_step", "scan_version",
+                  "height", "weight", "muac", "order_number",
+                  "timestamp", "person_id", "age", "sex"]
+
+labels_df = df[labels_columns]
+
+# COMMAND ----------
+
+labels_df.head()
+
+# COMMAND ----------
+
+labels_filename = f"{output_dir}/labels.csv"
+
+labels_df.to_csv(labels_filename)
+
+# COMMAND ----------
+
+dest_fpath = os.path.join(dest_dir, remove_prefix(labels_filename, PREFIX))
+
+upload_to_blob_storage(src=labels_filename, dest_container=CONTAINER_NAME_DEST_SA, dest_fpath=dest_fpath)
 
 # COMMAND ----------
 
