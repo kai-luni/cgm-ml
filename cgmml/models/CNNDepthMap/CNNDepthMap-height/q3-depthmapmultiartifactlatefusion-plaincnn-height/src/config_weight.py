@@ -35,7 +35,7 @@ CONFIG = Bunch(dict(
     USE_DROPOUT=False,
     USE_ONE_CYCLE=False,
     USE_MULTIGPU=False,
-    CLUSTER_NAME='gpu-cluster',
+    CLUSTER_NAME='gpu-cluster-V100',
 
     PRETRAINED_RUN='q4-depthmap-plaincnn-weight-95k_1616424204_63e3c1b8',  # Run 5
 

@@ -19,8 +19,9 @@ CONFIG = Bunch(dict(
     USE_DROPOUT=False,
     USE_WANDB=False,
     USE_MULTIGPU=False,
-    CLUSTER_NAME='gpu-cluster',
+    CLUSTER_NAME='gpu-cluster-V100',
 
     # Parameters for dataset generation.
     TARGET_INDEXES=[1],  # 0 is height, 1 is weight.
+    CODES=['100', '101', '102', '200', '201', '202'],
 ))
