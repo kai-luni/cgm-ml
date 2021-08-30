@@ -215,7 +215,7 @@ def export_pcd(filename: str, dmap: Depthmap):
                 depth = dmap.depthmap_arr[x, y]
                 if not depth:
                     continue
-                res = dmap.convert_2d_to_3d(1, x, y, depth)
+                res = dmap.convert_2d_to_3d(x, y, depth)
                 if not res.any():
                     continue
                 confidence = dmap.confidence_arr[x, y]
@@ -230,7 +230,7 @@ def _get_count(dmap: Depthmap) -> int:
             depth = dmap.depthmap_arr[x, y]
             if not depth:
                 continue
-            res = dmap.convert_2d_to_3d(1, x, y, depth)
+            res = dmap.convert_2d_to_3d(x, y, depth)
             if not res.any():
                 continue
             count = count + 1

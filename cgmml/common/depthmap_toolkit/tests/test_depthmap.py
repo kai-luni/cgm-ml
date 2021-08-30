@@ -17,11 +17,14 @@ def test_depthmap():
     assert dmap.width == 240
     assert dmap.height == 180
 
-    expected_intrinsics = np.array([
-        [0.6786797, 0.90489584, 0.49585155, 0.5035042],
-        [0.6786797, 0.90489584, 0.49585155, 0.5035042],
+    dmap_intrinsics = np.array([
+        dmap.fx / dmap.width,
+        dmap.fy / dmap.height,
+        dmap.cx / dmap.width,
+        dmap.cy / dmap.height
     ])
-    np.testing.assert_array_almost_equal(dmap.intrinsics, expected_intrinsics)
+    expected_intrinsics = np.array([0.6786797, 0.90489584, 0.49585155, 0.5035042])
+    np.testing.assert_array_almost_equal(dmap_intrinsics, expected_intrinsics)
     assert dmap.max_confidence == 7.
     assert dmap.depth_scale == 0.001
 

@@ -40,7 +40,7 @@ def onclick(event):
             if not depth:
                 logger.info('no valid data')
                 return
-            res = DMAP.convert_2d_to_3d(1, x, y, depth)
+            res = DMAP.convert_2d_to_3d(x, y, depth)
             diff: list = [LAST_CLICK_COORD[0] - res[0], LAST_CLICK_COORD[1] - res[1], LAST_CLICK_COORD[2] - res[2]]
             dst: float = np.sqrt(diff[0] * diff[0] + diff[1] * diff[1] + diff[2] * diff[2])
             logger.info(f'x={res[0]:.3f}, y={res[1]:.3f}, depth={res[2]:.3f}, diff={dst:.3f}')

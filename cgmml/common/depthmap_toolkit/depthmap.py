@@ -111,12 +111,12 @@ class Depthmap:
         self.width = width
         self.height = height
 
-        self.intrinsics = np.array(intrinsics)
-        self.sensor = 1
-        self.fx = self.intrinsics[self.sensor, 0] * self.width
-        self.fy = self.intrinsics[self.sensor, 1] * self.height
-        self.cx = self.intrinsics[self.sensor, 2] * self.width
-        self.cy = self.intrinsics[self.sensor, 3] * self.height
+        sensor = 1
+        intrinsics = np.array(intrinsics)
+        self.fx = intrinsics[sensor, 0] * width
+        self.fy = intrinsics[sensor, 1] * height
+        self.cx = intrinsics[sensor, 2] * width
+        self.cy = intrinsics[sensor, 3] * height
 
         self.depth_scale = depth_scale
         self.max_confidence = max_confidence
@@ -126,7 +126,7 @@ class Depthmap:
             self.header = header
 
         self.rgb_fpath = rgb_fpath
-        self.rgb_array = rgb_array  # shape (width, height, 3)  # (180, 240, 3)
+        self.rgb_array = rgb_array  # shape (width, height, 3)  # (240, 180, 3)
 
         assert depthmap_arr is not None or data is not None
         self.depthmap_arr = self._parse_depth_data(data) if data else depthmap_arr  # (240, 180)
@@ -271,11 +271,10 @@ class Depthmap:
         confidence = 1.0 - horizontal_diff / STANDING_CHILD_MAX_HORIZONTAL_DIFF_IN_METER / 2.0
         return min(confidence, 1.)
 
-    def convert_2d_to_3d(self, sensor: int, x: float, y: float, depth: float) -> np.ndarray:
+    def convert_2d_to_3d(self, x: float, y: float, depth: float) -> np.ndarray:
         """Convert point in pixels into point in meters
 
         Args:
-            sensor: Index of sensor
             x
             y
             depth
@@ -283,12 +282,8 @@ class Depthmap:
         Returns:
             3D point
         """
-        fx = self.intrinsics[sensor, 0] * self.width
-        fy = self.intrinsics[sensor, 1] * self.height
-        cx = self.intrinsics[sensor, 2] * self.width
-        cy = self.intrinsics[sensor, 3] * self.height
-        tx = (x - cx) * depth / fx
-        ty = (y - cy) * depth / fy
+        tx = (x - self.cx) * depth / self.fx
+        ty = (y - self.cy) * depth / self.fy
         return np.array([tx, ty, depth])
 
     def convert_2d_to_3d_oriented(self, should_smooth: bool = False) -> np.ndarray:
@@ -518,29 +513,6 @@ class Depthmap:
         depth += data[(index * self.width + int(tx)) * 3 + 1]
         depth *= self.depth_scale
         return depth
-
-
-def convert_3d_to_2d(intrinsics: list, x: float, y: float, depth: float, width: int, height: int) -> list:
-    """Convert point in meters into point in pixels
-
-        Args:
-            intrinsics of sensor: Tells if this is ToF sensor or RGB sensor
-            x: X-pos in m
-            y: Y-pos in m
-            depth: distance from sensor to object at (x, y)
-            width
-            height
-
-        Returns:
-            tx, ty, depth
-        """
-    fx = intrinsics[0] * float(width)
-    fy = intrinsics[1] * float(height)
-    cx = intrinsics[2] * float(width)
-    cy = intrinsics[3] * float(height)
-    tx = x * fx / depth + cx
-    ty = y * fy / depth + cy
-    return [tx, ty, depth]
 
 
 def parse_calibration(filepath: str) -> List[List[float]]:
