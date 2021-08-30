@@ -73,6 +73,15 @@ def test_match_depth_and_image_artifacts_match():
     assert FusedArtifact(depth_artifact_1, image_artifact_1) in fused_artifacts
 
 
+def test_match_depth_and_no_image_artifacts():
+    depth_artifact_1 = Artifact(file_path='depth1.txt', order_number=19)
+    depth_artifact_2 = Artifact(file_path='depth2.txt', order_number=20)
+    image_artifacts = []
+    depth_artifacts = [depth_artifact_1, depth_artifact_2]
+    fused_artifacts = match_depth_and_image_artifacts(image_artifacts, depth_artifacts)
+    assert len(fused_artifacts) == 0, len(fused_artifacts)
+
+
 def test_fused_artifact2dict():
     df = pd.read_csv(Path(__file__).parent / "test_data/artifacts_image_and_depth.csv")
     fused_artifacts_dicts = match_df_with_depth_and_image_artifacts(df)
@@ -82,4 +91,4 @@ def test_fused_artifact2dict():
 
 
 if __name__ == "__main__":
-    test_fused_artifact2dict()
+    test_match_depth_and_no_image_artifacts()

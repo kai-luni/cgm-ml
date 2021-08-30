@@ -53,6 +53,8 @@ def check_fields_are_equal(image_artifact: Artifact, depth_artifact: Artifact) -
 
 def match_depth_and_image_artifacts(image_artifacts: List[Artifact],
                                     depth_artifacts: List[Artifact]) -> List[FusedArtifact]:
+    if len(image_artifacts) == 0 or len(depth_artifacts) == 0:
+        return []
     fused_artifacts = []
     image_order_numbers = [image_artifact.order_number for image_artifact in image_artifacts]
 
