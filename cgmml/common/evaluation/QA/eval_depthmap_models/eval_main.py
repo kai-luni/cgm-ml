@@ -21,7 +21,7 @@ logger.addHandler(handler)
 CWD = Path(__file__).parent
 REPO_DIR = Path(__file__).absolute().parents[5]
 EVAL_EXPERIMENT_NAME = 'QA-pipeline'
-CLUSTER_NAME = 'gpu-cluster'
+CLUSTER_NAME = 'gpu-cluster-M60'
 OVERALL_SAVE_PATH = './outputs'
 
 
