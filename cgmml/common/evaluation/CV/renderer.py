@@ -4,20 +4,27 @@ import shutil
 import sys
 
 from csv_utils import read_csv
-from cgmml.common.depthmap_toolkit.depthmap import Depthmap
-from cgmml.common.depthmap_toolkit.visualisation import render_plot
 
 METADATA_DEPTHMAP = 3
+METADATA_RGB = 4
 
 REPO_DIR = Path(__file__).parents[4]
 EXPORT_DIR = REPO_DIR / 'data' / 'render'
 
 if __name__ == "__main__":
 
-    if len(sys.argv) != 3:
-        print('You did not enter raw data path and metadata file path')
-        print('E.g.: python evaluation.py rawdata_dir metadata_path')
+    if len(sys.argv) != 4:
+        print('You did not enter raw data path, metadata file name or method name')
+        print('E.g.: python renderer.py rawdata_dir metadata_path depthmap_toolkit')
+        print('Available methods are depthmap_toolkit and ml_segmentation')
         sys.exit(1)
+
+    if sys.argv[3] == 'depthmap_toolkit':
+        from height_prediction_depthmap_toolkit import render_prediction_plots
+    elif sys.argv[3] == 'ml_segmentation':
+        from height_prediction_with_ml_segmentation import render_prediction_plots
+    else:
+        raise Exception('Unimplemented method')
 
     calibration_file = '../../depthmap_toolkit/camera_calibration_p30pro_EU.txt'
     path = sys.argv[1]
@@ -40,11 +47,12 @@ if __name__ == "__main__":
     for index in range(size):
         data = indata[index]
 
-        # Load data
+        # Get filenames
         depthmap_file = path + data[METADATA_DEPTHMAP]
         depthmap_file = depthmap_file.replace('"', '')
-        dmap = Depthmap.create_from_zip_absolute(depthmap_file, 0, calibration_file)
+        rgb_file = path + data[METADATA_RGB]
+        rgb_file = rgb_file.replace('"', '')
 
         # Render data
         file = str(EXPORT_DIR) + '/' + str(index + 1) + '.png'
-        plt.imsave(file, render_plot(dmap))
+        plt.imsave(file, render_prediction_plots(depthmap_file, rgb_file, calibration_file))

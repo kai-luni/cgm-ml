@@ -1,9 +1,9 @@
-import logging
 import numpy as np
+import logging
 import sys
+from typing import Tuple
 
 from csv_utils import read_csv, write_csv
-from cgmml.common.depthmap_toolkit.depthmap import Depthmap, is_google_tango_resolution
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -12,6 +12,7 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)
 logger.addHandler(handler)
 
 ERROR_THRESHOLDS = [0.2, 0.4, 0.6, 1.0, 1.2, 1.4, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0]
+MAXIMUM_CHILD_HEIGHT_IN_CM = 130
 MINIMUM_CHILD_HEIGHT_IN_CM = 45
 
 METADATA_SCAN_ID = 0
@@ -126,12 +127,44 @@ def log_report(data: list):
     logger.info(output)
 
 
+def get_path(root: str, data: np.array, metadata: int) -> str:
+    path = root + '/' + data[metadata]
+    return path.replace('"', '')
+
+
+def process_height_prediction(depthmap_file: str, rgb_file: str, calibration_file: str) -> Tuple[float, float]:
+
+    # Check if the input was not rejected
+    try:
+        height, angle = predict_height(depthmap_file, rgb_file, calibration_file)
+    except Exception as exc:
+        raise Exception(exc)
+
+    # Filter heights less than MINIMUM_CHILD_HEIGHT_IN_CM
+    if height < MINIMUM_CHILD_HEIGHT_IN_CM:
+        raise Exception(f'Skipping because the height is less than {MINIMUM_CHILD_HEIGHT_IN_CM}cm')
+
+    # Filter heights more than MAXIMUM_CHILD_HEIGHT_IN_CM
+    if height > MAXIMUM_CHILD_HEIGHT_IN_CM:
+        raise Exception(f'Skipping because the height is more than {MAXIMUM_CHILD_HEIGHT_IN_CM}cm')
+
+    return height, angle
+
+
 if __name__ == "__main__":
 
-    if len(sys.argv) != 3:
-        print('You did not enter raw data path and metadata file name')
-        print('E.g.: python evaluation.py rawdata_dir metadata_file')
+    if len(sys.argv) != 4:
+        print('You did not enter raw data path, metadata file name or method name')
+        print('E.g.: python evaluation.py rawdata_dir metadata_file depthmap_toolkit')
+        print('Available methods are depthmap_toolkit and ml_segmentation')
         sys.exit(1)
+
+    if sys.argv[3] == 'depthmap_toolkit':
+        from height_prediction_depthmap_toolkit import predict_height
+    elif sys.argv[3] == 'ml_segmentation':
+        from height_prediction_with_ml_segmentation import predict_height
+    else:
+        raise Exception('Unimplemented method')
 
     calibration_file = '../../depthmap_toolkit/camera_calibration_p30pro_EU.txt'
     path = sys.argv[1]
@@ -146,31 +179,16 @@ if __name__ == "__main__":
         logger.info('Processing %d/%d', index + 1, size)
         data = indata[index]
 
-        # Check if it is captured by a new device
-        depthmap_file = path + '/' + data[METADATA_DEPTHMAP]
-        depthmap_file = depthmap_file.replace('"', '')
-        dmap = Depthmap.create_from_zip_absolute(depthmap_file, 0, calibration_file)
-        if is_google_tango_resolution(dmap.width, dmap.height):
-            log_rejection(rejections, data, 'Skipping because it is not a new device data')
-            continue
-
-        # Check if the child is fully visible
-        floor: float = dmap.get_floor_level()
-        mask = dmap.segment_child(floor)
-        if not dmap.is_child_fully_visible(mask):
-            log_rejection(rejections, data, 'Skipping because the child is not fully visible')
-            continue
-
-        # Filter heights less than MINIMUM_CHILD_HEIGHT_IN_CM
-        highest_point: np.ndarray = dmap.get_highest_point(mask)
-        height = (highest_point[1] - floor) * 100.0
-        if height < MINIMUM_CHILD_HEIGHT_IN_CM:
-            limit = str(MINIMUM_CHILD_HEIGHT_IN_CM) + 'cm'
-            log_rejection(rejections, data, 'Skipping because the height is less than ' + limit)
+        # Process prediction
+        try:
+            depthmap_file = get_path(path, data, METADATA_DEPTHMAP)
+            rgb_file = get_path(path, data, METADATA_RGB)
+            height, angle = process_height_prediction(depthmap_file, rgb_file, calibration_file)
+        except Exception as exc:
+            log_rejection(rejections, data, exc)
             continue
 
         # Update output
-        angle = dmap.get_angle_between_camera_and_floor()
         error = abs(height - float(indata[index][METADATA_MANUAL_HEIGHT]))
         logger.info('Height=%fcm, error=%fcm', height, error)
         data.append(height)

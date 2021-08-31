@@ -39,7 +39,7 @@ Copy the generated `newmetadata.csv` file into the raw data folder.
 
 ### Running the evaluation
 Run
-`python evaluation.py rawdata_path newmetadata.csv`
+`python evaluation.py rawdata_path newmetadata.csv ml_segmentation`
 where rawdata_path is the path to the download raw data
 
 This will take about 30-45 minutes (depending on data size and device performance). The results will be generated stored in these files:
@@ -49,11 +49,11 @@ This will take about 30-45 minutes (depending on data size and device performanc
 
 ### Visualising the data
 To visualize the processed data run
-`python renderer.py rawdata_path output.csv`
+`python renderer.py rawdata_path output.csv ml_segmentation`
 where rawdata_path is the path to the download raw data
 
 To visualize the rejected data run
-`python renderer.py rawdata_path rejections.csv`
+`python renderer.py rawdata_path rejections.csv ml_segmentation`
 where rawdata_path is the path to the download raw data
 
 In both cases the visualisations will be stored in data/render of root of the repository

@@ -91,6 +91,7 @@ class Depthmap:
         rgb_array (np.array): RGB data
         header: raw depthmap header with metainformation
     """
+
     def __init__(
             self,
             intrinsics: np.ndarray,
@@ -441,7 +442,10 @@ class Depthmap:
         """
         cond1 = mask != MASK_FLOOR
         cond2 = mask != MASK_INVALID
-        return min(self.depthmap_arr[cond1 & cond2])
+        depths = self.depthmap_arr[cond1 & cond2]
+        if depths.any():
+            return min(depths)
+        return sys.maxsize
 
     def get_angle_between_camera_and_floor(self) -> float:
         """Calculate an angle between camera and floor based on device pose
