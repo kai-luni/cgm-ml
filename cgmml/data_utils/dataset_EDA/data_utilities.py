@@ -28,7 +28,7 @@ def draw_age_distribution(scans: pd.DataFrame):
     age_ax = value_counts.plot(kind='bar')
     age_ax.set_xlabel('age')
     age_ax.set_ylabel('no. of scans')
-    logger.info(value_counts)
+    print(value_counts)
 
 
 def draw_sex_distribution(scans: pd.DataFrame):
@@ -36,7 +36,7 @@ def draw_sex_distribution(scans: pd.DataFrame):
     ax = value_counts.plot(kind='bar')
     ax.set_xlabel('gender')
     ax.set_ylabel('no. of scans')
-    logger.info(value_counts)
+    print(value_counts)
 
 
 def _count_rows_per_age_bucket(artifacts):
@@ -63,18 +63,11 @@ def calculate_code_age_distribution(artifacts: pd.DataFrame, scan_type_colname: 
 
 def find_outliers(df: pd.DataFrame, column: str, condition: str, data_id_name: str) -> list:
     combined_condition = '@df.' + column + condition
-    logger.info('Running the following query: %s', combined_condition)
+    print(f'Running the following query: {combined_condition}')
     outlier_artifacts = df.query(combined_condition)
-    outliers = []
-    if data_id_name == 'qr':
-        unique_outliers = outlier_artifacts.drop_duplicates(subset='qrcode', keep='first')
-        outliers = unique_outliers.qrcode.tolist()
-    elif data_id_name == 'id':
-        unique_outliers = outlier_artifacts.drop_duplicates(subset='id', keep='first')
-        outliers = unique_outliers.id.tolist()
-    else:
-        logger.info('data_id_name not valid')
-    logger.info('No. of outliers: %d', len(outliers))
+    unique_outliers = outlier_artifacts.drop_duplicates(subset=data_id_name, keep='first')
+    outliers = unique_outliers[data_id_name].tolist()
+    print(f'No. of outliers: {len(outliers)}')
     return outliers
 
 

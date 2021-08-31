@@ -1,3 +1,6 @@
+import os
+import shutil
+import tempfile
 from pathlib import Path
 import pickle
 from tempfile import TemporaryDirectory
@@ -8,8 +11,13 @@ DATA_UTILITIES_DIR = Path(__file__).parents[1].absolute()
 COMMON_DIR = DATA_UTILITIES_DIR.parent
 TEST_DATA_DIR = COMMON_DIR / 'depthmap_toolkit/tests/huawei_p40pro'
 ARTIFACT_ZIP_PATH = 'be1faf54-69c7-11eb-984b-a3ffd42e7b5a/depth/bd67cd9e-69c7-11eb-984b-77ac9d2b4986'
+DEPTHMAP_PATH = 'depth/depth_dog_1622182020448_100_282.depth'
+RGB_PATH = 'rgb/rgb_dog_1622182020448_100_282.jpg'
+RGB_ROTATED_PATH = 'rgb/rgb_dog_1622182020448_100_282_rotated.jpg'
+PICKLE_PATH = (DATA_UTILITIES_DIR / 'tests' / 'pickle_files' / 'scans' / '09495c00-ff19-11eb-95bd-6fef000028be'
+               / '102' / 'pc_c571de02-a723-11eb-8845-bb6589a1fbe8_2021-04-22_13-34-33-302557_102_3.p')
 ARTIFACT_DICT = {
-    'file_path': 'depth/depth_dog_1622182020448_100_282.depth',
+    'file_path': DEPTHMAP_PATH,
     'timestamp': '2021-04-22_13-34-33-302557',
     'scan_id': 'c571de02-a723-11eb-8845-bb6589a1fbe8',
     'scan_step': 102,
@@ -30,19 +38,12 @@ def test_artifact_processor_depthmap():
         assert depthmap.shape == (240, 180, 1), depthmap.shape
         assert 'height' in targets
 
-        pickle_path_expected = str(
-            DATA_UTILITIES_DIR
-            / 'tests'
-            / 'pickle_files'
-            / 'scans'
-            / '09495c00-ff19-11eb-95bd-6fef000028be'
-            / '102'
-            / 'pc_c571de02-a723-11eb-8845-bb6589a1fbe8_2021-04-22_13-34-33-302557_102_3.p')
+        pickle_path_expected = str(PICKLE_PATH)
         assert pickle_path_expected.split('/')[-4:] == processed_fname.split('/')[-4:]
 
 
 def test_create_layers():
-    depthmap_fpath = TEST_DATA_DIR / 'depth/depth_dog_1622182020448_100_282.depth'
+    depthmap_fpath = TEST_DATA_DIR / DEPTHMAP_PATH
     layers, metadata = create_layers(depthmap_fpath)
     assert layers.shape == (240, 180, 1), layers.shape
 
@@ -54,8 +55,8 @@ def test_artifact_processor_rgbd():
     with TemporaryDirectory() as output_dir:
         artifact_processor = ArtifactProcessor(TEST_DATA_DIR, output_dir, dataset_type='rgbd', should_rotate_rgb=True)
 
-        ARTIFACT_DICT['file_path_rgb'] = 'rgb/rgb_dog_1622182020448_100_282.jpg'
-        ARTIFACT_DICT['file_path'] = 'depth/depth_dog_1622182020448_100_282.depth'
+        ARTIFACT_DICT['file_path_rgb'] = RGB_PATH
+        ARTIFACT_DICT['file_path'] = DEPTHMAP_PATH
 
         processed_fname = artifact_processor.create_and_save_pickle(ARTIFACT_DICT)
 
@@ -65,20 +66,13 @@ def test_artifact_processor_rgbd():
         assert 'raw_header' in targets
         assert -90 < targets['angle'] < 0
 
-        pickle_path_expected = str(
-            DATA_UTILITIES_DIR
-            / 'tests'
-            / 'pickle_files'
-            / 'scans'
-            / '09495c00-ff19-11eb-95bd-6fef000028be'
-            / '102'
-            / 'pc_c571de02-a723-11eb-8845-bb6589a1fbe8_2021-04-22_13-34-33-302557_102_3.p')
+        pickle_path_expected = str(PICKLE_PATH)
         assert pickle_path_expected.split('/')[-4:] == processed_fname.split('/')[-4:]
 
 
 def test_create_layers_rgbd():
-    zip_input_full_path = TEST_DATA_DIR / 'depth/depth_dog_1622182020448_100_282.depth'
-    rgb_input_full_path = TEST_DATA_DIR / 'rgb/rgb_dog_1622182020448_100_282.jpg'
+    zip_input_full_path = TEST_DATA_DIR / DEPTHMAP_PATH
+    rgb_input_full_path = TEST_DATA_DIR / RGB_PATH
     layers, metadata = create_layers_rgbd(zip_input_full_path, rgb_input_full_path, should_rotate_rgb=True)
     assert layers.shape == (240, 180, 4), layers.shape
 
@@ -88,5 +82,12 @@ def test_create_layers_rgbd():
     assert -90 < metadata['angle'] < 0
 
 
-if __name__ == "__main__":
-    test_artifact_processor_rgbd()
+def test_create_layers_rgbd_should_not_rotate():
+    zip_input_full_path = TEST_DATA_DIR / DEPTHMAP_PATH
+    rgb_input_full_path = TEST_DATA_DIR / RGB_ROTATED_PATH
+    temp_dir = tempfile.gettempdir()
+    temp_path = os.path.join(temp_dir, 'f4f8bc5c-cb25-42d1-87ce-0bfea108ddb8')
+    shutil.copy2(rgb_input_full_path, temp_path)
+    rgb_input_full_path = Path(temp_path)
+    layers, metadata = create_layers_rgbd(zip_input_full_path, rgb_input_full_path, should_rotate_rgb=False)
+    assert layers.shape == (240, 180, 4), layers.shape

@@ -13,10 +13,9 @@
 # flake8: noqa
 
 ! pip install scikit-image
-! pip install tqdm
 ! pip install azure-storage-blob
 
-! pip install cgm-ml-common==3.0.0rc2
+! pip install cgm-ml-common==3.1.4
 
 # COMMAND ----------
 
@@ -28,7 +27,6 @@ from typing import Dict, List, Tuple
 
 import pandas as pd
 import psycopg2
-from tqdm import tqdm
 from azure.storage.blob import BlobServiceClient
 
 from cgmml.common.data_utilities.mlpipeline_utils import ArtifactProcessor
@@ -46,8 +44,6 @@ ENV_SANDBOX = "env_dev"
 # Configuration
 ENV = ENV_SANDBOX
 
-MOUNT_POINT = f"/mnt/{ENV}_input"
-MOUNT_DATASET = f"/mnt/{ENV}_dataset"
 DBFS_DIR = f"/tmp/{ENV}"
 
 DATASET_TYPE = 'depthmap'  # Supported: 'rgbd' and 'depthmap'
@@ -98,29 +94,12 @@ sql_cursor = conn.cursor()
 
 # COMMAND ----------
 
-if DATASET_TYPE == 'depthmap':
-    SQL_QUERY = f"""
+SQL_QUERY_BASE = f"""
     SELECT f.file_path, f.created as timestamp,
-           s.id as scan_id, s.scan_type_id as scan_step, s.version as scan_version, 
-           m.height, m.weight, m.muac,
-           a.ord as order_number, a.timestamp, 
-           p.id as person_id, p.age, p.sex
-    FROM file f
-    INNER JOIN artifact a ON f.id = a.file_id
-    INNER JOIN scan s     ON s.id = a.scan_id
-    INNER JOIN measure m  ON m.person_id = s.person_id
-    INNER JOIN person p ON p.id = s.person_id
-    INNER JOIN child_data_category cdc ON p.id = cdc.person_id
-    INNER JOIN data_category dc ON dc.id = cdc.data_category_id
-    WHERE a.format IN ('depth', 'application/zip') 
-    AND dc.description = '{DATA_CATEGORY}';"""
-
-elif DATASET_TYPE == 'rgbd':
-    SQL_QUERY = f"""
-    SELECT f.file_path, f.created as timestamp,
-           s.id as scan_id, s.scan_type_id as scan_step, s.version as scan_version, 
+           s.id as scan_id, s.scan_type_id as scan_step, s.version as scan_version,
            m.height, m.weight, m.muac,
            a.ord as order_number, a.timestamp, a.format,
+           di.model as device_model,
            p.id as person_id, p.age, p.sex
     FROM file f
     INNER JOIN artifact a ON f.id = a.file_id
@@ -129,7 +108,16 @@ elif DATASET_TYPE == 'rgbd':
     INNER JOIN person p ON p.id = s.person_id
     INNER JOIN child_data_category cdc ON p.id = cdc.person_id
     INNER JOIN data_category dc ON dc.id = cdc.data_category_id
-    WHERE a.ord IS NOT Null AND dc.description = '{DATA_CATEGORY}';"""
+    INNER JOIN device_info di ON di.id = s.device_info_id
+    WHERE dc.description = '{DATA_CATEGORY}'
+    AND di.model = 'HUAWEI VOG-L29'"""
+
+if DATASET_TYPE == 'depthmap':
+    SQL_QUERY = f"""{SQL_QUERY_BASE}
+    AND a.format IN ('depth', 'application/zip');"""
+elif DATASET_TYPE == 'rgbd':
+    SQL_QUERY = f"""{SQL_QUERY_BASE}
+    AND a.ord IS NOT NULL;"""
 else:
   raise NameError(f'Unknown dataset type: {DATASET_TYPE}')
 
@@ -148,13 +136,21 @@ query_results_tmp: List[Tuple[str]] = sql_cursor.fetchall() if NUM_ARTIFACTS is 
 # MAGIC
 # MAGIC ```
 # MAGIC Example: '1618896404960/2fe0ee0e-daf0-45a4-931e-cfc7682e1ce6'
-# MAGIC Format: f'{unix-timeatamp}/{random uuid}'
+# MAGIC Format: f'{unix-timestamp}/{random uuid}'
 # MAGIC ```
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Prepare dataframe
 
 # COMMAND ----------
 
 column_names: Tuple[psycopg2.extensions.Column] = sql_cursor.description
 df = pd.DataFrame(query_results_tmp, columns=list(map(lambda x: x.name, column_names)))
+df['timestamp'] = df['timestamp'].astype(str)
+
+# COMMAND ----------
 
 # hack to insert fake manual measurements in case there are none
 if 'muac' not in df.columns:
@@ -163,28 +159,31 @@ if 'weight' not in df.columns:
     df.insert(4, 'weight', 30)
 if 'height' not in df.columns:
     df.insert(4, 'height', 90)
+column_names: Tuple[psycopg2.extensions.Column] = sql_cursor.description
 
-df['timestamp'] = df['timestamp'].astype(str)
-print(df.shape)
+# COMMAND ----------
+
+print("Shape with duplicates:", df.shape)
 df = df.drop_duplicates(subset=['scan_id', 'scan_step', 'timestamp', 'order_number'])
-print(df.shape)
+print("Shape without duplicates:", df.shape)
 df.head()
 
 # COMMAND ----------
 
-query_results: List[Tuple[str]] = list(df.itertuples(index=False, name=None))
-len(query_results)
+# Filter children between 0.5 years and 5 years
+df = df.loc[(df['age']>=365/2) & (df['age']<=365*5)]
+print("Shape within age range:", df.shape)
+df.head()
 
 # COMMAND ----------
 
-len(df.scan_id.unique())
+print("Unique persons:", len(df.person_id.unique()))
+print("Unique scan_ids:", len(df.scan_id.unique()))
+print("Unique artifacts:", len(df.file_path.unique()))
 
 # COMMAND ----------
 
-len(df.file_path.unique())
-
-# COMMAND ----------
-
+query_results: List[Tuple[str]] = list(df.itertuples(index=False, name=None)); print(len(query_results))
 col2idx = {col.name: i for i, col in enumerate(column_names)}; print(col2idx)
 idx2col = {i: col.name for i, col in enumerate(column_names)}; print(idx2col)
 
@@ -279,20 +278,29 @@ else:
 
 # COMMAND ----------
 
-rdd = spark.sparkContext.parallelize(query_results_dicts)
-print(rdd.getNumPartitions())
-
-# COMMAND ----------
-
 input_dir = f"/dbfs{DBFS_DIR}"
 output_dir = f"/dbfs{DBFS_DIR}"
 artifact_processor = ArtifactProcessor(input_dir, output_dir, dataset_type=DATASET_TYPE, should_rotate_rgb=False)
 
 # COMMAND ----------
 
+# Processing all artifacts at once
+rdd = spark.sparkContext.parallelize(query_results_dicts)
+print(rdd.getNumPartitions())
 rdd_processed = rdd.map(artifact_processor.create_and_save_pickle)
 processed_fnames = rdd_processed.collect()
 print(processed_fnames[:3])
+
+# COMMAND ----------
+
+print(f"All fnames: {len(processed_fnames)}")
+processed_fnames = [fn for fn in processed_fnames if fn != '']
+print(f"Successfully pickled fnames: {len(processed_fnames)}")
+
+# COMMAND ----------
+
+# Check if processed_fnames has duplicates before uploading
+assert len(set(processed_fnames)) == len(processed_fnames)
 
 # COMMAND ----------
 
@@ -338,26 +346,12 @@ results = pool.map(_upload, processed_fnames)
 
 # COMMAND ----------
 
-labels_columns = ["scan_id", "scan_step", "scan_version",
-                  "height", "weight", "muac", "order_number",
-                  "timestamp", "person_id", "age", "sex"]
-
-labels_df = df[labels_columns]
-
-# COMMAND ----------
-
-labels_df.head()
-
-# COMMAND ----------
-
 labels_filename = f"{output_dir}/labels.csv"
-
-labels_df.to_csv(labels_filename)
+df.to_csv(labels_filename, index=False)
 
 # COMMAND ----------
 
 dest_fpath = os.path.join(dest_dir, remove_prefix(labels_filename, PREFIX))
-
 upload_to_blob_storage(src=labels_filename, dest_container=CONTAINER_NAME_DEST_SA, dest_fpath=dest_fpath)
 
 # COMMAND ----------

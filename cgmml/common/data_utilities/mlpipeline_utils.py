@@ -25,6 +25,10 @@ NORMALIZATION_VALUE = 7.5
 IMAGE_TARGET_HEIGHT, IMAGE_TARGET_WIDTH = 180, 240
 
 
+class InvalidDevicePoseError(Exception):
+    pass
+
+
 def preprocess_depthmap(depthmap: np.ndarray) -> np.ndarray:
     return depthmap.astype("float32")
 
@@ -67,6 +71,8 @@ def create_layers(depthmap_fpath: str) -> Tuple[np.ndarray, dict]:
     depthmap = dmap.depthmap_arr  # shape: (width, height)
     depthmap = preprocess(depthmap)
     layers = depthmap
+    if not dmap.device_pose:
+        raise InvalidDevicePoseError()
     metadata = {
         'device_pose': dmap.device_pose,
         'raw_header': dmap.header,
@@ -85,7 +91,7 @@ def create_layers_rgbd(depthmap_fpath: str, rgb_fpath: str, should_rotate_rgb: b
         with tempfile.NamedTemporaryFile() as rgb_temp_file:
             pil_im = Image.open(rgb_fpath)
             pil_im = pil_im.rotate(90, expand=True)
-            pil_im.save(rgb_temp_file.name)
+            pil_im.save(rgb_temp_file.name, 'png')
             rgb_array = Depthmap.read_rgb_data(rgb_temp_file.name, width, height)
 
         intrinsics = parse_calibration(CALIBRATION_FPATH)
@@ -137,13 +143,16 @@ class ArtifactProcessor:
         # Prepare data to save
         zip_input_full_path = f"{self.input_dir}/{artifact_dict['file_path']}"
 
-        if self.dataset_type == 'depthmap':
-            layers, metadata = create_layers(zip_input_full_path)
-        elif self.dataset_type == 'rgbd':
-            rgb_input_full_path = f"{self.input_dir}/{artifact_dict['file_path_rgb']}"
-            layers, metadata = create_layers_rgbd(zip_input_full_path, rgb_input_full_path, self.should_rotate_rgb)
-        else:
-            raise NameError(self.dataset_type)
+        try:
+            if self.dataset_type == 'depthmap':
+                layers, metadata = create_layers(zip_input_full_path)
+            elif self.dataset_type == 'rgbd':
+                rgb_input_full_path = f"{self.input_dir}/{artifact_dict['file_path_rgb']}"
+                layers, metadata = create_layers_rgbd(zip_input_full_path, rgb_input_full_path, self.should_rotate_rgb)
+            else:
+                raise NameError(self.dataset_type)
+        except InvalidDevicePoseError:
+            return ''
         target_dict = {**artifact_dict, **metadata}
 
         # Prepare path

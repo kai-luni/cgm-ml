@@ -3,6 +3,7 @@ import logging
 import zipfile
 import math
 import sys
+import tempfile
 from typing import List, Optional, Tuple
 from pathlib import Path
 
@@ -31,11 +32,11 @@ TOOLKIT_DIR = Path(__file__).parents[0].absolute()
 Segment = namedtuple('Segment', 'id aabb')
 
 
-def extract_depthmap(depthmap_fpath: str) -> Path:
+def extract_depthmap(depthmap_fpath: str, dest_dir: str) -> Path:
     """Extract depthmap from given file"""
     with zipfile.ZipFile(Path(depthmap_fpath), 'r') as zip_ref:
-        zip_ref.extractall(TOOLKIT_DIR)
-    return TOOLKIT_DIR / EXTRACTED_DEPTH_FILE_NAME
+        zip_ref.extractall(dest_dir)
+    return Path(dest_dir) / EXTRACTED_DEPTH_FILE_NAME
 
 
 def smoothen_depthmap_array(image_arr: np.ndarray) -> np.ndarray:
@@ -122,7 +123,10 @@ class Depthmap:
         self.depth_scale = depth_scale
         self.max_confidence = max_confidence
         self.device_pose = device_pose
-        self.device_pose_arr = np.array(device_pose).reshape(4, 4).T
+        if self.device_pose:
+            self.device_pose_arr = np.array(device_pose).reshape(4, 4).T
+        else:
+            self.device_pose_arr = None
         if header:
             self.header = header
 
@@ -176,25 +180,35 @@ class Depthmap:
 
     @staticmethod
     def read_depthmap_data(depthmap_fpath):
-        path = extract_depthmap(depthmap_fpath)
-        with open(path, 'rb') as f:
-            header_line = f.readline().decode().strip()
-            header_parts = header_line.split('_')
-            res = header_parts[0].split('x')
-            width = int(res[0])
-            height = int(res[1])
-            depth_scale = float(header_parts[1])
-            max_confidence = float(header_parts[2])
-            if len(header_parts) >= 10:
-                position = (float(header_parts[7]), float(header_parts[8]), float(header_parts[9]))
-                rotation = (float(header_parts[3]), float(header_parts[4]),
-                            float(header_parts[5]), float(header_parts[6]))
-                device_pose = matrix_calculate(position, rotation)
-            else:
-                device_pose = IDENTITY_MATRIX_4D
-            data = f.read()
-            f.close()
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            path = extract_depthmap(depthmap_fpath, tmpdirname)
+            with open(path, 'rb') as f:
+                header_line = f.readline().decode().strip()
+                width, height, depth_scale, max_confidence, device_pose = Depthmap.parse_header(header_line)
+                data = f.read()
+                f.close()
         return width, height, data, depth_scale, max_confidence, device_pose, header_line
+
+    @staticmethod
+    def parse_header(header_line: str) -> Tuple:
+        header_parts = header_line.split('_')
+        res = header_parts[0].split('x')
+        width = int(res[0])
+        height = int(res[1])
+        depth_scale = float(header_parts[1])
+        max_confidence = float(header_parts[2])
+        if len(header_parts) >= 10:
+            position = (float(header_parts[7]), float(header_parts[8]), float(header_parts[9]))
+            rotation = (float(header_parts[3]), float(header_parts[4]),
+                        float(header_parts[5]), float(header_parts[6]))
+            if position == (0., 0., 0.):
+                logger.warn(f"device_pose looks wrong: position='{position}'")
+                device_pose = None
+            else:
+                device_pose = matrix_calculate(position, rotation)
+        else:
+            device_pose = IDENTITY_MATRIX_4D
+        return width, height, depth_scale, max_confidence, device_pose
 
     @classmethod
     def create_from_zip(cls,

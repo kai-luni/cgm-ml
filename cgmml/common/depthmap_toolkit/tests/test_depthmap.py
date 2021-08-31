@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -10,6 +11,20 @@ DEPTHMAP_DIR = TOOLKIT_DIR / 'huawei_p40pro'
 DEPTHMAP_FPATH = DEPTHMAP_DIR / 'depth' / 'depth_dog_1622182020448_100_282.depth'
 RGB_FPATH = DEPTHMAP_DIR / 'rgb' / 'rgb_dog_1622182020448_100_282.jpg'
 CALIBRATION_FILE = str(TOOLKIT_DIR / 'huawei_p40pro' / 'camera_calibration.txt')
+
+
+def test_parse_header_invalid_device_pose(caplog):
+    caplog.set_level(logging.INFO)
+    header = '240x180_0.001_7_0.5_-0.5_0.5_0.5_0.0_-0.0_-0.0'
+    Depthmap.parse_header(header)
+    assert "device_pose looks wrong" in caplog.text
+
+
+def test_parse_header_valid_device_pose(caplog):
+    caplog.set_level(logging.INFO)
+    header = '240x180_0.001_7_0.32703257_-0.6232807_-0.6007507_0.3790359_-0.0071239285_-0.0012060514_0.0050547933'
+    Depthmap.parse_header(header)
+    assert "device_pose looks wrong" not in caplog.text
 
 
 def test_depthmap():

@@ -27,35 +27,35 @@ def prepare_test_df():
 
 def test_find_outlier_qrcodes_age_min():
     df = prepare_test_df()
-    qrs = find_outliers(df, 'age', '<365/2', data_id_name='qr')
+    qrs = find_outliers(df, 'age', '<365/2', data_id_name='qrcode')
     assert (len(qrs) == 2)
 
 
 def test_find_outlier_qrcodes_age_max():
     df = prepare_test_df()
-    qrs = find_outliers(df, 'age', '>365*6', data_id_name='qr')
+    qrs = find_outliers(df, 'age', '>365*6', data_id_name='qrcode')
     assert (len(qrs) == 1)
 
 
 def test_find_outlier_qrcodes_weight_min():
     df = prepare_test_df()
-    qrs = find_outliers(df, 'weight', '<5.0', data_id_name='qr')
+    qrs = find_outliers(df, 'weight', '<5.0', data_id_name='qrcode')
     assert (len(qrs) == 2)
 
 
 def test_find_outlier_qrcodes_weight_max():
     df = prepare_test_df()
-    qrs = find_outliers(df, 'weight', '>30.0', data_id_name='qr')
+    qrs = find_outliers(df, 'weight', '>30.0', data_id_name='qrcode')
     assert (len(qrs) == 1)
 
 
 def test_find_outlier_qrcodes_height_min():
     df = prepare_test_df()
-    qrs = find_outliers(df, 'height', '<40.0', data_id_name='qr')
+    qrs = find_outliers(df, 'height', '<40.0', data_id_name='qrcode')
     assert (len(qrs) == 1)
 
 
 def test_find_outlier_qrcodes_height_max():
     df = prepare_test_df()
-    qrs = find_outliers(df, 'height', '>150.0', data_id_name='qr')
+    qrs = find_outliers(df, 'height', '>150.0', data_id_name='qrcode')
     assert (len(qrs) == 1)

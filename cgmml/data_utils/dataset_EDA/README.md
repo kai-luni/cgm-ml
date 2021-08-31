@@ -22,11 +22,12 @@ ipython kernel install --user --name CGM_QA_Pipeline
 In order to mount all datasets at the same time run:
 
 ```bash
+sudo su
 cd /root/
-vim connection.cfg  # get this from a collegue (e.g. Shashank or Gracjan)
+vim fuse_connection.cfg  # get this from a collegue (e.g. Shashank or Gracjan) or just follow https://dev.azure.com/cgmorg/ChildGrowthMonitor/_wiki/wikis/ChildGrowthMonitor.wiki/46/Mounting-Blob-Storage-Container-from-a-Linux-VM
 cd /mnt
 mkdir datasets
-blobfuse /mnt/datasets/ --tmp-path=/mnt/tmp -o attr_timeout=240 -o  entry_timeout=240 -o negative_timeout=120 -o allow_other --config-file=/root/connection.cfg
+blobfuse /mnt/datasets/ --tmp-path=/mnt/tmp -o attr_timeout=240 -o  entry_timeout=240 -o negative_timeout=120 -o allow_other --config-file=/root/fuse_connection.cfg
 cd datasets
 cd realtime_evaluation  # for example
 ```
