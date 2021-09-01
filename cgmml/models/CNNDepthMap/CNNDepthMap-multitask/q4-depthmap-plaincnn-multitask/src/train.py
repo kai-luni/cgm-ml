@@ -12,7 +12,7 @@ from azureml.core import Experiment, Workspace
 from azureml.core.run import Run
 
 from cgmml.common.model_utils.model_plaincnn import create_base_cnn, create_head
-from cgmml.common.model_utils.preprocessing import filter_blacklisted_qrcodes, preprocess_depthmap, preprocess_targets
+from cgmml.common.model_utils.preprocessing import filter_blacklisted_persons, preprocess_depthmap, preprocess_targets
 from cgmml.common.model_utils.utils import (
     download_dataset, get_dataset_path, AzureLogCallback, create_tensorboard_callback, get_optimizer)
 from config import CONFIG
@@ -68,7 +68,7 @@ qrcode_paths = glob.glob(os.path.join(dataset_path, "*"))
 logger.info('qrcode_paths: %d', len(qrcode_paths))
 assert len(qrcode_paths) != 0
 
-qrcode_paths = filter_blacklisted_qrcodes(qrcode_paths)
+qrcode_paths = filter_blacklisted_persons(qrcode_paths)
 
 # Shuffle and split into train and validate.
 random.shuffle(qrcode_paths)

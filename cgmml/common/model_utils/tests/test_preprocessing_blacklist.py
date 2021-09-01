@@ -1,7 +1,7 @@
 import os
 import pytest
 
-from cgmml.common.model_utils.preprocessing import filter_blacklisted_qrcodes
+from cgmml.common.model_utils.preprocessing import filter_blacklisted_persons
 
 BASE_PATH = "this/is/the/test/path"
 
@@ -29,7 +29,7 @@ def prepare_qrs():
 
 def test_filter_blacklisted_qrcodes():
     qrcode_paths = prepare_qrs()
-    filtered_qrcode_paths = filter_blacklisted_qrcodes(qrcode_paths)
+    filtered_qrcode_paths = filter_blacklisted_persons(qrcode_paths)
     assert (len(filtered_qrcode_paths) == 3)
 
 
@@ -53,7 +53,7 @@ def prepare_wrong_qrs():
 def test_filter_qrcodes_wrong_size():
     qrcode_paths_wrong = prepare_wrong_qrs()
     with pytest.raises(AssertionError) as e:
-        filter_blacklisted_qrcodes(qrcode_paths_wrong)
+        filter_blacklisted_persons(qrcode_paths_wrong)
     assert str(e.value) == "1585360775-fa64muouelXXXX", "first wrong qrcode"
 
 
@@ -69,5 +69,5 @@ def prepare_empty_qrs():
 def test_filter_qrcodes_empty():
     qrcode_paths_empty = prepare_empty_qrs()
     with pytest.raises(Exception) as e:
-        filter_blacklisted_qrcodes(qrcode_paths_empty)
-    assert str(e.value) == "The provided qrcode_path is empty"
+        filter_blacklisted_persons(qrcode_paths_empty)
+    assert str(e.value) == "The provided person_path is empty", e.value

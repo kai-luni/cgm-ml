@@ -9,7 +9,7 @@ from azureml.core import Experiment, Workspace
 from azureml.core.run import Run
 from tensorflow.keras import callbacks, layers, models
 
-from cgmml.common.model_utils.preprocessing import filter_blacklisted_qrcodes
+from cgmml.common.model_utils.preprocessing import filter_blacklisted_persons
 from cgmml.common.model_utils.preprocessing_multiartifact_python import (
     create_multiartifact_paths_for_qrcodes)
 from cgmml.common.model_utils.preprocessing_multiartifact_tensorflow import (
@@ -74,7 +74,7 @@ qrcode_paths = glob.glob(os.path.join(dataset_scans_path, "*"))
 logger.info('qrcode_paths: %d', len(qrcode_paths))
 assert len(qrcode_paths) != 0
 
-qrcode_paths = filter_blacklisted_qrcodes(qrcode_paths)
+qrcode_paths = filter_blacklisted_persons(qrcode_paths)
 
 # Shuffle and split into train and validate.
 random.seed(CONFIG.SPLIT_SEED)

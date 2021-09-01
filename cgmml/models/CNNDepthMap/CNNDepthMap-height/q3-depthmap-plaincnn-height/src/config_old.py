@@ -6,7 +6,7 @@ DATASET_MODE_MOUNT = "dataset_mode_mount"
 CONFIG = Bunch(dict(
     DATASET_MODE=DATASET_MODE_DOWNLOAD,
     DATASET_NAME="anon-depthmap-95k",
-    DATASET_NAME_LOCAL="dataset-2021-08-25-07-23-47",
+    DATASET_NAME_LOCAL='anon-depthmap-mini',
     SPLIT_SEED=0,
     IMAGE_TARGET_HEIGHT=240,
     IMAGE_TARGET_WIDTH=180,
@@ -22,6 +22,6 @@ CONFIG = Bunch(dict(
     CLUSTER_NAME='gpu-cluster-V100',
 
     # Parameters for dataset generation.
-    TARGET_NAMES=['height'],
+    TARGET_INDEXES=[0],  # 0 is height, 1 is weight
     CODES=['100', '101', '102', '200', '201', '202'],
 ))
