@@ -17,7 +17,8 @@ from cgmml.models.HRNET.code.config import cfg, update_config
 from cgmml.models.HRNET.code.config.constants import (COCO_KEYPOINT_INDEXES, NUM_KPTS)
 from cgmml.models.HRNET.code.models.pose_hrnet import get_pose_net
 from cgmml.models.HRNET.code.utils.utils import (box_to_center_scale, calculate_pose_score, draw_pose,
-                                                 get_person_detection_boxes, get_pose_estimation_prediction)
+                                                 get_person_detection_boxes, get_pose_estimation_prediction, rot)
+
 
 logging.basicConfig(level=logging.INFO, filename='pose_prediction.log',
                     format='Date-Time : %(asctime)s : Line No. : %(lineno)d - %(message)s', filemode='w')
@@ -43,44 +44,54 @@ class PosePrediction:
         self.pose_model
 
     def read_image(self, image_path):
-        self.image_bgr = cv2.imread(image_path)
+        image_bgr = cv2.imread(image_path)
+        return image_bgr, image_bgr.shape
 
-    def preprocess_image(self):
-        self.input = []
-        self.img = cv2.cvtColor(self.rotated_image, cv2.COLOR_BGR2RGB)
-        img_tensor = torch.from_numpy(
-            self.img / 255.).permute(2, 0, 1).float().to(self.ctx)
-        self.input.append(img_tensor)
-
-    def orient_image_using_scan_type(self, scan_type):
-        if scan_type in ['100', '101', '102']:
-            self.rotated_image = cv2.rotate(self.image_bgr, cv2.ROTATE_90_CLOCKWISE)  # Standing
-        elif scan_type in ['200', '201', '202']:
-            self.rotated_image = cv2.rotate(self.image_bgr, cv2.ROTATE_90_COUNTERCLOCKWISE)  # Laying
+    def orient_image_using_scan_type(self, original_image, scan_type):
+        if scan_type in ['100', '101', '102', 'standing']:
+            rotated_image = cv2.rotate(original_image, cv2.ROTATE_90_CLOCKWISE)  # Standing
+        elif scan_type in ['200', '201', '202', 'laying']:
+            rotated_image = cv2.rotate(original_image, cv2.ROTATE_90_COUNTERCLOCKWISE)  # Laying
         else:
             logging.info("%s %s %s", "Provided scan type", scan_type, "not supported")
             logging.info("Keeping the image in the same orientation as provided")
-            self.rotated_image = self.image_bgr
+            rotated_image = original_image
+        return rotated_image
 
-    def perform_box_on_image(self):
-        self.pred_boxes, self.pred_score = get_person_detection_boxes(
-            self.box_model, self.input, threshold=cfg.BOX_MODEL.THRESHOLD)
-        return self.pred_boxes, self.pred_score
+    def orient_cordinate_using_scan_type(self, pose_keypoints, scan_type, height, width):
+        if scan_type in ['100', '101', '102', 'standing']:
+            pose_keypoints = rot(pose_keypoints, 'ROTATE_90_COUNTERCLOCKWISE', height, width)
+        elif scan_type in ['200', '201', '202', 'laying']:
+            pose_keypoints = rot(pose_keypoints, 'ROTATE_90_CLOCKWISE', height, width)
+        else:
+            logging.info("%s %s %s", "Provided scan type", scan_type, "not supported")
+            logging.info("Keeping the co-ordinate in the same orientation as provided")
+        return pose_keypoints
 
-    def perform_pose_on_image(self, idx):
-        center, scale = box_to_center_scale(
-            self.pred_boxes[idx], cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])
-        self.pose_preds, self.pose_score = get_pose_estimation_prediction(
-            self.pose_model, self.img, center, scale)
-        return self.pose_preds, self.pose_score
+    def preprocess_image(self, rotated_image):
+        box_model_input = []
+        rotated_image_rgb = cv2.cvtColor(rotated_image, cv2.COLOR_BGR2RGB)
+        img_tensor = torch.from_numpy(rotated_image_rgb / 255.).permute(2, 0, 1).float().to(self.ctx)
+        box_model_input.append(img_tensor)
+        return box_model_input, rotated_image_rgb
 
-    def pose_draw_on_image(self):
-        if len(self.pose_preds) >= 1:
-            for kpt in self.pose_preds:
-                draw_pose(kpt, self.rotated_image)  # draw the poses
+    def perform_box_on_image(self, box_model_input):
+        pred_boxes, pred_score = get_person_detection_boxes(
+            self.box_model, box_model_input, threshold=cfg.BOX_MODEL.THRESHOLD)
+        return pred_boxes, pred_score
 
-    def save_final_image(self, final_image_name):
-        cv2.imwrite('outputs/' + final_image_name, self.rotated_image)
+    def perform_pose_on_image(self, pose_bbox, rotated_image_rgb):
+        center, scale = box_to_center_scale(pose_bbox, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])
+        pose_preds, pose_score = get_pose_estimation_prediction(self.pose_model, rotated_image_rgb, center, scale)
+        return pose_preds, pose_score
+
+    def pose_draw_on_image(self, rotated_pose_preds, original_image):
+        if len(rotated_pose_preds) >= 1:
+            for kpt in rotated_pose_preds:
+                draw_pose(kpt, original_image)  # draw the poses
+
+    def save_final_image(self, final_image_name, original_image):
+        cv2.imwrite('outputs/' + final_image_name, original_image)
 
 
 class ResultGeneration:
@@ -92,13 +103,17 @@ class ResultGeneration:
 
         start_time = time.time()
 
-        self.pose_prediction.read_image(jpg_path)
-        self.pose_prediction.orient_image_using_scan_type(scan_type)
-        self.pose_prediction.preprocess_image()
+        original_image, shape = self.pose_prediction.read_image(jpg_path)
+        rotated_image = self.pose_prediction.orient_image_using_scan_type(original_image, scan_type)
+        box_model_input, rotated_image_rgb = self.pose_prediction.preprocess_image(rotated_image)
 
-        pred_boxes, pred_score = self.pose_prediction.perform_box_on_image()
+        pred_boxes, pred_score = self.pose_prediction.perform_box_on_image(box_model_input)
 
         pose_result = []
+
+        # Get Height,Width,color from Image
+        (height, width, color) = shape
+        # one box ==> one pose pose[0]
 
         for idx in range(len(pred_boxes)):
             single_body_pose_result = {}
@@ -106,11 +121,15 @@ class ResultGeneration:
             key_points_prob_list = []
 
             pose_bbox = pred_boxes[idx]
-            pose_preds, pose_score = self.pose_prediction.perform_pose_on_image(idx)
+            pose_preds, pose_score = self.pose_prediction.perform_pose_on_image(pose_bbox, rotated_image_rgb)
+            pose_preds[0] = self.pose_prediction.orient_cordinate_using_scan_type(
+                pose_preds[0], scan_type, height, width)
+
             if self.save_pose_overlay:
-                self.pose_prediction.pose_draw_on_image()
-                # TODO Ensure save image path
-                self.pose_prediction.save_final_image(jpg_path.split('/')[-1])
+                self.pose_prediction.pose_draw_on_image(pose_preds, original_image)
+                if idx == len(pred_boxes) - 1:
+                    self.pose_prediction.save_final_image(jpg_path.split('/')[-1], original_image)
+
             for i in range(0, NUM_KPTS):
                 key_points_coordinate_list.append(
                     {COCO_KEYPOINT_INDEXES[i]: {'x': pose_preds[0][i][0], 'y': pose_preds[0][i][1]}})
@@ -189,8 +208,8 @@ def main():
     pose_prediction.load_box_model()
     pose_prediction.load_pose_model()
 
-    result_generation = ResultGeneration(pose_prediction, False)
-    result_generation.result_on_scan_level('data/anon_rgb_training/scans')
+    result_generation = ResultGeneration(pose_prediction, cfg.TEST.POSE_DRAW)
+    result_generation.result_on_scan_level(cfg.TEST.DATA_PATH)
 
     logging.info("Result Generation done")
 

@@ -1,6 +1,5 @@
-
-import cv2
 import cgmml.models.HRNET.code.models.pose_hrnet  # noqa
+import cv2
 import numpy as np
 import torch
 import torch.nn.parallel
@@ -23,17 +22,33 @@ def get_person_detection_boxes(model, img, threshold=0.5):
     pred_score = list(pred[0]['scores'].detach().cpu().numpy())
     if not pred_score or max(pred_score) < threshold:
         return [], 0
-    # Get list of index with score greater than threshold
-    pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1]
-    pred_boxes = pred_boxes[:pred_t + 1]
-    pred_classes = pred_classes[:pred_t + 1]
 
-    person_boxes = []
-    for idx, box in enumerate(pred_boxes):
-        if pred_classes[idx] == 'person':
+    filtered_index = [pred_score.index(x) for x in pred_score if x > threshold]
+    pred_boxes = [pred_boxes[idx] for idx in filtered_index]
+    pred_score = [pred_score[idx] for idx in filtered_index]
+    pred_classes = [pred_classes[idx] for idx in filtered_index]
+
+    person_boxes, person_scores = [], []
+    for box, score, class_ in zip(pred_boxes, pred_score, pred_classes):
+        if class_ == 'person':
             person_boxes.append(box)
+            person_scores.append(score)
 
-    return person_boxes, pred_score
+    return person_boxes, person_scores
+
+
+def rot(keypoints, orientation, height, width):
+    """
+    Rotate a point counterclockwise,or clockwise.
+    """
+    rotated_keypoints = list()
+    for i in range(0, NUM_KPTS):
+        if orientation == 'ROTATE_90_CLOCKWISE':
+            rot_x, rot_y = width - keypoints[i][1], keypoints[i][0]
+        elif orientation == 'ROTATE_90_COUNTERCLOCKWISE':
+            rot_x, rot_y = keypoints[i][1], height - keypoints[i][0]
+        rotated_keypoints.append([rot_x, rot_y])
+    return rotated_keypoints
 
 
 def draw_pose(keypoints, img):
