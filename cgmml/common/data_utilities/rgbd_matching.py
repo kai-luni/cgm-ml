@@ -74,7 +74,11 @@ def fused_artifact2dict(fused_artifact: FusedArtifact) -> dict:
     image_artifact = fused_artifact.image_artifact
 
     out_fused_artifact['file_path_rgb'] = image_artifact.file_path
-    return dict(out_fused_artifact)
+    out_fused_artifact['format'] = 'rgbd'
+    out_fused_artifact['rgb_timestamp'] = image_artifact.timestamp
+
+    out_fused_artifact = dict(out_fused_artifact)
+    return out_fused_artifact
 
 
 def match_df_with_depth_and_image_artifacts(df: pd.DataFrame) -> List[dict]:

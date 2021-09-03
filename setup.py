@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="cgm-ml-common",
-    version="3.1.4",
+    version="3.1.6",
     author="Markus Hinsche",
     author_email="mhinsche@childgrowthmonitor.com",
     url="https://github.com/Welthungerhilfe/cgm-ml",

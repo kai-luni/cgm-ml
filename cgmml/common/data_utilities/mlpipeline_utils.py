@@ -10,7 +10,7 @@ https://github.com/Welthungerhilfe/cgm-ml/blob/c8be9138e025845bedbe7cfc0d131ef66
 
 from pathlib import Path
 import pickle
-from typing import List, Tuple
+from typing import Tuple
 import tempfile
 
 import numpy as np
@@ -81,26 +81,34 @@ def create_layers(depthmap_fpath: str) -> Tuple[np.ndarray, dict]:
     return layers, metadata
 
 
+def rotate_and_load_depthmap_with_rgbd(depthmap_fpath: str, rgb_fpath: str, calibration_fpath: str) -> Depthmap:
+    width, height, data, depth_scale, max_confidence, device_pose, header_line = (
+        Depthmap.read_depthmap_data(depthmap_fpath))
+
+    with tempfile.NamedTemporaryFile() as rgb_temp_file:
+        pil_im = Image.open(rgb_fpath)
+        pil_im = pil_im.rotate(90, expand=True)
+        pil_im.save(rgb_temp_file.name, 'png')
+        rgb_array = Depthmap.read_rgb_data(rgb_temp_file.name, width, height)
+
+    intrinsics = parse_calibration(calibration_fpath)
+    depthmap_arr = None
+    rgb_fpath = None
+
+    dmap = Depthmap(intrinsics, width, height, data, depthmap_arr,
+                    depth_scale, max_confidence, device_pose,
+                    rgb_fpath, rgb_array, header_line)
+    return dmap
+
+
 def create_layers_rgbd(depthmap_fpath: str, rgb_fpath: str, should_rotate_rgb: bool) -> Tuple[np.ndarray, dict]:
     if should_rotate_rgb:
         dmap = Depthmap.create_from_zip_absolute(depthmap_fpath, rgb_fpath, CALIBRATION_FPATH)
     else:
-        width, height, data, depth_scale, max_confidence, device_pose, header_line = (
-            Depthmap.read_depthmap_data(depthmap_fpath))
+        dmap = rotate_and_load_depthmap_with_rgbd(depthmap_fpath, rgb_fpath, CALIBRATION_FPATH)
 
-        with tempfile.NamedTemporaryFile() as rgb_temp_file:
-            pil_im = Image.open(rgb_fpath)
-            pil_im = pil_im.rotate(90, expand=True)
-            pil_im.save(rgb_temp_file.name, 'png')
-            rgb_array = Depthmap.read_rgb_data(rgb_temp_file.name, width, height)
-
-        intrinsics = parse_calibration(CALIBRATION_FPATH)
-        depthmap_arr = None
-        rgb_fpath = None
-
-        dmap = Depthmap(intrinsics, width, height, data, depthmap_arr,
-                        depth_scale, max_confidence, device_pose,
-                        rgb_fpath, rgb_array, header_line)
+    if not dmap.device_pose:
+        raise InvalidDevicePoseError()
 
     depthmap = dmap.depthmap_arr  # shape: (longer, shorter)
     depthmap = preprocess(depthmap)  # shape (longer, shorter, 1)
@@ -119,15 +127,6 @@ def create_layers_rgbd(depthmap_fpath: str, rgb_fpath: str, should_rotate_rgb: b
         'angle': dmap.get_angle_between_camera_and_floor(),
     }
     return layers, metadata
-
-
-def create_layers_from_multiple_paths(fpaths: List[str]) -> np.ndarray:
-    depthmaps = []
-    for fpath in fpaths:
-        depthmap = create_layers(fpath)
-        depthmaps.append(depthmap)
-    depthmaps = np.array(depthmaps)
-    return depthmaps
 
 
 class ArtifactProcessor:

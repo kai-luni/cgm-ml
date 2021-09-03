@@ -7,6 +7,8 @@
 # MAGIC * databricks driver copies artifacts (from blob stoarage to DBFS)
 # MAGIC * databricks workers process artifacts
 # MAGIC * databricks driver uploads all the blobs (from DBFS to blob storage)
+# MAGIC
+# MAGIC ![dataset creation workflow](https://dev.azure.com/cgmorg/e5b67bad-b36b-4475-bdd7-0cf6875414df/_apis/git/repositories/465970a9-a8a5-4223-81c1-2d3f3bd4ab26/Items?path=%2F.attachments%2Fdataset_creation_steps-7d790a55-684f-407a-a6db-9238789ff761.png&download=false&resolveLfs=true&%24format=octetStream&api-version=5.0-preview.1&sanitize=true&versionDescriptor.version=wikiMaster)
 
 # COMMAND ----------
 
@@ -15,7 +17,7 @@
 ! pip install scikit-image
 ! pip install azure-storage-blob
 
-! pip install cgm-ml-common==3.1.4
+! pip install cgm-ml-common==3.1.6
 
 # COMMAND ----------
 
@@ -98,7 +100,7 @@ SQL_QUERY_BASE = f"""
     SELECT f.file_path, f.created as timestamp,
            s.id as scan_id, s.scan_type_id as scan_step, s.version as scan_version,
            m.height, m.weight, m.muac,
-           a.ord as order_number, a.timestamp, a.format,
+           a.ord as order_number, a.format,
            di.model as device_model,
            p.id as person_id, p.age, p.sex
     FROM file f
@@ -146,9 +148,12 @@ query_results_tmp: List[Tuple[str]] = sql_cursor.fetchall() if NUM_ARTIFACTS is 
 
 # COMMAND ----------
 
-column_names: Tuple[psycopg2.extensions.Column] = sql_cursor.description
-df = pd.DataFrame(query_results_tmp, columns=list(map(lambda x: x.name, column_names)))
-df['timestamp'] = df['timestamp'].astype(str)
+_column_names: Tuple[psycopg2.extensions.Column] = sql_cursor.description
+df = pd.DataFrame(query_results_tmp, columns=list(map(lambda x: x.name, _column_names)))
+
+def clean_timestamp(timestamp_str: str):
+    return timestamp_str.replace(' ', '-').replace(':', '-'). replace('.', '-')
+df['timestamp'] = df['timestamp'].astype(str).apply(clean_timestamp)
 
 # COMMAND ----------
 
@@ -159,7 +164,6 @@ if 'weight' not in df.columns:
     df.insert(4, 'weight', 30)
 if 'height' not in df.columns:
     df.insert(4, 'height', 90)
-column_names: Tuple[psycopg2.extensions.Column] = sql_cursor.description
 
 # COMMAND ----------
 
@@ -180,12 +184,6 @@ df.head()
 print("Unique persons:", len(df.person_id.unique()))
 print("Unique scan_ids:", len(df.scan_id.unique()))
 print("Unique artifacts:", len(df.file_path.unique()))
-
-# COMMAND ----------
-
-query_results: List[Tuple[str]] = list(df.itertuples(index=False, name=None)); print(len(query_results))
-col2idx = {col.name: i for i, col in enumerate(column_names)}; print(col2idx)
-idx2col = {i: col.name for i, col in enumerate(column_names)}; print(idx2col)
 
 # COMMAND ----------
 
@@ -223,10 +221,8 @@ def download_from_blob_storage(src: str, dest: str, container: str):
 
 # COMMAND ----------
 
-file_path_idx = col2idx['file_path']
-
 # Gather file_paths
-_file_paths = [query_result[file_path_idx] for query_result in query_results]
+_file_paths = df['file_path'].tolist()
 
 # Remove duplicates
 _file_paths = list(set(_file_paths))
@@ -263,18 +259,35 @@ results = pool.map(_download, _file_paths)
 
 # COMMAND ----------
 
-def artifact_tuple2dict(artifact_tuple: tuple, idx2col: Dict[int, str]):
-    """Side effect: Saves and returns file path"""
-    artifact_dict = {idx2col[i]: el for i, el in enumerate(artifact_tuple)}
-    return artifact_dict
+# MAGIC %md
+# MAGIC ## Match depthmap and rgb to rgbd
 
 # COMMAND ----------
 
 if DATASET_TYPE == 'rgbd':
     fused_artifacts_dicts = match_df_with_depth_and_image_artifacts(df)
-    query_results_dicts = fused_artifacts_dicts
+    df_to_process = pd.DataFrame(fused_artifacts_dicts)
 else:
-    query_results_dicts: List[dict] = [artifact_tuple2dict(res, idx2col) for res in query_results]
+    df_to_process = df
+
+# COMMAND ----------
+
+df_to_process
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Convert Dataframe to list of query_result_dicts
+# MAGIC query_result_dicts are needed for processing
+
+# COMMAND ----------
+
+query_results_dicts: List[dict] = df_to_process.to_dict('records')
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Process
 
 # COMMAND ----------
 
@@ -284,18 +297,44 @@ artifact_processor = ArtifactProcessor(input_dir, output_dir, dataset_type=DATAS
 
 # COMMAND ----------
 
-# Processing all artifacts at once
-rdd = spark.sparkContext.parallelize(query_results_dicts)
-print(rdd.getNumPartitions())
-rdd_processed = rdd.map(artifact_processor.create_and_save_pickle)
-processed_fnames = rdd_processed.collect()
-print(processed_fnames[:3])
+def map_fct(query_result_dict):
+#     print("the_query_dict", query_result_dict)
+    return query_result_dict, artifact_processor.create_and_save_pickle(query_result_dict)
 
 # COMMAND ----------
 
-print(f"All fnames: {len(processed_fnames)}")
-processed_fnames = [fn for fn in processed_fnames if fn != '']
-print(f"Successfully pickled fnames: {len(processed_fnames)}")
+# Processing all artifacts at once
+rdd = spark.sparkContext.parallelize(query_results_dicts)
+print(rdd.getNumPartitions())
+rdd_processed = rdd.map(map_fct)
+processed_dicts_and_fnames = rdd_processed.collect()
+print(processed_dicts_and_fnames[:3])
+
+# COMMAND ----------
+
+_ = df_to_process['scan_step'].value_counts().plot(kind='pie')
+
+# COMMAND ----------
+
+df_to_process.shape
+
+# COMMAND ----------
+
+print(f"All processed samples: {len(processed_dicts_and_fnames)}")
+
+# Select successfully processed
+processed_dicts_with_success = []
+processed_fnames_with_success = []
+for query_result_dict, fn in processed_dicts_and_fnames:
+    if fn != '':
+        processed_dicts_with_success.append(query_result_dict)
+        processed_fnames_with_success.append(fn)
+
+# Update dataframe
+df_to_process = pd.DataFrame(processed_dicts_with_success)
+processed_fnames = processed_fnames_with_success
+
+print(f"Successfully pickled samples: {len(processed_fnames_with_success)}")
 
 # COMMAND ----------
 
@@ -347,7 +386,7 @@ results = pool.map(_upload, processed_fnames)
 # COMMAND ----------
 
 labels_filename = f"{output_dir}/labels.csv"
-df.to_csv(labels_filename, index=False)
+df_to_process.to_csv(labels_filename, index=False)
 
 # COMMAND ----------
 

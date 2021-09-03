@@ -88,6 +88,9 @@ def test_fused_artifact2dict():
     assert len(fused_artifacts_dicts) == 44
     assert 'file_path_rgb' in fused_artifacts_dicts[0]
     assert 'file_path' in fused_artifacts_dicts[0]
+    assert 'timestamp' in fused_artifacts_dicts[0]
+    assert 'rgb_timestamp' in fused_artifacts_dicts[0]
+    assert fused_artifacts_dicts[0]['format'] == 'rgbd'
 
 
 if __name__ == "__main__":
