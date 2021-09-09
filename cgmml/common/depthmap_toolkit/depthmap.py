@@ -498,6 +498,19 @@ class Depthmap:
         highest_point = points_3d_arr[:, idx_highest_child_point[0], idx_highest_child_point[1]]
         return highest_point
 
+    def resize(self, new_width: int, new_height: int):
+        """Resizes calibration and depthmap to the new size"""
+
+        scale_x = float(new_width) / float(self.width)
+        scale_y = float(new_height) / float(self.height)
+        self.cx = (self.cx - float(self.width) * 0.5) * scale_x + float(new_width) * 0.5
+        self.cy = (self.cy - float(self.height) * 0.5) * scale_y + float(new_height) * 0.5
+        self.fx *= scale_x
+        self.fy *= scale_y
+        self.width = int(new_width)
+        self.height = int(new_height)
+        self.depthmap_arr = np.zeros((self.width, self.height))
+
     def _parse_confidence_data(self, data) -> np.ndarray:
         """Parse depthmap confidence
 

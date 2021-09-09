@@ -32,13 +32,8 @@ def test_depthmap():
     assert dmap.width == 240
     assert dmap.height == 180
 
-    dmap_intrinsics = np.array([
-        dmap.fx / dmap.width,
-        dmap.fy / dmap.height,
-        dmap.cx / dmap.width,
-        dmap.cy / dmap.height
-    ])
-    expected_intrinsics = np.array([0.6786797, 0.90489584, 0.49585155, 0.5035042])
+    dmap_intrinsics = np.array([dmap.fx, dmap.fy, dmap.cx, dmap.cy])
+    expected_intrinsics = np.array([162.883128, 162.881251, 119.004372, 90.630756])
     np.testing.assert_array_almost_equal(dmap_intrinsics, expected_intrinsics)
     assert dmap.max_confidence == 7.
     assert dmap.depth_scale == 0.001
@@ -55,6 +50,11 @@ def test_depthmap():
 
     distance_in_m = dmap.get_distance_of_child_from_camera(mask)
     assert 0.1 < distance_in_m < 5.
+
+    dmap.resize(640, 360)
+    dmap_intrinsics = np.array([dmap.fx, dmap.fy, dmap.cx, dmap.cy])
+    expected_intrinsics = np.array([434.355008, 325.762502, 317.344992, 181.261512])
+    np.testing.assert_array_almost_equal(dmap_intrinsics, expected_intrinsics)
 
 
 def test_get_highest_point():
@@ -113,3 +113,7 @@ def test_smoothen_depthmap_array_with_masking():
         [1., 1., 1., 1.],
     ])
     np.testing.assert_array_equal(expected, smoothen_depthmap_array(depthmap))
+
+
+if __name__ == "__main__":
+    test_depthmap()

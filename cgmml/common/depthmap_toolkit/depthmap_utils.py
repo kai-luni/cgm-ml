@@ -1,5 +1,6 @@
 from typing import List
 
+import math
 import numpy as np
 
 IDENTITY_MATRIX_4D = [1., 0., 0., 0.,
@@ -102,3 +103,7 @@ def parse_numbers(line: str) -> List[float]:
         numbers: [0.6786797, 0.90489584, 0.49585155, 0.5035042]
     """
     return [float(value) for value in line.split(' ')]
+
+
+def vector_length(vec: np.array) -> float:
+    return math.sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2])

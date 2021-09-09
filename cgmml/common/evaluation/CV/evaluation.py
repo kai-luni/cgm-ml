@@ -32,7 +32,7 @@ METADATA_ERROR = 13
 METADATA_ANGLE = 14
 
 
-def filter_metadata(indata: list) -> list:
+def filter_metadata(indata: list, is_standing: bool) -> list:
     size = len(indata)
     output = []
     for index in range(size):
@@ -43,7 +43,11 @@ def filter_metadata(indata: list) -> list:
             continue
 
         # Check if it is a standing child
-        if not data[METADATA_SCAN_TYPE].startswith('10'):
+        if is_standing and (not data[METADATA_SCAN_TYPE].startswith('10')):
+            continue
+
+        # Check if it is a lying child
+        if (not is_standing) and (not data[METADATA_SCAN_TYPE].startswith('20')):
             continue
 
         # Check if it is a first frame of the scan
@@ -54,28 +58,29 @@ def filter_metadata(indata: list) -> list:
     return output
 
 
-def generate_report(indata: list, info: str) -> list:
+def generate_report(indata: list, info: str, is_standing: bool) -> list:
 
     # Generate report format
+    type1 = 'Standing front'
+    type2 = 'Standing 360  '
+    type3 = 'Standing back '
+    if not is_standing:
+        type1 = 'Lying front   '
+        type2 = 'Lying 360     '
+        type3 = 'Lying back    '
     output = [
         ['Scan type     ', 0.2, 0.4, 0.6, 1.0, 1.2, 1.4, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0],
-        ['Standing front', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['Standing 360  ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['Standing back ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [type1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [type2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [type3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ]
     count = ['', 0, 0, 0]
 
     for row in indata:
 
         # Get scan type
-        line = 0
         scan_type = int(row[METADATA_SCAN_TYPE])
-        if scan_type == 100:
-            line = 1
-        if scan_type == 101:
-            line = 2
-        if scan_type == 102:
-            line = 3
+        line = scan_type % 100 + 1
         count[line] += 1
 
         # Update error categories
@@ -156,13 +161,17 @@ if __name__ == "__main__":
     if len(sys.argv) != 4:
         print('You did not enter raw data path, metadata file name or method name')
         print('E.g.: python evaluation.py rawdata_dir metadata_file depthmap_toolkit')
-        print('Available methods are depthmap_toolkit and ml_segmentation')
+        print('Available methods are depthmap_toolkit, ml_segmentation and ml_segmentation_lying')
         sys.exit(1)
 
+    is_standing = True
     if sys.argv[3] == 'depthmap_toolkit':
         from height_prediction_depthmap_toolkit import predict_height
     elif sys.argv[3] == 'ml_segmentation':
         from height_prediction_with_ml_segmentation import predict_height
+    elif sys.argv[3] == 'ml_segmentation_lying':
+        from height_prediction_with_ml_segmentation_lying import predict_height
+        is_standing = False
     else:
         raise Exception('Unimplemented method')
 
@@ -173,7 +182,7 @@ if __name__ == "__main__":
     avg_err = 0
     output = []
     rejections = []
-    indata = filter_metadata(read_csv(metadata_file))
+    indata = filter_metadata(read_csv(metadata_file), is_standing)
     size = len(indata)
     for index in range(size):
         logger.info('Processing %d/%d', index + 1, size)
@@ -197,8 +206,8 @@ if __name__ == "__main__":
         output.append(data)
         avg_err += error
         info = 'Average error=' + str(avg_err / float(len(output))) + 'cm'
-        log_report(generate_report(output, info))
+        log_report(generate_report(output, info, is_standing))
 
     write_csv('output.csv', output)
     write_csv('rejections.csv', rejections)
-    write_csv('report.csv', generate_report(output, info))
+    write_csv('report.csv', generate_report(output, info, is_standing))
