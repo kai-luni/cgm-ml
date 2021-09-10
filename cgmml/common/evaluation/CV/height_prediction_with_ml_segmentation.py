@@ -35,7 +35,7 @@ def predict_height(depthmap_file: str, rgb_file: str, calibration_file: str) -> 
     floor = dmap.get_floor_level()
     mask = dmap.detect_floor(floor)
     depth = dmap.get_distance_of_child_from_camera(mask)
-    dmap.resize(seg_map.shape[0], seg_map.shape[1])
+    dmap.resize_zero_out(seg_map.shape[0], seg_map.shape[1])
     dmap.depthmap_arr[:, :] = depth
 
     # Calculate height

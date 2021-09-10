@@ -498,8 +498,8 @@ class Depthmap:
         highest_point = points_3d_arr[:, idx_highest_child_point[0], idx_highest_child_point[1]]
         return highest_point
 
-    def resize(self, new_width: int, new_height: int):
-        """Resizes calibration and depthmap to the new size"""
+    def resize_zero_out(self, new_width: int, new_height: int):
+        """Rescales calibration, resize depthmap to the new size with zero values"""
 
         scale_x = float(new_width) / float(self.width)
         scale_y = float(new_height) / float(self.height)
