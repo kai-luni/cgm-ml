@@ -179,7 +179,7 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
     """Runs evaluation process and save results into CSV files
 
     Args:
-        path: Path where CSV report should be stored
+        path: Path where the RAW dataset is located
         metadata_file: Path to the CSV file with RAW dataset metadata preprocessed by rgbd_match.py script
         calibration_file: Path to lens calibration file of the device
         method: Method for estimation, available methods are depthmap_toolkit, ml_segmentation, ml_segmentation_lying
@@ -199,7 +199,6 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
 
     metadata = filter_metadata(read_csv(metadata_file), is_standing, one_artifact_per_scan)
 
-    sum_err = 0
     output = []
     rejections = []
     keys = metadata.keys()
@@ -224,7 +223,7 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
                 last_fail = str(exc)
                 continue
 
-        info = update_output(angles, heights, last_fail, data, output, rejections, is_standing, sum_err)
+        info = update_output(angles, heights, last_fail, data, output, rejections, is_standing)
         log_report(generate_report(output, info, is_standing))
 
     write_csv('output.csv', output)
@@ -239,8 +238,7 @@ def update_output(
         data: list,
         output: list,
         rejections: list,
-        is_standing: bool,
-        sum_err: float) -> str:
+        is_standing: bool) -> str:
     """Update output about processed and rejected scans and update evaluation error
 
     Args:
@@ -251,7 +249,6 @@ def update_output(
         output: array where to add metadata about processed scans
         rejections: array where to add metadata about rejected scans
         is_standing: True to load only standing children metadata, False to load only lying children metadata
-        sum_err: sum of errors of height prediction
     Returns:
         formatted string about average error of the evaluation
     """
@@ -269,7 +266,10 @@ def update_output(
     data.append(error)
     data.append(angle)
     output.append(data)
-    sum_err += error
+
+    sum_err = 0
+    for item in output:
+        sum_err += item[METADATA_ERROR]
     avg_err = sum_err / len(output)
     return f'Average error={avg_err}cm'
 

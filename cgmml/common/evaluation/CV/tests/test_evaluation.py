@@ -5,7 +5,7 @@ from cgmml.common.evaluation.CV.evaluation import check_height_prediction, filte
 
 TESTS_PATH = Path(__file__).parents[0].absolute()
 METADATA_FILE = TESTS_PATH / 'test_metadata.csv'
-METADATA_ERROR = 7
+METADATA_ERROR = 13
 
 
 def test_check_height_prediction():
@@ -42,13 +42,12 @@ def test_filter_metadata():
 
 
 def test_update_output():
-    sum_err = 0
     output = []
     rejections = []
     angles = [0, 0, 0]
     heights = [60, 80, 200]
-    data = [0, 0, 0, 0, 0, 79]
-    update_output(angles, heights, '', data, output, rejections, True, sum_err)
+    data = [0, 0, 0, 0, 0, 79, 0, 0, 0, 0, 0, 0]
+    update_output(angles, heights, '', data, output, rejections, True)
 
     # Check processed scans
     assert len(output) == 1
