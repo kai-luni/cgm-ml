@@ -30,7 +30,7 @@ def predict_height(depthmap_file: str, rgb_file: str, calibration_file: str) -> 
 
     # Upscale depthmap
     depth = np.median(dmap.depthmap_arr[dmap.depthmap_arr != 0])
-    dmap.resize_zero_out(seg_map.shape[0], seg_map.shape[1])
+    dmap.resize(seg_map.shape[0], seg_map.shape[1])
     dmap.depthmap_arr[:, :] = depth
 
     # Get highest and lowest point

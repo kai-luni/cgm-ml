@@ -498,18 +498,49 @@ class Depthmap:
         highest_point = points_3d_arr[:, idx_highest_child_point[0], idx_highest_child_point[1]]
         return highest_point
 
-    def resize_zero_out(self, new_width: int, new_height: int):
-        """Rescales calibration, resize depthmap to the new size with zero values"""
+    def resize(self, new_width: int, new_height: int):
+        """Rescale calibration and depthmap"""
 
+        # Rescale calibration
         scale_x = float(new_width) / float(self.width)
         scale_y = float(new_height) / float(self.height)
         self.cx = (self.cx - float(self.width) * 0.5) * scale_x + float(new_width) * 0.5
         self.cy = (self.cy - float(self.height) * 0.5) * scale_y + float(new_height) * 0.5
         self.fx *= scale_x
         self.fy *= scale_y
+
+        # Mapping from new coordinates to original coordinates (e.g. xbig[new_width / 2] = self.width / 2)
+        xbig = np.expand_dims(np.array(range(int(new_width))), -1).repeat(int(new_height), axis=1) / scale_x
+        ybig = np.expand_dims(np.array(range(int(new_height))), 0).repeat(int(new_width), axis=0) / scale_y
+        xbig[xbig + 1 >= self.width - 1] = self.width - 2
+        ybig[ybig + 1 >= self.height - 1] = self.height - 2
+
+        # Get depth information to interpolate
+        d00 = self.depthmap_arr[xbig.astype(int), ybig.astype(int)]
+        d10 = self.depthmap_arr[xbig.astype(int) + 1, ybig.astype(int)]
+        d01 = self.depthmap_arr[xbig.astype(int), ybig.astype(int) + 1]
+        d11 = self.depthmap_arr[xbig.astype(int) + 1, ybig.astype(int) + 1]
+
+        # Bilinear interpolation of the depth data
+        mix_x = xbig - xbig.astype(int)
+        mix_y = ybig - ybig.astype(int)
+        a00 = (1. - mix_x) * (1. - mix_y)
+        a10 = mix_x * (1. - mix_y)
+        a01 = (1. - mix_x) * mix_y
+        a11 = mix_x * mix_y
+        self.depthmap_arr = (d00 * a00 + d11 * a11 + d01 * a01 + d10 * a10) / (a00 + a10 + a01 + a11)
+
+        # Mask depth interpolations which are obviously not a connected surface
+        self.depthmap_arr[abs(d00 - d10) > NEIGHBOUR_PIXELS_MAX_DISTANCE_IN_METER] = 0
+        self.depthmap_arr[abs(d00 - d01) > NEIGHBOUR_PIXELS_MAX_DISTANCE_IN_METER] = 0
+        self.depthmap_arr[abs(d00 - d11) > NEIGHBOUR_PIXELS_MAX_DISTANCE_IN_METER] = 0
+        self.depthmap_arr[abs(d10 - d01) > NEIGHBOUR_PIXELS_MAX_DISTANCE_IN_METER] = 0
+        self.depthmap_arr[abs(d10 - d11) > NEIGHBOUR_PIXELS_MAX_DISTANCE_IN_METER] = 0
+        self.depthmap_arr[abs(d01 - d11) > NEIGHBOUR_PIXELS_MAX_DISTANCE_IN_METER] = 0
+
+        # Apply new resolution
         self.width = int(new_width)
         self.height = int(new_height)
-        self.depthmap_arr = np.zeros((self.width, self.height))
 
     def _parse_confidence_data(self, data) -> np.ndarray:
         """Parse depthmap confidence

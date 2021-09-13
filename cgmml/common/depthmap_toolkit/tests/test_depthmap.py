@@ -51,7 +51,7 @@ def test_depthmap():
     distance_in_m = dmap.get_distance_of_child_from_camera(mask)
     assert 0.1 < distance_in_m < 5.
 
-    dmap.resize_zero_out(640, 360)
+    dmap.resize(640, 360)
     dmap_intrinsics = np.array([dmap.fx, dmap.fy, dmap.cx, dmap.cy])
     expected_intrinsics = np.array([434.355008, 325.762502, 317.344992, 181.261512])
     np.testing.assert_array_almost_equal(dmap_intrinsics, expected_intrinsics)
