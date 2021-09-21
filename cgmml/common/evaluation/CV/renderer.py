@@ -8,15 +8,16 @@ from csv_utils import read_csv
 METADATA_DEPTHMAP = 3
 METADATA_RGB = 4
 
-REPO_DIR = Path(__file__).parents[4]
+REPO_DIR = Path(__file__).resolve().parents[4]
 EXPORT_DIR = REPO_DIR / 'data' / 'render'
+
 
 if __name__ == "__main__":
 
     if len(sys.argv) != 4:
         print('You did not enter raw data path, metadata file name or method name')
         print('E.g.: python renderer.py rawdata_dir metadata_path depthmap_toolkit')
-        print('Available methods are depthmap_toolkit, ml_segmentation and ml_segmentation_lying')
+        print('Available methods are depthmap_toolkit, ml_segmentation, ml_segmentation_lying, hrnet')
         sys.exit(1)
 
     if sys.argv[3] == 'depthmap_toolkit':
@@ -25,6 +26,8 @@ if __name__ == "__main__":
         from height_prediction_with_ml_segmentation import render_prediction_plots
     elif sys.argv[3] == 'ml_segmentation_lying':
         from height_prediction_with_ml_segmentation_lying import render_prediction_plots
+    elif sys.argv[3] == 'hrnet':
+        from height_prediction_with_hrnet import render_prediction_plots
     else:
         raise Exception('Unimplemented method')
 

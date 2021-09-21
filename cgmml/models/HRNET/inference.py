@@ -16,12 +16,17 @@ import torchvision
 from cgmml.models.HRNET.code.config import cfg, update_config
 from cgmml.models.HRNET.code.config.constants import (COCO_KEYPOINT_INDEXES, NUM_KPTS)
 from cgmml.models.HRNET.code.models.pose_hrnet import get_pose_net
+from cgmml.models.HRNET.code.utils.google_drive_utils import download_file_from_google_drive
 from cgmml.models.HRNET.code.utils.utils import (box_to_center_scale, calculate_pose_score, draw_pose,
                                                  get_person_detection_boxes, get_pose_estimation_prediction, rot)
 
 
 logging.basicConfig(level=logging.INFO, filename='pose_prediction.log',
                     format='Date-Time : %(asctime)s : Line No. : %(lineno)d - %(message)s', filemode='w')
+
+
+MODEL_FILE = 'pose_hrnet_w32_384x288.pth'
+MODEL_ID = '1fGN2P81JEgzjLxCn5_PaOwaoUwT0Ybc3'
 
 
 class PosePrediction:
@@ -41,7 +46,6 @@ class PosePrediction:
         self.pose_model = torch.nn.DataParallel(self.pose_model, device_ids=cfg.GPUS)
         self.pose_model.to(self.ctx)
         self.pose_model.eval()
-        self.pose_model
 
     def read_image(self, image_path):
         image_bgr = cv2.imread(image_path)
@@ -115,12 +119,11 @@ class ResultGeneration:
         (height, width, color) = shape
         # one box ==> one pose pose[0]
 
-        for idx in range(len(pred_boxes)):
+        for idx, pose_bbox in enumerate(pred_boxes):
             single_body_pose_result = {}
             key_points_coordinate_list = []
             key_points_prob_list = []
 
-            pose_bbox = pred_boxes[idx]
             pose_preds, pose_score = self.pose_prediction.perform_pose_on_image(pose_bbox, rotated_image_rgb)
             pose_preds[0] = self.pose_prediction.orient_cordinate_using_scan_type(
                 pose_preds[0], scan_type, height, width)
@@ -166,6 +169,7 @@ class ResultGeneration:
 
         logging.info("Result Generation Started")
         for jpg_path in artifact_paths:
+            jpg_path = jpg_path.replace("\\", "/")
             split_path = jpg_path.split('/')
 
             qr_code, scan_step, artifact_id = split_path[3], split_path[4], split_path[5]
@@ -193,22 +197,26 @@ class ResultGeneration:
         self.df.to_csv(file_path, index=False)
 
 
-def main():
+def get_hrnet_model(config_path: str) -> ResultGeneration:
+    if not os.path.isfile(MODEL_FILE):
+        download_file_from_google_drive(MODEL_ID, MODEL_FILE)
     ctx = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    logging.info("%s %s", "cuda is available", torch.cuda.is_available())
 
     # cudnn related setting
     cudnn.benchmark = cfg.CUDNN.BENCHMARK
     torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
-    args = 'cgmml/models/HRNET/inference-config-hrnet.yaml'
-    update_config(cfg, args)
+    update_config(cfg, config_path)
 
     pose_prediction = PosePrediction(ctx)
     pose_prediction.load_box_model()
     pose_prediction.load_pose_model()
 
-    result_generation = ResultGeneration(pose_prediction, cfg.TEST.POSE_DRAW)
+    return ResultGeneration(pose_prediction, cfg.TEST.POSE_DRAW)
+
+
+def main():
+    result_generation = get_hrnet_model('cgmml/models/HRNET/inference-config-hrnet.yaml')
     result_generation.result_on_scan_level(cfg.TEST.DATA_PATH)
 
     logging.info("Result Generation done")

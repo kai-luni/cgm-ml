@@ -182,7 +182,7 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
         path: Path where the RAW dataset is located
         metadata_file: Path to the CSV file with RAW dataset metadata preprocessed by rgbd_match.py script
         calibration_file: Path to lens calibration file of the device
-        method: Method for estimation, available methods are depthmap_toolkit, ml_segmentation, ml_segmentation_lying
+        method: Method for estimation, available are depthmap_toolkit, ml_segmentation, ml_segmentation_lying, hrnet
         one_artifact_per_scan: True to return one artifact per scan (faster), False to return all artifacts (slower)
     """
 
@@ -193,6 +193,9 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
         from height_prediction_with_ml_segmentation import predict_height
     elif method == 'ml_segmentation_lying':
         from height_prediction_with_ml_segmentation_lying import predict_height
+        is_standing = False
+    elif method == 'hrnet':
+        from height_prediction_with_hrnet import predict_height
         is_standing = False
     else:
         raise Exception('Unimplemented method')

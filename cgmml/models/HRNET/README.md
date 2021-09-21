@@ -47,9 +47,6 @@ List of registered model in azure-ml workspace:
 - MODAL
   - NAME: pose_hrnet_w32_384x288
 
-2. Download the registered pretrained pose detection model from the azure ml workspace.
-   `python 1_download_model.py`
-
-3. Make sure you have sample scans at `data/anon_rgb_training/scans` this path
-4. Run below script to generate csv file with all the results and time taken to execute the pose prediction.
-   `python 2_inference_model.py`
+2. Make sure you have sample scans at `data/path/version_wise_jpg` path
+3. Run below script to generate csv file with all the results and time taken to execute the pose prediction.
+   `python inference.py`

@@ -15,6 +15,7 @@ cgmml/common/depthmap_toolkit/honor/
 cgmml/common/depthmap_toolkit/output/
 cgmml/common/depthmap_toolkit/export/
 cgmml/common/evaluation/CV/*.csv
+cgmml/common/evaluation/CV/*.pth
 tmp_*/
 temp_*/
 best_model.ckpt/
