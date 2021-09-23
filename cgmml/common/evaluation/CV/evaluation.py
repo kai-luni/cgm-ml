@@ -182,7 +182,7 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
         path: Path where the RAW dataset is located
         metadata_file: Path to the CSV file with RAW dataset metadata preprocessed by rgbd_match.py script
         calibration_file: Path to lens calibration file of the device
-        method: Method for estimation, available are depthmap_toolkit, ml_segmentation, ml_segmentation_lying, hrnet
+        method: Method for estimation, available are depthmap_toolkit, ml_segmentation, hrnet
         one_artifact_per_scan: True to return one artifact per scan (faster), False to return all artifacts (slower)
     """
 
@@ -191,9 +191,6 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
         from height_prediction_depthmap_toolkit import predict_height
     elif method == 'ml_segmentation':
         from height_prediction_with_ml_segmentation import predict_height
-    elif method == 'ml_segmentation_lying':
-        from height_prediction_with_ml_segmentation_lying import predict_height
-        is_standing = False
     elif method == 'hrnet':
         from height_prediction_with_hrnet import predict_height
         is_standing = False
@@ -282,7 +279,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 4:
         print('You did not enter raw data path, metadata file name or method name')
         print('E.g.: python evaluation.py rawdata_dir metadata_file depthmap_toolkit')
-        print('Available methods are depthmap_toolkit, ml_segmentation and ml_segmentation_lying')
+        print('Available methods are depthmap_toolkit, ml_segmentation, hrnet')
         sys.exit(1)
 
     method = sys.argv[3]

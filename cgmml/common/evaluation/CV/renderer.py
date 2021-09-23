@@ -17,15 +17,13 @@ if __name__ == "__main__":
     if len(sys.argv) != 4:
         print('You did not enter raw data path, metadata file name or method name')
         print('E.g.: python renderer.py rawdata_dir metadata_path depthmap_toolkit')
-        print('Available methods are depthmap_toolkit, ml_segmentation, ml_segmentation_lying, hrnet')
+        print('Available methods are depthmap_toolkit, ml_segmentation, hrnet')
         sys.exit(1)
 
     if sys.argv[3] == 'depthmap_toolkit':
         from height_prediction_depthmap_toolkit import render_prediction_plots
     elif sys.argv[3] == 'ml_segmentation':
         from height_prediction_with_ml_segmentation import render_prediction_plots
-    elif sys.argv[3] == 'ml_segmentation_lying':
-        from height_prediction_with_ml_segmentation_lying import render_prediction_plots
     elif sys.argv[3] == 'hrnet':
         from height_prediction_with_hrnet import render_prediction_plots
     else:

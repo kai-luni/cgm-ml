@@ -25,7 +25,6 @@ NEIGHBOUR_PIXELS_MAX_DISTANCE_IN_METER = 0.05
 FLOOR_THRESHOLD_IN_METER = 0.1
 SCREEN_BORDER_MARGIN_PERCENTAGE = 0.05
 SCREEN_BORDER_PERCENTAGE = 0.025
-STANDING_CHILD_MAX_HORIZONTAL_DIFF_IN_METER = 0.075
 TOOLKIT_DIR = Path(__file__).parents[0].absolute()
 
 
@@ -256,35 +255,6 @@ class Depthmap:
         output = np.zeros((3, self.width, self.height))
         output[:, 1:, 1:] = normal
         return output
-
-    def calculate_standing_confidence(self, mask: np.array, highest_point: list) -> float:
-        """Calculates the confidence if the child is standing straight.
-
-        The result is calculated by calculating difference of x,z coordinates of highest point and every child point.
-        The more unstraight child stays, the bigger the difference is.
-        The confidence is 1.0 when the child is fully straight, 0.5 when it could be still count as straight.
-        """
-
-        points_3d_arr = self.convert_2d_to_3d_oriented(should_smooth=False)
-
-        # count average horizontal diff of child points to highest_point
-        count = 0
-        horizontal_diff = 0.
-        for x in range(self.width):
-            for y in range(self.height):
-                if mask[x, y] != MASK_CHILD:
-                    continue
-
-                diff_x = points_3d_arr[0, x, y] - highest_point[0]
-                diff_z = points_3d_arr[2, x, y] - highest_point[2]
-                horizontal_diff += math.sqrt(diff_x * diff_x + diff_z * diff_z)
-                count += 1
-        if count > 0:
-            horizontal_diff /= float(count)
-
-        # STANDING_CHILD_MAX_HORIZONTAL_DIFF_IN_METER for confidence=0.5, fully straight standing for confidence=1
-        confidence = 1.0 - horizontal_diff / STANDING_CHILD_MAX_HORIZONTAL_DIFF_IN_METER / 2.0
-        return min(confidence, 1.)
 
     def convert_2d_to_3d(self, x: float, y: float, depth: float) -> np.ndarray:
         """Convert point in pixels into point in meters
