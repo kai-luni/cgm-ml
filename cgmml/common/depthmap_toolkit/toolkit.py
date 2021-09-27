@@ -21,7 +21,7 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
 logger.addHandler(handler)
 
-REPO_DIR = Path(__file__).parents[3]
+REPO_DIR = Path(__file__).resolve().parents[3]
 EXPORT_DIR = REPO_DIR / 'data' / 'export'
 
 LAST_CLICK_COORD = [0, 0, 0]

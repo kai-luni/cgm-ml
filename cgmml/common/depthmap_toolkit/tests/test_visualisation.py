@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 
 from cgmml.common.depthmap_toolkit.depthmap import Depthmap
-from cgmml.common.depthmap_toolkit.visualisation import blur_face, render_rgb
+from cgmml.common.depthmap_toolkit.visualisation import blur_face, render_rgb, CHILD_HEAD_HEIGHT_IN_METERS
 
 TOOLKIT_DIR = Path(__file__).parents[0].absolute()
 OFFSET_X_Y = (0.37, 0.53)
@@ -27,7 +27,7 @@ def test_blur_face():
     output_unblurred = render_rgb(dmap)
 
     # Blur
-    output_blurred = blur_face(output_unblurred, highest_point, dmap)
+    output_blurred = blur_face(output_unblurred, highest_point, dmap, CHILD_HEAD_HEIGHT_IN_METERS)
 
     # Assert some pixels in whole image change (image not same)
     all_count = dmap.width * dmap.height
@@ -48,3 +48,7 @@ def test_blur_face():
     slice_x = slice(corner_x, corner_x + 4)
     slice_y = slice(corner_y, corner_y + 4)
     np.testing.assert_array_equal(output_unblurred[slice_x, slice_y], output_blurred[slice_x, slice_y])
+
+
+if __name__ == "__main__":
+    test_blur_face()

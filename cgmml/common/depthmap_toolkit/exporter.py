@@ -4,7 +4,7 @@ from typing import Union
 
 import numpy as np
 
-from depthmap import Depthmap
+from cgmml.common.depthmap_toolkit.depthmap import Depthmap
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

@@ -16,15 +16,16 @@ CHILD_HEAD_HEIGHT_IN_METERS = 0.3
 PATTERN_LENGTH_IN_METERS = 0.2
 
 
-def blur_face(data: np.ndarray, highest_point: np.ndarray, dmap: Depthmap) -> np.ndarray:
+def blur_face(data: np.ndarray, highest_point: np.ndarray, dmap: Depthmap, radius: float) -> np.ndarray:
     """Faceblur of the detected standing child.
 
-    It uses the highest point of the child and blur all pixels in distance less than CHILD_HEAD_HEIGHT_IN_METERS.
+    It uses the highest point of the child and blur all pixels in distance less than radius.
 
     Args:
         data: existing canvas to blur
         highest_point: 3D point. The surroundings of this point will be blurred.
         dmap: depthmap
+        radius: radius around highest_point to blur
 
     Returns:
         Canvas like data with face blurred.
@@ -44,11 +45,11 @@ def blur_face(data: np.ndarray, highest_point: np.ndarray, dmap: Depthmap) -> np
 
             vector = point - highest_point
             distance = abs(vector[0]) + abs(vector[1]) + abs(vector[2])
-            if distance >= CHILD_HEAD_HEIGHT_IN_METERS:
+            if distance >= radius:
                 continue
 
             # Gausian blur
-            output[x, y] = get_smoothed_pixel(data, x, y, 5)
+            output[x, y] = get_smoothed_pixel(data, x, y, 10)
 
     return output
 
@@ -167,7 +168,7 @@ def render_plot(dmap: Depthmap) -> np.ndarray:
     if dmap.has_rgb:
         highest_point: np.ndarray = dmap.get_highest_point(mask)
         output_rgb = render_rgb(dmap)
-        output_rgb = blur_face(output_rgb, highest_point, dmap)
+        output_rgb = blur_face(output_rgb, highest_point, dmap, CHILD_HEAD_HEIGHT_IN_METERS)
         output_plots.append(output_rgb)
 
     return np.concatenate(output_plots, axis=1)
