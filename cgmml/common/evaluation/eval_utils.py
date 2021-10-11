@@ -3,11 +3,13 @@ import logging
 from pathlib import Path
 import pickle
 import tensorflow as tf
+from typing import List
+import numpy as np
 
 from bunch import Bunch
 import pandas as pd
 
-from cgmml.common.evaluation.constants_eval import GOODBAD_DICT, GOODBAD_IDX, SEX_DICT, SEX_IDX
+from cgmml.common.evaluation.constants_eval import GOODBAD_DICT, GOODBAD_NAME, SEX_DICT, SEX_NAME
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -28,7 +30,7 @@ CONFIG = Bunch(dict(
     IMAGE_TARGET_HEIGHT=240,
     IMAGE_TARGET_WIDTH=180,
     NORMALIZATION_VALUE=7.5,
-    TARGET_INDEXES=[0],  # 0 is height, 1 is weight.
+    TARGET_NAMES=['height'],  # 0 is height, 1 is weight.
     DATA_AUGMENTATION_MODE=DATA_AUGMENTATION_NO,
     SAMPLING_STRATEGY=SAMPLING_STRATEGY_SYSTEMATIC,
     N_ARTIFACTS=5,
@@ -90,12 +92,12 @@ def tf_load_pickle(path, max_value):
         depthmap = preprocess_depthmap(depthmap)
         depthmap = depthmap / max_value
         depthmap = tf.image.resize(depthmap, (CONFIG.IMAGE_TARGET_HEIGHT, CONFIG.IMAGE_TARGET_WIDTH))
-        targets = preprocess_targets(targets, CONFIG.TARGET_INDEXES)
+        targets = preprocess_targets(targets, CONFIG.TARGET_NAMES)
         return depthmap, targets
 
     depthmap, targets = tf.py_function(py_load_pickle, [path, max_value], [tf.float32, tf.float32])
     depthmap.set_shape((CONFIG.IMAGE_TARGET_HEIGHT, CONFIG.IMAGE_TARGET_WIDTH, 1))
-    targets.set_shape((len(CONFIG.TARGET_INDEXES,)))
+    targets.set_shape(len(CONFIG.TARGET_NAMES))
     return depthmap, targets
 
 
@@ -120,24 +122,23 @@ def preprocess(path):
     depthmap = preprocess_depthmap(depthmap)
     depthmap = depthmap / CONFIG.NORMALIZATION_VALUE
     depthmap = tf.image.resize(depthmap, (CONFIG.IMAGE_TARGET_HEIGHT, CONFIG.IMAGE_TARGET_WIDTH))
-    targets = preprocess_targets(targets, CONFIG.TARGET_INDEXES)
+    targets = preprocess_targets(targets, CONFIG.TARGET_NAMES)
     depthmap.set_shape((CONFIG.IMAGE_TARGET_HEIGHT, CONFIG.IMAGE_TARGET_WIDTH, 1))
     return depthmap, targets
 
 
-def preprocess_targets(targets, targets_indices):
-    if SEX_IDX in targets_indices:
-        targets[SEX_IDX] = SEX_DICT[targets[SEX_IDX]]
-    if GOODBAD_IDX in targets_indices:
+def preprocess_targets(targets: dict, target_names: List[str]) -> np.ndarray:
+    if SEX_NAME in target_names:
+        targets[SEX_NAME] = SEX_DICT[targets[SEX_NAME]]
+    if GOODBAD_NAME in target_names:
         try:
-            targets[GOODBAD_IDX] = GOODBAD_DICT[targets[GOODBAD_IDX]]
+            targets[GOODBAD_NAME] = GOODBAD_DICT[targets[GOODBAD_NAME]]
         except KeyError:
-            logger.info("Key %s not found in GOODBAD_DICT", targets[GOODBAD_IDX])
-            targets[GOODBAD_IDX] = GOODBAD_DICT['delete']  # unknown target values will be categorized as 'delete'
-
-    if targets_indices is not None:
-        targets = targets[targets_indices]
-    return targets.astype("float32")
+            logger.info("Key %s not found in GOODBAD_DICT", targets[GOODBAD_NAME])
+            targets[GOODBAD_NAME] = GOODBAD_DICT['delete']  # unknown target values will be categorized as 'delete'
+    if target_names is not None:
+        targets = [targets[target_name] for target_name in target_names]
+    return np.array(targets).astype("float32")
 
 
 def preprocess_depthmap(depthmap):

@@ -27,7 +27,7 @@ DATA_CONFIG = Bunch(dict(
     IMAGE_TARGET_WIDTH=180,
     BATCH_SIZE=16,
     NORMALIZATION_VALUE=7.5,
-    TARGET_INDEXES=[0],
+    TARGET_NAMES=['height'],
     CODES=['100', '101', '102', '200', '201', '202'],
 ))
 RESULT_CONFIG = Bunch(dict(
@@ -84,7 +84,7 @@ def test_evaluation_get_the_qr_code_path():
     qrcode_paths = evaluation.get_the_qr_code_path()
     assert len(qrcode_paths) == 2
     qrcode_paths = sorted(qrcode_paths)
-    expected_path = CWD / 'test_data/anontest-depthmap-mini/scans/1583462470-16tvfmb1d0'
+    expected_path = CWD / 'test_data/anontest-depthmap-mini/scans/00a815e0-0d16-11ec-985b-438c8bcd61ca'
     assert Path(qrcode_paths[0]) == expected_path
 
 

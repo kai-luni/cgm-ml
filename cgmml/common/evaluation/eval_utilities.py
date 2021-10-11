@@ -63,7 +63,7 @@ def get_column_list(depthmap_path_list: List[str], prediction: np.ndarray, data_
     for idx, path in enumerate(depthmap_path_list):
         loaded_tuple = pickle.load(open(path, "rb"))  # tuple can have 2 or 3 elements
         targets = loaded_tuple[1]
-        targets = preprocess_targets(targets, data_config.TARGET_INDEXES)
+        targets = preprocess_targets(targets, data_config.TARGET_NAMES)
         target = np.squeeze(targets)
 
         sub_folder_list = path.split('/')
@@ -492,12 +492,12 @@ def tf_load_pickle(path, max_value, data_config):
         depthmap = preprocess_depthmap(depthmap)
         depthmap = depthmap / max_value
         depthmap = tf.image.resize(depthmap, (data_config.IMAGE_TARGET_HEIGHT, data_config.IMAGE_TARGET_WIDTH))
-        targets = preprocess_targets(targets, data_config.TARGET_INDEXES)
+        targets = preprocess_targets(targets, data_config.TARGET_NAMES)
         return depthmap, targets
 
     depthmap, targets = tf.py_function(py_load_pickle, [path, max_value], [tf.float32, tf.float32])
     depthmap.set_shape((data_config.IMAGE_TARGET_HEIGHT, data_config.IMAGE_TARGET_WIDTH, 1))
-    targets.set_shape((len(data_config.TARGET_INDEXES,)))
+    targets.set_shape((len(data_config.TARGET_NAMES)))
     return path, depthmap, targets
 
 

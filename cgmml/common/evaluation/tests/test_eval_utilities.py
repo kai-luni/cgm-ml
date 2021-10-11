@@ -14,7 +14,7 @@ DATA_CONFIG = Bunch(dict(
     IMAGE_TARGET_WIDTH=180,
     BATCH_SIZE=16,
     NORMALIZATION_VALUE=7.5,
-    TARGET_INDEXES=[0],
+    TARGET_NAMES=['height'],
     CODES=['100', '101', '102', '200', '201', '202'],
 ))
 
@@ -53,8 +53,8 @@ def test_prepare_sample_dataset():
 
 def test_tf_load_pickle():
     pickle_path = str(REPO_DIR
-                      + "/cgmml/common/data_utilities/tests/pickle_files/scans/c571de02-a723-11eb-8845-bb6589a1fbe8/"
-                      + "102/pc_c571de02-a723-11eb-8845-bb6589a1fbe8_2021-04-22_13-34-33-302557_102_3.p")
+                      + "/cgmml/common/data_utilities/tests/pickle_files/scans/047e6a80-0ccf-11ec-985b-1fd1a239c27e/"
+                      + "102/pc_048c2620-0ccf-11ec-985b-eb8d03863e15_2021-09-03-15-53-00-339520_102_1.0.p")
 
     test_image = tf_load_pickle(pickle_path, DATA_CONFIG.NORMALIZATION_VALUE, DATA_CONFIG)
 

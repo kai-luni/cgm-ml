@@ -15,8 +15,8 @@ from bunch import Bunch
 from cgmml.common.model_utils.preprocessing_multiartifact_python import create_multiartifact_paths_for_qrcodes
 from cgmml.common.model_utils.preprocessing_multiartifact_tensorflow import create_multiartifact_sample
 from .constants_eval import (
-    COLUMN_NAME_AGE, COLUMN_NAME_GOODBAD, COLUMN_NAME_SEX,
-    GOODBAD_IDX, GOODBAD_DICT, SEX_IDX, AGE_IDX, HEIGHT_IDX, WEIGHT_IDX)
+    AGE_NAME, COLUMN_NAME_AGE, COLUMN_NAME_GOODBAD, COLUMN_NAME_SEX,
+    GOODBAD_DICT, GOODBAD_NAME, HEIGHT_NAME, SEX_NAME, WEIGHT_NAME)
 from .eval_utils import (
     avgerror, calculate_performance, calculate_performance_mae_scan, calculate_performance_mae_artifact)
 from .uncertainty_utils import get_prediction_uncertainty_deepensemble
@@ -86,11 +86,8 @@ class Evaluation:
             lambda path: tf_load_pickle(path, self.data_config.NORMALIZATION_VALUE, self.data_config)
         )
 
-        # filter goodbad==delete
-        if GOODBAD_IDX in self.data_config.TARGET_INDEXES:
-            goodbad_index = self.data_config.TARGET_INDEXES.index(GOODBAD_IDX)
-            dataset = dataset.filter(
-                lambda _path, _depthmap, targets: targets[goodbad_index] != GOODBAD_DICT['delete'])
+        if GOODBAD_NAME in self.data_config.TARGET_NAMES:
+            dataset = dataset.filter(lambda _path, _depthmap, targets: targets[GOODBAD_NAME] != GOODBAD_DICT['delete'])
 
         dataset = dataset.cache()
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
@@ -128,13 +125,13 @@ class Evaluation:
         df['predicted'] = df['predicted'].astype('float64')
 
         if 'AGE_BUCKETS' in result_config.keys():
-            idx = self.data_config.TARGET_INDEXES.index(AGE_IDX)
+            idx = self.data_config.TARGET_NAMES.index(AGE_NAME)
             df[COLUMN_NAME_AGE] = [el[idx] for el in target_list]
-        if SEX_IDX in self.data_config.TARGET_INDEXES:
-            idx = self.data_config.TARGET_INDEXES.index(SEX_IDX)
+        if SEX_NAME in self.data_config.TARGET_NAMES:
+            idx = self.data_config.TARGET_NAMES.index(SEX_NAME)
             df[COLUMN_NAME_SEX] = [el[idx] for el in target_list]
-        if GOODBAD_IDX in self.data_config.TARGET_INDEXES:
-            idx = self.data_config.TARGET_INDEXES.index(GOODBAD_IDX)
+        if GOODBAD_NAME in self.data_config.TARGET_NAMES:
+            idx = self.data_config.TARGET_NAMES.index(GOODBAD_NAME)
             df[COLUMN_NAME_GOODBAD] = [el[idx] for el in target_list]
 
         logger.info("df.shape: %s", df.shape)
@@ -182,8 +179,8 @@ class Evaluation:
             logger.info("Calculate and save scatterplot results to %s", png_fpath)
             draw_age_scatterplot(df, png_fpath)
 
-        if (HEIGHT_IDX in self.data_config.TARGET_INDEXES
-                and AGE_IDX in self.data_config.TARGET_INDEXES
+        if (HEIGHT_NAME in self.data_config.TARGET_NAMES
+                and AGE_NAME in self.data_config.TARGET_NAMES
                 and descriptor != self.model_config.EXPERIMENT_NAME):
             png_fpath = f"{output_csv_path}/stunting_diagnosis_{descriptor}.png"
             logger.info("Calculate zscores and save confusion matrix results to %s", png_fpath)
@@ -192,8 +189,8 @@ class Evaluation:
             end = time.time()
             logger.info("Total time for Calculate zscores and save confusion matrix: %.2fsec", end - start)
 
-        if (WEIGHT_IDX in self.data_config.TARGET_INDEXES
-                and AGE_IDX in self.data_config.TARGET_INDEXES
+        if (WEIGHT_NAME in self.data_config.TARGET_NAMES
+                and AGE_NAME in self.data_config.TARGET_NAMES
                 and descriptor != self.model_config.EXPERIMENT_NAME):
             png_fpath = f"{output_csv_path}/wasting_diagnosis_{descriptor}.png"
             logger.info("Calculate and save wasting confusion matrix results to %s", png_fpath)
@@ -202,12 +199,12 @@ class Evaluation:
             end = time.time()
             logger.info("Total time for Calculate zscores and save wasting confusion matrix: %.2fsec", end - start)
 
-        if SEX_IDX in self.data_config.TARGET_INDEXES:
+        if SEX_NAME in self.data_config.TARGET_NAMES:
             csv_fpath = f"{output_csv_path}/sex_evaluation_{descriptor}.csv"
             logger.info("Calculate and save sex results to %s", csv_fpath)
             calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
                                        self.data_config, result_config, fct=calculate_performance_sex)
-        if GOODBAD_IDX in self.data_config.TARGET_INDEXES:
+        if GOODBAD_NAME in self.data_config.TARGET_NAMES:
             csv_fpath = f"{output_csv_path}/goodbad_evaluation_{descriptor}.csv"
             logger.info("Calculate performance on bad/good scans and save results to %s", csv_fpath)
             calculate_and_save_results(df_grouped, eval_config.NAME, csv_fpath,
@@ -266,7 +263,7 @@ class EnsembleEvaluation(Evaluation):
         assert len(df_sample) == len(uncertainties)
         df_sample['uncertainties'] = uncertainties
 
-        if GOODBAD_IDX in self.data_config.TARGET_INDEXES:
+        if GOODBAD_NAME in self.data_config.TARGET_NAMES:
             assert COLUMN_NAME_GOODBAD in df
             png_fpath = f"{output_csv_path}/uncertainty_distribution.png"
             draw_uncertainty_goodbad_plot(df_sample, png_fpath)
@@ -303,7 +300,7 @@ class MultiartifactEvaluation(Evaluation):
                                                            self.data_config.NORMALIZATION_VALUE,
                                                            self.data_config.IMAGE_TARGET_HEIGHT,
                                                            self.data_config.IMAGE_TARGET_WIDTH,
-                                                           tf.constant(self.data_config.TARGET_INDEXES),
+                                                           tf.constant(self.data_config.TARGET_NAMES),
                                                            self.data_config.N_ARTIFACTS)
             depthmaps.append(depthmap)
             targets.append(target)
@@ -322,7 +319,7 @@ class MultiartifactEvaluation(Evaluation):
     def prepare_dataframe(self,
                           paths_belonging_to_predictions: List[List[str]],
                           prediction_array: np.ndarray,
-                          result_config: Bunch):
+                          result_config: Bunch) -> pd.DataFrame:
         first_paths = [paths_list[0] for paths_list in paths_belonging_to_predictions]
         qrcode_list, scantype_list, artifact_list, prediction_list, target_list = get_column_list(
             first_paths, prediction_array, self.data_config)
@@ -338,13 +335,13 @@ class MultiartifactEvaluation(Evaluation):
         df['predicted'] = df['predicted'].astype('float64')
 
         if 'AGE_BUCKETS' in result_config.keys():
-            idx = self.data_config.TARGET_INDEXES.index(AGE_IDX)
+            idx = self.data_config.TARGET_NAMES.index(AGE_NAME)
             df[COLUMN_NAME_AGE] = [el[idx] for el in target_list]
-        if SEX_IDX in self.data_config.TARGET_INDEXES:
-            idx = self.data_config.TARGET_INDEXES.index(SEX_IDX)
+        if SEX_NAME in self.data_config.TARGET_NAMES:
+            idx = self.data_config.TARGET_NAMES.index(SEX_NAME)
             df[COLUMN_NAME_SEX] = [el[idx] for el in target_list]
-        if GOODBAD_IDX in self.data_config.TARGET_INDEXES:
-            idx = self.data_config.TARGET_INDEXES.index(GOODBAD_IDX)
+        if GOODBAD_NAME in self.data_config.TARGET_NAMES:
+            idx = self.data_config.TARGET_NAMES.index(GOODBAD_NAME)
             df[COLUMN_NAME_GOODBAD] = [el[idx] for el in target_list]
 
         logger.info("df.shape: %s", df.shape)

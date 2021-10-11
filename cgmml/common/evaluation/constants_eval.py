@@ -4,12 +4,12 @@ MODEL_CKPT_FILENAME = "best_model.ckpt"
 
 DAYS_IN_YEAR = 365
 
-HEIGHT_IDX = 0
-WEIGHT_IDX = 1
-MUAC_IDX = 2
-AGE_IDX = 3
-SEX_IDX = 4
-GOODBAD_IDX = 5
+HEIGHT_NAME = 'height'
+WEIGHT_NAME = 'weight'
+MUAC_NAME = 'muac'
+AGE_NAME = 'age'
+SEX_NAME = 'sex'
+GOODBAD_NAME = 'goodbad'
 
 SEX_DICT = {'female': 0., 'male': 1.}
 GOODBAD_DICT = {'bad': 0., 'good': 1., 'delete': 2.}

@@ -2,7 +2,7 @@ import os
 import re
 import logging
 from functools import partial
-from itertools import groupby, islice
+from itertools import islice
 from typing import Iterator, List
 
 from bunch import Bunch
@@ -17,7 +17,7 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)
 logger.addHandler(handler)
 
 REGEX_PICKLE = re.compile(
-    r"pc_(?P<qrcode>[a-zA-Z0-9]+-[a-zA-Z0-9]+)_(?P<unixepoch>\d+)_(?P<code>\d{3})_(?P<idx>\d{3}).p$"
+    r"pc_(?P<person_id>[a-zA-Z0-9-]+)_(?P<timestamp>[\d-]+)_(?P<code>\d{3})_(?P<idx>\d\.\d).p$"
 )
 
 
@@ -44,8 +44,8 @@ def _create_multiartifact_paths(qrcode_path: str, n_artifacts: int, data_config:
     path_with_wildcard = os.path.join(qrcode_path, "*.p")
     list_of_pickle_file_paths = sorted(glob.glob(path_with_wildcard))
 
-    # Split if there are multiple scans on different days
-    scans = [list(v) for _unixepoch, v in groupby(list_of_pickle_file_paths, _get_epoch) if _unixepoch]
+    # Split if there are multiple scans on different days TODO
+    scans = [list_of_pickle_file_paths]
 
     # Filter to keep scans with enough artifacts
     scans = list(filter(lambda x: len(x) >= n_artifacts, scans))
@@ -98,6 +98,6 @@ def sample_systematic_from_artifacts(artifacts: list, n_artifacts: int) -> list:
 def _get_epoch(fname: str) -> str:
     match_result = REGEX_PICKLE.search(fname)
     if match_result:
-        return match_result.group("unixepoch")
+        return match_result.group("timestamp")
     else:
         logger.info("%s doesn't match REGEX_PICKLE", fname)

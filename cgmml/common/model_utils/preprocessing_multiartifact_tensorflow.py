@@ -16,7 +16,7 @@ def create_multiartifact_sample(artifacts: List[str],
                                 normalization_value: float,
                                 image_target_height: int,
                                 image_target_width: int,
-                                targets_indices: tf.Tensor,
+                                target_names: tf.Tensor,
                                 n_artifacts: int,
                                 ) -> Tuple[tf.Tensor, tf.Tensor]:
     """Open pickle files and load data.
@@ -33,7 +33,7 @@ def create_multiartifact_sample(artifacts: List[str],
 
     for i, artifact_path in enumerate(artifacts):
         depthmap, targets = _py_load_pickle(artifact_path, normalization_value,
-                                            image_target_height, image_target_width, targets_indices)
+                                            image_target_height, image_target_width, target_names)
         depthmap.set_shape((image_target_height, image_target_width, 1))
         depthmaps[:, :, i] = tf.squeeze(depthmap, axis=2)
         targets_list.append(targets)
@@ -48,7 +48,7 @@ def _py_load_pickle(path: Union[tf.Tensor, str],
                     normalization_value: float,
                     image_target_height: int,
                     image_target_width: int,
-                    targets_indices: tf.Tensor,
+                    target_names: tf.Tensor,
                     ) -> Tuple[Union[tf.Tensor, np.array], Union[tf.Tensor, np.array]]:
     path_ = path if isinstance(path, str) else path.numpy()
     try:
@@ -60,7 +60,7 @@ def _py_load_pickle(path: Union[tf.Tensor, str],
     depthmap = _preprocess_depthmap(depthmap)
     depthmap = depthmap / normalization_value
     depthmap = tf.image.resize(depthmap, (image_target_height, image_target_width))
-    targets = _preprocess_targets(targets, targets_indices)
+    targets = _preprocess_targets(targets, target_names)
     return depthmap, targets
 
 
@@ -69,9 +69,9 @@ def _preprocess_depthmap(depthmap: Union[tf.Tensor, np.array]) -> Union[tf.Tenso
 
 
 def _preprocess_targets(targets: Union[tf.Tensor, np.array],
-                        targets_indices_: tf.Tensor,
+                        target_names_: tf.Tensor,
                         ) -> Union[tf.Tensor, np.array]:
-    targets_indices = targets_indices_.numpy().tolist()
-    if targets_indices is not None:
-        targets = targets[targets_indices]
-    return targets.astype("float32")
+    target_names = target_names_.numpy().tolist()
+    targets = [targets[target_name.decode() if isinstance(target_name, bytes) else target_name]
+               for target_name in target_names]
+    return np.array(targets).astype("float32")

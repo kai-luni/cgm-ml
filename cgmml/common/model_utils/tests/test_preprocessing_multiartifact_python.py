@@ -54,10 +54,10 @@ def test_systematic_sample_from_artifacts_too_few():
 
 
 def test_regex_pickle():
-    fname = "pc_1583462470-16tvfmb1d0_1591122155216_100_000.p"
+    fname = "pc_00c38d20-0d16-11ec-985b-cb6242a5c193_2021-09-04-00-21-04-443303_100_1.0.p"
 
     match_result = REGEX_PICKLE.search(fname)
-    assert match_result.group("qrcode") == "1583462470-16tvfmb1d0"
-    assert match_result.group("unixepoch") == "1591122155216"
+    assert match_result.group("person_id") == "00c38d20-0d16-11ec-985b-cb6242a5c193"
+    assert match_result.group("timestamp") == "2021-09-04-00-21-04-443303"
     assert match_result.group("code") == "100"
-    assert match_result.group("idx") == "000"
+    assert match_result.group("idx") == "1.0"
