@@ -1,5 +1,6 @@
 [![codecov](https://codecov.io/gh/Welthungerhilfe/cgm-ml/branch/main/graph/badge.svg?token=LG8Q3NTVE1)](https://codecov.io/gh/Welthungerhilfe/cgm-ml)
 [![Python package](https://github.com/Welthungerhilfe/cgm-ml/actions/workflows/continous-integration.yml/badge.svg?branch=main)](https://github.com/Welthungerhilfe/cgm-ml/actions/workflows/continous-integration.yml)
+[![Supported Python Versions](https://img.shields.io/pypi/pyversions/cgm-ml-common.svg)](https://pypi.python.org/pypi/cgm-ml-common)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Welthungerhilfe/cgm-ml/HEAD)
 [![CodeFactor](https://www.codefactor.io/repository/github/welthungerhilfe/cgm-ml/badge)](https://www.codefactor.io/repository/github/welthungerhilfe/cgm-ml)
 
@@ -19,8 +20,6 @@ This [one-minute video](https://www.youtube.com/watch?v=f2doV43jdwg) explains.
 
 ### Requirements
 
-Our development environment is [Microsoft Azure ML](https://azure.microsoft.com/en-us/services/machine-learning/#security)
-
 You will need:
 * Python 3.6 or Python 3.7
 * TensorFlow version 2
@@ -32,23 +31,22 @@ To install, run:
 pip install -r requirements.txt
 ```
 
-For installing point cloud libraries, refer to
-[README_installation_details_pcl.md](README_installation_details_pcl.md).
+We use [Microsoft Azure ML](https://azure.microsoft.com/en-us/services/machine-learning/) to manage our datasets, experiments, and models internally.
+You can also run most of the code without AzureML though.
 
 ### Dataset access
-
-If you have access to scan data, you can use: `cgmml/data_utils` to understand and visualize the data.
 
 Data access is provided on as-needed basis following signature of the Welthungerhilfe Data Privacy & Commitment to
 Maintain Data Secrecy Agreement. If you need data access (e.g. to train your machine learning models),
 please contact [Markus Matiaschek](mailto:info@childgrowthmonitor.org) for details.
 
+If you have access to scan data, you can use: `cgmml/data_utils` to understand and visualize the data.
+
 ## Repository structure
 
 The source code is in `cgmml/`.
 
-We make heavy use of AzureML.
-For AzureML, all code for an experiment run needs to reside in one directory.
+Due to AzureML, all code for a single experiment run needs to reside in one directory.
 Example: All code for one specific training, e.g. a ResNet training, needs to be in this training directory.
 
 However, many of our trainings (and also evaluation runs) share large portions of code.
