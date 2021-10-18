@@ -1,4 +1,4 @@
-# on updating dependencies please also update cache version in CI config file 
+# on updating dependencies please also update cache version in CI config file
 # (e.g. https://github.com/Welthungerhilfe/cgm-ml/pull/489/files)
 numpy==1.19.5
 pandas==0.25.3
@@ -6,7 +6,7 @@ matplotlib==3.3.4
 scikit-learn==0.22.2.post1
 glob2==0.7
 bunch==1.0.1
-tensorflow==2.4.2
+tensorflow==2.4.3
 tensorflow-addons==0.13.0
 torch==1.7.0
 torchvision==0.8.1
