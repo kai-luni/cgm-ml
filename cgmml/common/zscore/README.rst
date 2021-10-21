@@ -35,7 +35,7 @@ calculate z score for weight vs age
 
     from cgmzscore.src.main import z_score_wfa
 
-    v = z_score_wfa(weight="7.853",age_in_days='16',sex='M')
+    score = z_score_wfa(weight="7.853",age_in_days='16',sex='M')
 
 calculate z score for weight vs length/height
 
@@ -43,7 +43,7 @@ calculate z score for weight vs length/height
 
     from cgmzscore.src.main import z_score_wfl
 
-    v = z_score_wfl(weight="7.853",age_in_days='16',sex='M',height='73')
+    score = z_score_wfl(weight="7.853",age_in_days='16',sex='M',height='73')
 
 calculate z score for weight vs length/height and both wfl and wfh works same
 
@@ -51,7 +51,7 @@ calculate z score for weight vs length/height and both wfl and wfh works same
 
     from cgmzscore.src.main import z_score_wfh
 
-    v = Calculator().zScore_wfh(weight="7.853",age_in_days='16',sex='M',height='73')
+    score = z_score_wfh(weight="7.853",age_in_days='16',sex='M',height='73')
 
 calculate z score for length vs age
 
@@ -59,16 +59,7 @@ calculate z score for length vs age
 
     from cgmzscore.src.main import z_score_lhfa
 
-    v = Calculator().z_score_lhfa(age_in_days='16',sex='M',height='73')
-
-
-calculate all three z score along with class
-
-.. code-block:: python
-
-    from cgmzscore.src.main import z_score_with_class
-
-    v = calculator.z_score_with_class(weight="7.853",muac="13.5",age_in_days='16',sex='M',height='73')
+    score = z_score_lhfa(age_in_days='16',sex='M',height='73')
 
 find child is SAM/MAM/Healthy
 
@@ -76,4 +67,4 @@ find child is SAM/MAM/Healthy
 
     from cgmzscore.src.main import calculate_sam_mam
 
-    v = calculate_sam_mam(weight="7.853",muac="13.5",age_in_days='16',sex='M',height='73')
+    score = calculate_sam_mam(weight="7.853",muac="13.5",age_in_days='16',sex='M',height='73')
