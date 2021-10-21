@@ -26,6 +26,8 @@ from multiprocessing.dummy import Pool as ThreadPool
 import os
 from pathlib import Path
 from typing import Dict, List, Tuple
+import subprocess as sp
+import json
 
 import pandas as pd
 import psycopg2
@@ -392,6 +394,24 @@ df_to_process.to_csv(labels_filename, index=False)
 
 dest_fpath = os.path.join(dest_dir, remove_prefix(labels_filename, PREFIX))
 upload_to_blob_storage(src=labels_filename, dest_container=CONTAINER_NAME_DEST_SA, dest_fpath=dest_fpath)
+
+# COMMAND ----------
+
+cgm_ml_release = sp.getoutput('pip freeze | grep cgm-ml-common')
+cgm_ml_release
+
+# COMMAND ----------
+
+version_info = {}
+version_info['cgm-ml-common-release'] = cgm_ml_release
+
+version_json_filename = f"{output_dir}/version.json"
+
+with open(version_json_filename, 'w') as fp:
+    json.dump(version_info, fp)
+
+dest_fpath = os.path.join(dest_dir, remove_prefix(version_json_filename, PREFIX))
+upload_to_blob_storage(src=version_json_filename, dest_container=CONTAINER_NAME_DEST_SA, dest_fpath=dest_fpath)
 
 # COMMAND ----------
 
