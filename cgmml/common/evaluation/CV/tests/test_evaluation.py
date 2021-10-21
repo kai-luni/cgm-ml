@@ -12,21 +12,21 @@ def test_check_height_prediction():
 
     # Test low value exception
     try:
-        check_height_prediction(0)
+        check_height_prediction(0, True)
         assert False
     except Exception:
         assert True
 
     # Test high value exception
     try:
-        check_height_prediction(200)
+        check_height_prediction(200, True)
         assert False
     except Exception:
         assert True
 
     # Test valid value pass
     try:
-        check_height_prediction(100)
+        check_height_prediction(100, True)
         assert True
     except Exception:
         assert False

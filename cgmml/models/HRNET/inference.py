@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 import time
 
 import cgmml.models.HRNET.code.models.pose_hrnet  # noqa
@@ -25,8 +26,19 @@ logging.basicConfig(level=logging.INFO, filename='pose_prediction.log',
                     format='Date-Time : %(asctime)s : Line No. : %(lineno)d - %(message)s', filemode='w')
 
 
-MODEL_FILE = 'pose_hrnet_w32_384x288.pth'
-MODEL_ID = '1fGN2P81JEgzjLxCn5_PaOwaoUwT0Ybc3'
+REPO_DIR = Path(__file__).resolve().parents[3]
+DATA_DIR = REPO_DIR / 'data'
+CONFIG_PATH_W32 = REPO_DIR / 'cgmml/models/HRNET/inference-config-hrnet_w32.yaml'
+CONFIG_PATH_W48 = REPO_DIR / 'cgmml/models/HRNET/inference-config-hrnet_w48.yaml'
+MODEL_FILE_W32 = DATA_DIR / 'pose_models' / 'pose_hrnet_w32_384x288.pth'
+MODEL_FILE_W48 = DATA_DIR / 'pose_models' / 'pose_hrnet_w48_384x288.pth'
+MODEL_ID_W32 = '1fGN2P81JEgzjLxCn5_PaOwaoUwT0Ybc3'
+MODEL_ID_W48 = '1UoJhTtjHNByZSm96W3yFTfU5upJnsKiS'
+
+CONFIG_PATH = CONFIG_PATH_W48
+MODEL_FILE = MODEL_FILE_W48
+MODEL_ID = MODEL_ID_W48
+MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 
 class PosePrediction:
@@ -42,13 +54,13 @@ class PosePrediction:
     def load_pose_model(self):
         self.pose_model = get_pose_net(cfg)
         self.pose_model.load_state_dict(torch.load(
-            cfg.TEST.MODEL_FILE, map_location=torch.device('cpu')), strict=False)
+            MODEL_FILE, map_location=torch.device('cpu')), strict=False)
         self.pose_model = torch.nn.DataParallel(self.pose_model, device_ids=cfg.GPUS)
         self.pose_model.to(self.ctx)
         self.pose_model.eval()
 
     def read_image(self, image_path):
-        image_bgr = cv2.imread(image_path)
+        image_bgr = cv2.imread(str(image_path))
         return image_bgr, image_bgr.shape
 
     def orient_image_using_scan_type(self, original_image, scan_type):
@@ -104,11 +116,26 @@ class ResultGeneration:
         self.save_pose_overlay = save_pose_overlay
 
     def result_on_artifact_level(self, jpg_path, scan_type):
+        jpg_path = str(jpg_path)
+        image = self.pose_prediction.read_image(jpg_path)
+        return self.result_on_artifact_level_from_image(image, jpg_path, scan_type)
 
+    def result_on_artifact_level_from_image(self, image, jpg_path, scan_type):
+        """Detects persons in image and provide coordinates in pixels
+
+        Args:
+            image (object): Image data in OpenCV format
+            jpg_path (str): Path to the RGB file in JPG format (only for writing purpose)
+            scan_type (str): Type of the scan '100', '101', '102', '200', '201', '202'
+
+        Returns:
+            dict: JSON structure containing amount of detected persons, skeleton coordinates
+        """
         start_time = time.time()
 
-        original_image, shape = self.pose_prediction.read_image(jpg_path)
-        rotated_image = self.pose_prediction.orient_image_using_scan_type(original_image, scan_type)
+        jpg_path = str(jpg_path)
+        shape = image.shape
+        rotated_image = self.pose_prediction.orient_image_using_scan_type(image, scan_type)
         box_model_input, rotated_image_rgb = self.pose_prediction.preprocess_image(rotated_image)
 
         pred_boxes, pred_score = self.pose_prediction.perform_box_on_image(box_model_input)
@@ -129,9 +156,9 @@ class ResultGeneration:
                 pose_preds[0], scan_type, height, width)
 
             if self.save_pose_overlay:
-                self.pose_prediction.pose_draw_on_image(pose_preds, original_image)
+                self.pose_prediction.pose_draw_on_image(pose_preds, image)
                 if idx == len(pred_boxes) - 1:
-                    self.pose_prediction.save_final_image(jpg_path.split('/')[-1], original_image)
+                    self.pose_prediction.save_final_image(jpg_path.split('/')[-1], image)
 
             for i in range(0, NUM_KPTS):
                 key_points_coordinate_list.append(
@@ -197,7 +224,7 @@ class ResultGeneration:
         self.df.to_csv(file_path, index=False)
 
 
-def get_hrnet_model(config_path: str) -> ResultGeneration:
+def get_hrnet_model() -> ResultGeneration:
     if not os.path.isfile(MODEL_FILE):
         download_file_from_google_drive(MODEL_ID, MODEL_FILE)
     ctx = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -206,7 +233,7 @@ def get_hrnet_model(config_path: str) -> ResultGeneration:
     cudnn.benchmark = cfg.CUDNN.BENCHMARK
     torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
-    update_config(cfg, config_path)
+    update_config(cfg, str(CONFIG_PATH))
 
     pose_prediction = PosePrediction(ctx)
     pose_prediction.load_box_model()
@@ -216,7 +243,7 @@ def get_hrnet_model(config_path: str) -> ResultGeneration:
 
 
 def main():
-    result_generation = get_hrnet_model('cgmml/models/HRNET/inference-config-hrnet.yaml')
+    result_generation = get_hrnet_model()
     result_generation.result_on_scan_level(cfg.TEST.DATA_PATH)
 
     logging.info("Result Generation done")

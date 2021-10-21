@@ -13,6 +13,7 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)
 logger.addHandler(handler)
 
 ERROR_THRESHOLDS = [0.2, 0.4, 0.6, 1.0, 1.2, 1.4, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0]
+MAXIMUM_LYING_CHILD_HEIGHT_IN_CM = 100
 MAXIMUM_CHILD_HEIGHT_IN_CM = 130
 MINIMUM_CHILD_HEIGHT_IN_CM = 45
 
@@ -33,7 +34,7 @@ METADATA_ERROR = 13
 METADATA_ANGLE = 14
 
 
-def check_height_prediction(height: float):
+def check_height_prediction(height: float, is_standing: bool):
     """Validates the height result validity and raises an exception if not
 
     Args:
@@ -51,6 +52,10 @@ def check_height_prediction(height: float):
     # Filter heights more than MAXIMUM_CHILD_HEIGHT_IN_CM
     if height > MAXIMUM_CHILD_HEIGHT_IN_CM:
         raise Exception(f'Skipping because the height is more than {MAXIMUM_CHILD_HEIGHT_IN_CM}cm')
+
+    # Filter heights more than MAXIMUM_LYING_CHILD_HEIGHT_IN_CM
+    if (not is_standing) and (height > MAXIMUM_LYING_CHILD_HEIGHT_IN_CM):
+        raise Exception(f'Skipping because the height is more than {MAXIMUM_LYING_CHILD_HEIGHT_IN_CM}cm')
 
 
 def filter_metadata(metadata: list, is_standing: bool, one_artifact_per_scan: bool) -> dict:
@@ -216,7 +221,7 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
                 depthmap_file = (path + data[METADATA_DEPTHMAP]).replace('"', '')
                 rgb_file = (path + data[METADATA_RGB]).replace('"', '')
                 height, angle = predict_height(depthmap_file, rgb_file, calibration_file)
-                check_height_prediction(height)
+                check_height_prediction(height, is_standing)
                 heights.append(height)
                 angles.append(angle)
             except Exception as exc:

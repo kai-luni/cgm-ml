@@ -68,9 +68,8 @@ MODEL:
 
 
 TEST:
-  MODEL_FILE: 'cgmml/models/HRNET/weights/pytorch/pose_coco/pose_hrnet_w32_384x288.pth'
   POST_PROCESS: true
-  POSE_DRAW : true
+  POSE_DRAW : false
   DATA_PATH: 'data/path/version_wise_jpg'
 
 BOX_MODEL:

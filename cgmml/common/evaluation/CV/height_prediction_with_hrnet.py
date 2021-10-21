@@ -3,9 +3,9 @@ from typing import Tuple
 import numpy as np
 
 from cgmml.common.depthmap_toolkit.depthmap import is_google_tango_resolution
-from body_pose import BodyPose
+from cgmml.models.HRNET.body_pose import BodyPose
 
-PREDICTION_OFFSET_IN_CM = 12.0
+PREDICTION_OFFSET_IN_CM = 11.0
 PREDICTION_SCALE_FACTOR = 1.01
 
 
