@@ -24,3 +24,4 @@ exclude =
     data/,
     logs/,
     wandb
+    .venv
