@@ -12,7 +12,7 @@ We use a DeepLab pretrained model to do the segmentation.
 Download the tar-ed model files from
 <https://github.com/tensorflow/models/blob/master/research/deeplab/g3doc/model_zoo.md>
 (e.g. http://download.tensorflow.org/models/deeplabv3_pascal_trainval_2018_01_04.tar.gz)
-and put it into the `cgm-ml/data/background_segmentation` directory.
+and put it into the `cgm-ml/data/models/background_segmentation` directory.
 
 ## Usage
 

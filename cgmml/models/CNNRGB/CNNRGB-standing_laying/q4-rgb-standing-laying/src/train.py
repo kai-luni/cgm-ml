@@ -53,7 +53,7 @@ if(run.id.startswith("OfflineRun")):
         dataset.download(target_path=dataset_path, overwrite=False)
 
     dataset_name = CONFIG.DATASET_NAME_LOCAL
-    dataset_path = get_dataset_path(DATA_DIR, dataset_name)
+    dataset_path = get_dataset_path(DATA_DIR / "datasets", dataset_name)
     download_dataset(workspace, dataset_name, dataset_path)
 
 # Online run. Use dataset provided by training notebook.

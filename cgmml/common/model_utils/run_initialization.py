@@ -49,7 +49,7 @@ class OfflineRunInitializer(RunInitializer):
     def get_dataset(self):
         logger.info("Accessing dataset...")
         dataset_name = self._data_config.NAME
-        self.dataset_path = str(REPO_DIR / "data" / dataset_name)
+        self.dataset_path = str(REPO_DIR / "data" / "datasets" / dataset_name)
         if not os.path.exists(self.dataset_path):
             dataset = self.workspace.datasets[dataset_name]
             dataset.download(target_path=self.dataset_path, overwrite=False)

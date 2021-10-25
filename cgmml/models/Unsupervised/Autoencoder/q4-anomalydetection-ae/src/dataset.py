@@ -26,7 +26,7 @@ def create_datasets(workspace, experiment, run, offline_run, config):
     # Offline run. Download the sample dataset and run locally. Still push results to Azure.
     if offline_run:
         dataset_name = config.DATASET_NAME_LOCAL
-        dataset_path = get_dataset_path(data_dir, dataset_name)
+        dataset_path = get_dataset_path(data_dir / "datasets", dataset_name)
         download_dataset(workspace, dataset_name, dataset_path)
 
     # Online run. Use dataset provided by training notebook.

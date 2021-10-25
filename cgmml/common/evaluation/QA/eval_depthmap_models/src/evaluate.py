@@ -77,11 +77,12 @@ if __name__ == "__main__":
             initializer = OnlineRunInitializer(data_config, eval_config, RUN)
 
         if is_ensemble_evaluation(model_config):
-            model_base_dir = (REPO_DIR / 'data' / model_config.EXPERIMENT_NAME) if is_offline_run(RUN) else Path('.')
+            model_base_dir = (REPO_DIR / 'data/models'
+                              / model_config.EXPERIMENT_NAME) if is_offline_run(RUN) else Path('.')
             eval_class = EnsembleEvaluation
             descriptor = model_config.EXPERIMENT_NAME
         else:
-            model_base_dir = REPO_DIR / 'data' / model_config.RUN_ID if is_offline_run(RUN) else Path('.')
+            model_base_dir = REPO_DIR / 'data/models' / model_config.RUN_ID if is_offline_run(RUN) else Path('.')
             eval_class = MultiartifactEvaluation if is_multiartifact_evaluation(data_config) else Evaluation
             descriptor = model_config.RUN_ID
         evaluation = eval_class(model_config, data_config, model_base_dir, initializer.dataset_path)
