@@ -34,18 +34,8 @@ if __name__ == "__main__":
     for row in metadata:
 
         # Check if the scan version is correct
-        if not row[METADATA_SCAN_VERSION].startswith('v0.9'):
-            continue
-
-        # Check if it is not badly performing scan type
-        if row[METADATA_SCAN_TYPE].startswith('101'):
-            continue
-        if row[METADATA_SCAN_TYPE].startswith('102'):
-            continue
-        if row[METADATA_SCAN_TYPE].startswith('202'):
-            continue
-
-        metadata_filtered.append(row)
+        if not row[METADATA_SCAN_VERSION].startswith('v0.8'):
+            metadata_filtered.append(row)
 
     size = len(metadata_filtered)
     for index in tqdm(range(size)):

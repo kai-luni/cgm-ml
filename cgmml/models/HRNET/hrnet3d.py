@@ -26,6 +26,14 @@ DEPTH_PENALTY_FACTOR = 10
 MINIMAL_DEPTH = 0.2
 
 
+def are_joints_valid(joints: list) -> bool:
+    for joint in joints:
+        for value in joint:
+            if np.isnan(value):
+                return False
+    return True
+
+
 def convert_2dskeleton_to_3d(dmap: object, floor: float, joints: list, confidences: list) -> list:
 
     # Create cache for searching nearest valid point
@@ -56,6 +64,9 @@ def convert_2dskeleton_to_3d(dmap: object, floor: float, joints: list, confidenc
         # Add confidence of the joint
         point_3d = np.append(point_3d, [confidence, distance_in_px])
         output.append(point_3d)
+
+    if not are_joints_valid(output):
+        raise Exception('The depth data seems to be not valid')
     return output
 
 
