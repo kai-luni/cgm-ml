@@ -19,6 +19,6 @@ dependencies:
     - pyyaml
     - tensorflow==2.4.3
     - tensorflow-addons==0.13.0
-    - cgmzscore==2.0.3
+    - cgmzscore==3.0.3
     - azure-cli==2.25.0
     - azureml-sdk==1.31.0

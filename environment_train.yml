@@ -21,4 +21,4 @@ dependencies:
     - wandb
     - azureml-defaults
     - azureml-dataprep[fuse,pandas]
-    - cgmzscore==2.0.3
+    - cgmzscore==3.0.3

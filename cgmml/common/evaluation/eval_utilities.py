@@ -17,7 +17,7 @@ from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt  # noqa: E402
-from cgmzscore import Calculator  # noqa: E402
+from cgmzscore.src.main import z_score_wfa, z_score_lhfa  # noqa: E402
 
 from .constants_eval import (  # noqa: E402
     CODE_TO_SCANTYPE, COLUMN_NAME_AGE, COLUMN_NAME_GOODBAD, COLUMN_NAME_SEX, DAYS_IN_YEAR,
@@ -306,11 +306,10 @@ def draw_stunting_diagnosis(df: pd.DataFrame, png_out_fpath: str):
 
 def calculate_zscore_lhfa(df):
     """lhfa: length/height for age"""
-    cal = Calculator()
 
     def _calc_score(age_in_days, height, sex):
         if MIN_HEIGHT < height <= MAX_HEIGHT and age_in_days <= MAX_AGE:
-            return cal.zScore_lhfa(age_in_days=age_in_days, sex=sex, height=height)
+            return z_score_lhfa(age_in_days=age_in_days, sex=sex, height=height)
 
     def _fct(row):
         return _calc_score(age_in_days=int(row[COLUMN_NAME_AGE]),
@@ -343,11 +342,10 @@ def draw_wasting_diagnosis(df: pd.DataFrame, png_out_fpath: str):
 
 def calculate_zscore_wfa(df):
     """Weight for age"""
-    cal = Calculator()
 
     def utils(age_in_days, weight, sex):
         if age_in_days <= MAX_AGE:
-            return cal.zScore_wfa(age_in_days=age_in_days, sex=sex, weight=weight)
+            return z_score_wfa(age_in_days=age_in_days, sex=sex, weight=weight)
 
     df['Z_actual'] = df.apply(
         lambda row: utils(age_in_days=int(row[COLUMN_NAME_AGE]),

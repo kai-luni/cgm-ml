@@ -19,7 +19,7 @@ face_recognition==1.3.0
 imgaug==0.4.0
 xmltodict==0.12.0
 pyntcloud==0.1.3
-cgmzscore==2.0.4
+cgmzscore==3.0.3
 wandb
 azureml-sdk[notebooks]==1.21.0
 flake8==3.9.2
