@@ -52,6 +52,10 @@ def get_features_from_fpath(obj_file_path: Path, config_train: Bunch) -> Dict[st
         if config_train.USE_VALIDITY_FEATURES:
             child_features[f'joint{joint_index}validity'] = joint.distance_in_px
 
+    # Check that the features are not NaN
+    values = np.array(list(child_features.values()))
+    assert np.all(~np.isnan(values)), (obj_file_path, child_features, joints)
+
     return child_features
 
 
