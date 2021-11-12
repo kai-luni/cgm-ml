@@ -31,15 +31,18 @@ def calculate_boundary(array: np.ndarray) -> np.ndarray:
 def get_smoothed_pixel(data: np.ndarray, x: int, y: int, step: int) -> np.array:
     width = data.shape[0]
     height = data.shape[1]
-    pixel = np.array([0, 0, 0])
-    count = 0
-    for tx in range(x - step, x + step):
-        for ty in range(y - step, y + step):
-            if not (0 < tx < width and 0 < ty < height):
-                continue
-            pixel = pixel + data[tx, ty, :]
-            count = count + 1
-    return pixel / max(count, 1)
+
+    x1 = max(x - step, 0)
+    y1 = max(y - step, 0)
+    x2 = min(x + step, width - 1)
+    y2 = min(y + step, height - 1)
+
+    count = max((x2 - x1) * (y2 - y1), 1)
+    r = data[x1:x2, y1:y2, 0] / count
+    g = data[x1:x2, y1:y2, 1] / count
+    b = data[x1:x2, y1:y2, 2] / count
+
+    return [np.sum(r), np.sum(g), np.sum(b)]
 
 
 def matrix_calculate(position: List[float], rotation: List[float]) -> List[float]:

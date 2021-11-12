@@ -8,7 +8,7 @@ from cgmml.common.depthmap_toolkit.exporter import export_obj
 from cgmml.common.depthmap_toolkit.visualisation import blur_face, CHILD_HEAD_HEIGHT_IN_METERS
 from cgmml.models.HRNET.inference import get_hrnet_model
 from cgmml.models.HRNET.hrnet3d import convert_2dskeleton_to_3d, get_person_standing_confidence, get_person_lengths
-from cgmml.models.HRNET.hrnet3d import write_skeleton_into_obj, BONES, JOINT_INDEX_NOSE
+from cgmml.models.HRNET.hrnet3d import write_skeleton_into_obj, BONES, JOINT_INDEX_LEFT_EYE, JOINT_INDEX_RIGHT_EYE
 
 HRNET_MODEL = get_hrnet_model()
 STANDING_CLASSIFY_FACTOR = 0.5
@@ -108,9 +108,11 @@ class BodyPose:
         # Blur face
         if not should_anonymize:
             return image
-        highest_point = self.get_person_joints()[JOINT_INDEX_NOSE][0:3]
-        highest_point[1] += self.floor
-        image = blur_face(image, highest_point, self.dmap, CHILD_HEAD_HEIGHT_IN_METERS / 2.0)
+        eyes_center = self.get_person_joints()[JOINT_INDEX_LEFT_EYE][0:3]
+        eyes_center += self.get_person_joints()[JOINT_INDEX_RIGHT_EYE][0:3]
+        eyes_center /= 2.0
+        eyes_center[1] += self.floor
+        image = blur_face(image, eyes_center, self.dmap, CHILD_HEAD_HEIGHT_IN_METERS / 2.0)
 
         # Reorient the image
         if should_reorient and (not self.is_standing()):
