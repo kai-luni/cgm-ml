@@ -57,5 +57,8 @@ if __name__ == "__main__":
         rgb_file = rgb_file.replace('"', '')
 
         # Render data
-        file = str(EXPORT_DIR) + '/' + str(index + 1) + '.png'
-        plt.imsave(file, render_prediction_plots(depthmap_file, rgb_file, calibration_file))
+        try:
+            file = str(EXPORT_DIR) + '/' + str(index + 1) + '.png'
+            plt.imsave(file, render_prediction_plots(depthmap_file, rgb_file, calibration_file))
+        except Exception:
+            print('File ' + str(rgb_file) + ' failed to render.')
