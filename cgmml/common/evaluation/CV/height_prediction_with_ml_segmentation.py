@@ -11,6 +11,7 @@ from cgmml.common.background_segmentation.deeplab.deeplab_model import get_deepl
 
 DEEPLAB_MODEL = get_deeplab_model()
 HEIGHT_SCALE_FACTOR = 0.05
+HEIGHT_OFFSET_IN_CM = -0.25
 
 
 def predict_height(depthmap_file: str, rgb_file: str, calibration_file: str) -> Tuple[float, float]:
@@ -42,7 +43,7 @@ def predict_height(depthmap_file: str, rgb_file: str, calibration_file: str) -> 
     seg_map[seg_map == PERSON_SEGMENTATION] = MASK_CHILD
     highest = dmap.get_highest_point(seg_map)[1]
     factor = 1.0 + math.sin(math.radians(angle)) * HEIGHT_SCALE_FACTOR
-    height_in_cm = factor * (highest - floor) * 100.0
+    height_in_cm = factor * (highest - floor) * 100.0 + HEIGHT_OFFSET_IN_CM
     return height_in_cm, angle
 
 

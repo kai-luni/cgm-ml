@@ -6,7 +6,7 @@ To set up the environment, you have to be a member of CGM development team and h
 ### Exporting metadata
 Open Cloudbeaver <https://cgm-core-infra-prod-ci-sqlmgmt.azurewebsites.net/#/> and run following SQL query:
 
-`select s.id as scan_id, a.ord as ord, a.id as artifact_id, f.file_path as file_path, f.file_extension as file_extension, m.height, m.weight, m.muac,  s.version as scan_version, s.scan_type_id as scan_type, m.measured as measurement_date, s.scan_start as scan_date from scan s
+`select s.person_id as person_id, s.id as scan_id, a.ord as ord, a.id as artifact_id, f.file_path as file_path, f.file_extension as file_extension, m.height, m.weight, m.muac,  s.version as scan_version, s.scan_type_id as scan_type, m.measured as measurement_date, s.scan_start as scan_date from scan s
 join measure m on s.person_id = m.person_id and s.scan_start::date = m.measured::date
 join artifact a on a.scan_id = s.id
 join file f on a.file_id = f.id`

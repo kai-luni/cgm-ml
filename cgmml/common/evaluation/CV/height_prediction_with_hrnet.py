@@ -10,8 +10,8 @@ from cgmml.models.Pose3dPoints.Pose3dPoints_height.m2021q4_randomforest.src.cons
 from cgmml.models.Pose3dPoints.Pose3dPoints_height.m2021q4_randomforest.src.train_util import get_features_from_fpath
 from cgmml.models.Pose3dPoints.Pose3dPoints_height.m2021q4_randomforest.src.config_train import CONFIG_TRAIN
 
-PREDICTION_OFFSET_IN_CM_STANDING = 11.0
-PREDICTION_OFFSET_IN_CM_LYING = 11.25
+PREDICTION_OFFSET_IN_CM_STANDING = 10.7
+PREDICTION_OFFSET_IN_CM_LYING = 11.35
 TEMP_FILE = 'temp.obj'
 
 DATA_DIR = REPO_DIR / 'data'
