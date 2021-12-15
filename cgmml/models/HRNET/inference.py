@@ -117,7 +117,7 @@ class ResultGeneration:
 
     def result_on_artifact_level(self, jpg_path, scan_type):
         jpg_path = str(jpg_path)
-        image = self.pose_prediction.read_image(jpg_path)
+        image, shape = self.pose_prediction.read_image(jpg_path)
         return self.result_on_artifact_level_from_image(image, jpg_path, scan_type)
 
     def result_on_artifact_level_from_image(self, image, jpg_path, scan_type):
