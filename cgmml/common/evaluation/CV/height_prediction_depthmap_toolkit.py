@@ -2,7 +2,7 @@ import numpy as np
 from typing import Tuple
 
 from cgmml.common.depthmap_toolkit.depthmap import Depthmap, is_google_tango_resolution
-from cgmml.common.depthmap_toolkit.visualisation import render_plot
+from cgmml.common.depthmap_toolkit.visualisation import render_plot_debug
 
 
 def predict_height(depthmap_file: str, rgb_file: str, calibration_file: str) -> Tuple[float, float]:
@@ -27,4 +27,4 @@ def predict_height(depthmap_file: str, rgb_file: str, calibration_file: str) -> 
 
 def render_prediction_plots(depthmap_file: str, rgb_file: str, calibration_file: str) -> np.array:
     dmap = Depthmap.create_from_zip_absolute(depthmap_file, rgb_file, calibration_file)
-    return render_plot(dmap)
+    return render_plot_debug(dmap)

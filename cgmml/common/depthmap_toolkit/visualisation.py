@@ -172,3 +172,14 @@ def render_plot(dmap: Depthmap) -> np.ndarray:
         output_plots.append(output_rgb)
 
     return np.concatenate(output_plots, axis=1)
+
+
+def render_plot_debug(dmap: Depthmap) -> np.ndarray:
+    output_plots = [
+        render_depth(dmap),
+        render_normal(dmap),
+        render_confidence(dmap),
+    ]
+    if dmap.has_rgb:
+        output_plots.append(render_rgb(dmap))
+    return np.concatenate(output_plots, axis=1)

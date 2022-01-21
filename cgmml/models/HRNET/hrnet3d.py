@@ -71,9 +71,9 @@ def convert_2dskeleton_to_3d(dmap: object, floor: float, joints: list, confidenc
 
 
 def get_person_standing_confidence(joints: list) -> float:
-    nose_height = joints[JOINT_INDEX_NOSE][1]
+    eyes_center = (joints[JOINT_INDEX_LEFT_EYE][1] + joints[JOINT_INDEX_RIGHT_EYE][1]) / 2.0
     length = max(np.max(get_person_lengths(joints)), 0.000001)
-    return (nose_height / length)
+    return (eyes_center / length)
 
 
 def get_person_lengths(joints: list) -> list:
