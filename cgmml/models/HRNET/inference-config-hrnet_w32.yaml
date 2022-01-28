@@ -69,8 +69,8 @@ MODEL:
 
 TEST:
   POST_PROCESS: true
-  POSE_DRAW : false
-  DATA_PATH: 'data/path/version_wise_jpg'
+  POSE_DRAW : true
+  DATA_PATH: 'output_path/'
 
 BOX_MODEL:
   THRESHOLD: 0.9

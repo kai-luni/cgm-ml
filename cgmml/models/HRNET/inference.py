@@ -2,7 +2,6 @@ import logging
 import os
 from pathlib import Path
 import time
-
 import cgmml.models.HRNET.code.models.pose_hrnet  # noqa
 import cv2
 import glob2 as glob
@@ -20,6 +19,8 @@ from cgmml.models.HRNET.code.models.pose_hrnet import get_pose_net
 from cgmml.models.HRNET.code.utils.google_drive_utils import download_file_from_google_drive
 from cgmml.models.HRNET.code.utils.utils import (box_to_center_scale, calculate_pose_score, draw_pose,
                                                  get_person_detection_boxes, get_pose_estimation_prediction, rot)
+from cgmml.models.HRNET.code.utils.utils import draw_face_blur_using_pose_advance
+# from cgmml.models.HRNET.code.utils.demo_utils import (opencv_hull_demo, opencv_polyfill_demo, opencv_convex_hull_demo)
 
 
 logging.basicConfig(level=logging.INFO, filename='pose_prediction.log',
@@ -104,10 +105,14 @@ class PosePrediction:
     def pose_draw_on_image(self, rotated_pose_preds, original_image):
         if len(rotated_pose_preds) >= 1:
             for kpt in rotated_pose_preds:
+                draw_face_blur_using_pose_advance(kpt, original_image)  # draw the face blur
                 draw_pose(kpt, original_image)  # draw the poses
 
     def save_final_image(self, final_image_name, original_image):
         cv2.imwrite('outputs/' + final_image_name, original_image)
+
+    def save_final_image_with_path(self, output_image_path: str, original_image):
+        cv2.imwrite(output_image_path, original_image)
 
 
 class ResultGeneration:
@@ -131,8 +136,8 @@ class ResultGeneration:
         Returns:
             dict: JSON structure containing amount of detected persons, skeleton coordinates
         """
+        logging.info("Started result_on_artifact_level_from_image")
         start_time = time.time()
-
         jpg_path = str(jpg_path)
         shape = image.shape
         rotated_image = self.pose_prediction.orient_image_using_scan_type(image, scan_type)
@@ -145,6 +150,7 @@ class ResultGeneration:
         # Get Height,Width,color from Image
         (height, width, color) = shape
         # one box ==> one pose pose[0]
+        logging.info("%s %s", "len of pred_boxes ", len(pred_boxes))
 
         for idx, pose_bbox in enumerate(pred_boxes):
             single_body_pose_result = {}
@@ -155,7 +161,11 @@ class ResultGeneration:
             pose_preds[0] = self.pose_prediction.orient_cordinate_using_scan_type(
                 pose_preds[0], scan_type, height, width)
 
+            logging.info("%s %s", "save_pose_overlay ", self.save_pose_overlay)
+
             if self.save_pose_overlay:
+                logging.info("Drawing pose overlay")
+                logging.info("%s %s", " path to save ", jpg_path.split('/')[-1])
                 self.pose_prediction.pose_draw_on_image(pose_preds, image)
                 if idx == len(pred_boxes) - 1:
                     self.pose_prediction.save_final_image(jpg_path.split('/')[-1], image)
@@ -190,16 +200,23 @@ class ResultGeneration:
         self.pose_result = []
         self.time = []
         # self.artifact_pose_result = []
-        logging.info("Extracting artifacts from scans")
 
+        logging.info("Extracting artifacts from scans")
+        logging.info("%s %s", "scan_parent ", scan_parent)
         artifact_paths = glob.glob(os.path.join(scan_parent, "**/**/*.jpg"))
+        logging.info("%s %s", "artifact_paths ", artifact_paths)
 
         logging.info("Result Generation Started")
         for jpg_path in artifact_paths:
+            logging.info("%s %s", "jpg_path ", jpg_path)
             jpg_path = jpg_path.replace("\\", "/")
             split_path = jpg_path.split('/')
 
             qr_code, scan_step, artifact_id = split_path[3], split_path[4], split_path[5]
+            logging.info("%s %s", "qr_code ", qr_code)
+            logging.info("%s %s", "scan_step ", scan_step)
+            logging.info("%s %s", "artifact_id ", artifact_id)
+
             pose_result_of_artifact = self.result_on_artifact_level(jpg_path, scan_step)
 
             self.qr_code.append(qr_code)
@@ -221,6 +238,7 @@ class ResultGeneration:
         })
 
     def save_to_csv(self, file_path):
+        logging.info("%s %s", "file_path to CSV ", file_path)
         self.df.to_csv(file_path, index=False)
 
 
@@ -242,14 +260,112 @@ def get_hrnet_model() -> ResultGeneration:
     return ResultGeneration(pose_prediction, cfg.TEST.POSE_DRAW)
 
 
-def main():
+def pose_prediction_on_image(pose_prediction, input_image_path, output_image_path, scan_type, save_pose_overlay):
+    start_time = time.time()
+    image, shape = pose_prediction.read_image(input_image_path)
+    rotated_image = pose_prediction.orient_image_using_scan_type(image, scan_type)
+    box_model_input, rotated_image_rgb = pose_prediction.preprocess_image(rotated_image)
+    pred_boxes, pred_score = pose_prediction.perform_box_on_image(box_model_input)
+
+    pose_result = []
+    # Get Height,Width,color from Image
+    (height, width, color) = shape
+    # one box ==> one pose pose[0]
+    print("len of pred_boxes ", len(pred_boxes))
+
+    for idx, pose_bbox in enumerate(pred_boxes):
+        single_body_pose_result = {}
+        key_points_coordinate_list = []
+        key_points_prob_list = []
+
+        pose_preds, pose_score = pose_prediction.perform_pose_on_image(pose_bbox, rotated_image_rgb)
+        pose_preds[0] = pose_prediction.orient_cordinate_using_scan_type(
+            pose_preds[0], scan_type, height, width)
+
+        logging.info("%s %s", "save_pose_overlay ", save_pose_overlay)
+        if save_pose_overlay:
+            logging.info("Drawing pose overlay")
+            logging.info("%s %s", " path to save ", output_image_path)
+            pose_prediction.pose_draw_on_image(pose_preds, image)
+            if idx == len(pred_boxes) - 1:
+                pose_prediction.save_final_image_with_path(output_image_path.as_posix(), image)
+
+        for i in range(0, NUM_KPTS):
+            key_points_coordinate_list.append(
+                {COCO_KEYPOINT_INDEXES[i]: {'x': pose_preds[0][i][0], 'y': pose_preds[0][i][1]}})
+            key_points_prob_list.append({COCO_KEYPOINT_INDEXES[i]: {'score': pose_score[0][i][0]}})
+        body_pose_score = calculate_pose_score(pose_score)
+
+        single_body_pose_result = {
+            'bbox_coordinates': pose_bbox,
+            'bbox_confidence_score': pred_score,
+            'key_points_coordinate': key_points_coordinate_list,
+            'key_points_prob': key_points_prob_list,
+            'body_pose_score': body_pose_score
+        }
+        pose_result.append(single_body_pose_result)
+
+    end_time = time.time()
+    pose_result_of_artifact = {'no_of_body_pose_detected': len(pred_boxes),
+                               'pose_result': pose_result,
+                               'time': end_time - start_time
+                               }
+
+    return pose_result_of_artifact
+
+
+def perform_pose_prediction(input_img_dir: Path, save_pose_overlay, output_img_dir: Path = None,):
+    if not os.path.isfile(MODEL_FILE):
+        download_file_from_google_drive(MODEL_ID, MODEL_FILE)
+    ctx = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+    # cudnn related setting
+    cudnn.benchmark = cfg.CUDNN.BENCHMARK
+    torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
+    torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
+    update_config(cfg, str(CONFIG_PATH))
+
+    pose_prediction = PosePrediction(ctx)
+    pose_prediction.load_box_model()
+    pose_prediction.load_pose_model()
+
+    for input_image_path in input_img_dir.glob("**/*.jpg"):
+        if output_img_dir:
+            output_image_path = output_img_dir / (input_image_path.stem + '_out.jpg')
+        else:
+            output_image_path = input_image_path.parent / (input_image_path.stem + '_out.jpg')
+        scan_type = input_image_path.parents[1].name
+        logging.info("%s %s", "input_image_path ", input_image_path)
+        logging.info("%s %s", "output_image_path ", output_image_path)
+        logging.info("%s %s", "scan_type ", scan_type)
+        pose_prediction_on_image(pose_prediction, input_image_path, output_image_path, scan_type, save_pose_overlay)
+        logging.info("=====================================================================================")
+
+
+def pose_flow_rg():
     result_generation = get_hrnet_model()
     result_generation.result_on_scan_level(cfg.TEST.DATA_PATH)
-
-    logging.info("Result Generation done")
-
+    # result_generation.result_on_scan_level()
+    logging.info("Result Generation Done")
     result_generation.store_result_in_dataframe()
     result_generation.save_to_csv(cfg.MODEL.NAME + '.csv')
+
+
+def face_blur_using_pose_flow_rg():
+    img_dir_path = Path('/home/nik/Projects/cgm-all/cgm-ml/data/path/version_wise_jpg/')
+    output_img_dir = Path('/home/nik/Projects/cgm-all/cgm-ml/data/path/version_wise_jpg_out_exp/')
+    save_pose_overlay = True
+    perform_pose_prediction(img_dir_path, save_pose_overlay, output_img_dir)
+
+
+def main():
+    # pose_flow_rg()
+    face_blur_using_pose_flow_rg()
+
+    # Demo heper code
+    # opencv_convex_hull_demo()
+    # opencv_polyfill_demo()
+    # opencv_hull_demo()
 
 
 if __name__ == '__main__':

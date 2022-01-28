@@ -18,6 +18,28 @@ COCO_KEYPOINT_INDEXES = {
     16: 'right_ankle'
 }
 
+FACE_TYPE_ONE_INDEXES = {
+    0: 'nose',
+    1: 'left_eye',
+    2: 'right_eye',
+    3: 'left_ear',
+    4: 'right_ear',
+}
+
+FACE_TYPE_TWO_INDEXES = {
+    0: 'nose',
+    1: 'left_eye',
+    2: 'right_eye',
+    3: 'left_ear',
+    4: 'right_ear',
+    5: 'left_shoulder',
+    6: 'right_shoulder',
+}
+
+
+FACE_TYPE_ONE = [0, 1, 2, 3, 4]
+FACE_TYPE_TWO = [0, 1, 2, 3, 4, 5, 6]
+
 COCO_INSTANCE_CATEGORY_NAMES = [
     '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
     'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
