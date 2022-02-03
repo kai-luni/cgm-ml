@@ -445,6 +445,15 @@ class Depthmap:
         camera = matrix_transform_point([0, 0, 0], self.device_pose_arr)
         return math.degrees(math.asin(camera[1] - forward[1]))
 
+    def get_camera_direction_angle(self) -> float:
+        """Calculate an angle of camera direction
+
+        This angle is related to compass directions, it is 0 when the camera started
+        """
+        forward = matrix_transform_point([0, 0, 1], self.device_pose_arr)
+        camera = matrix_transform_point([0, 0, 0], self.device_pose_arr)
+        return math.degrees(math.atan2(camera[0] - forward[0], camera[2] - forward[2])) - 90.
+
     def get_floor_level(self) -> float:
         """Calculate an altitude of the floor in the world coordinates"""
 

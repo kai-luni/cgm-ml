@@ -108,5 +108,23 @@ def parse_numbers(line: str) -> List[float]:
     return [float(value) for value in line.split(' ')]
 
 
+def vector_distance(values: np.array) -> float:
+    movement = 0
+    last_value = values[0]
+    for value in values:
+        movement = abs(last_value - value)
+        last_value = value
+    return movement
+
+
+def vectors_distance(positions: np.array) -> float:
+    movement = 0
+    last_position = positions[0]
+    for position in positions:
+        movement = vector_length(np.subtract(last_position, position))
+        last_position = position
+    return movement
+
+
 def vector_length(vec: np.array) -> float:
     return math.sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2])

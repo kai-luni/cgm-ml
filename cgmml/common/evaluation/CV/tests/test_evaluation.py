@@ -44,13 +44,15 @@ def test_filter_metadata():
 def test_update_output():
     output = []
     rejections = []
-    angles = [0, 0, 0]
+    dummy = [0, 0, 0]
     heights = [60, 80, 200]
+    positions = [dummy, dummy, dummy]
     data = [0, 0, 0, 0, 0, 79, 0, 0, 0, 0, 0, 0]
-    update_output(angles, heights, '', data, output, rejections, True)
+    output.append(data)  # workaround for missing header
+    update_output(dummy, dummy, heights, positions, dummy, dummy, '', data, output, rejections, True)
 
     # Check processed scans
-    assert len(output) == 1
+    assert len(output) == 2
 
     # Check rejected scans
     assert len(rejections) == 0

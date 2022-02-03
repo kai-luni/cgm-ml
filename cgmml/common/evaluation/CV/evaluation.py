@@ -4,6 +4,8 @@ import logging
 import sys
 from collections import defaultdict
 
+from cgmml.common.depthmap_toolkit.depthmap import Depthmap
+from cgmml.common.depthmap_toolkit.depthmap_utils import vector_distance, vectors_distance
 from cgmml.common.evaluation.CV.csv_utils import read_csv, write_csv
 
 logger = logging.getLogger(__name__)
@@ -32,6 +34,18 @@ METADATA_SCAN_DATE = 11
 METADATA_HEIGHT = 12
 METADATA_ERROR = 13
 METADATA_ANGLE = 14
+METADATA_CHILD_DISTANCE = 15
+METADATA_ARTIFACT_COUNT = 16
+METADATA_CAMERA_MOVEMENT = 17
+METADATA_CAMERA_ROTATION = 18
+METADATA_FLOOR_LEVEL_DIFF = 19
+
+header = [
+    'scan_id', 'order', 'artifact_id', 'depthmap', 'rgb', 'manual_height', 'manual_weight', 'manual_muac',
+    'scan_version', 'scan_type', 'manual_date', 'scan_date', 'height [cm]', 'error [cm]', 'bias [cm]',
+    'angle [degrees]', 'child_distance [cm]', 'artifact_count', 'camera_movement [cm]', 'camera_rotation [degrees]',
+    'floor_level_diff [cm]'
+]
 
 
 def check_height_prediction(height: float, is_standing: bool):
@@ -124,7 +138,7 @@ def generate_report(metadata: list, info: str, is_standing: bool) -> list:
     ]
     count = ['', 0, 0, 0]
 
-    for row in metadata:
+    for row in metadata[1:]:
 
         # Get scan type
         scan_type = int(row[METADATA_SCAN_TYPE])
@@ -214,7 +228,7 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
 
     metadata = filter_metadata(read_csv(metadata_file), is_standing, one_artifact_per_scan)
 
-    output = []
+    output = [header]
     rejections = []
     keys = metadata.keys()
     for key_index, key in enumerate(keys):
@@ -222,23 +236,53 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
 
         angles = []
         heights = []
+        distances = []
+        positions = []
+        directions = []
+        floors = []
         last_fail = 0
         for artifact in range(len(metadata[key])):
             data = metadata[key][artifact]
 
-            # Process prediction
             try:
+
+                # Process prediction
                 depthmap_file = (path + data[METADATA_DEPTHMAP]).replace('"', '')
                 rgb_file = (path + data[METADATA_RGB]).replace('"', '')
-                height, angle = predict_height(depthmap_file, rgb_file, calibration_file)
+                height = predict_height(depthmap_file, rgb_file, calibration_file)
                 check_height_prediction(height, is_standing)
+
+                # Get additional data
+                dmap = Depthmap.create_from_zip_absolute(depthmap_file, 0, calibration_file)
+                floor = dmap.get_floor_level()
+                mask = dmap.detect_floor(floor)
+                distance = dmap.get_distance_of_child_from_camera(mask)
+                angle = dmap.get_angle_between_camera_and_floor()
+                position = dmap.device_pose[12:15]
+                direction = dmap.get_camera_direction_angle()
+
+                floors.append(floor)
+                directions.append(direction)
+                positions.append(position)
+                distances.append(distance)
                 heights.append(height)
                 angles.append(angle)
             except Exception as exc:
                 last_fail = str(exc)
                 continue
 
-        info = update_output(angles, heights, last_fail, data, output, rejections, is_standing)
+        info = update_output(
+            angles,
+            distances,
+            heights,
+            positions,
+            directions,
+            floors,
+            last_fail,
+            data,
+            output,
+            rejections,
+            is_standing)
         log_report(generate_report(output, info, is_standing))
 
     write_csv('output.csv', output)
@@ -248,7 +292,11 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
 
 def update_output(
         angles: np.array,
+        distances: np.array,
         heights: np.array,
+        positions: np.array,
+        directions: np.array,
+        floors: np.array,
         last_fail: str,
         data: list,
         output: list,
@@ -258,7 +306,11 @@ def update_output(
 
     Args:
         angles: angles between floor and camera of current scan artifacts
+        distances: distances between child and camera of current scan artifacts
         heights: height in centimeters of current scan artifacts
+        positions: device positions of current scan artifacts
+        directions: device directions of current scan artifacts
+        floors: floor levels of current scan artifacts
         last_fail: last reason for rejections of an artifact
         data: metadata of the last processed artifact
         output: array where to add metadata about processed scans
@@ -273,19 +325,26 @@ def update_output(
         data.append(last_fail)
         rejections.append(data)
         return ''
-    angle = np.median(angles)
     height = np.median(heights)
     error = abs(height - float(data[METADATA_MANUAL_HEIGHT]))
-    logger.info('Height=%fcm, error=%fcm', height, error)
+    bias = np.max(heights) - np.min(heights)
+    logger.info('Height=%fcm, error=%fcm, bias=%fcm', height, error, bias)
+
     data.append(height)
     data.append(error)
-    data.append(angle)
+    data.append(bias)
+    data.append(np.median(angles))
+    data.append(np.median(distances))
+    data.append(len(heights))
+    data.append(vectors_distance(positions) * 100.)
+    data.append(vector_distance(directions))
+    data.append(vector_distance(floors) * 100.)
     output.append(data)
 
     sum_err = 0
-    for item in output:
+    for item in output[1:]:
         sum_err += item[METADATA_ERROR]
-    avg_err = sum_err / len(output)
+    avg_err = sum_err / (len(output) - 1)
     return f'Average error={avg_err}cm'
 
 

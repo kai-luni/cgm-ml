@@ -1,5 +1,4 @@
 from joblib import load
-from typing import Tuple
 
 import numpy as np
 
@@ -46,22 +45,20 @@ def predict_height_common(depthmap_file: str, rgb_file: str, calibration_file: s
     return body
 
 
-def predict_height_cv_lying(depthmap_file: str, rgb_file: str, calibration_file: str) -> Tuple[float, float]:
+def predict_height_cv_lying(depthmap_file: str, rgb_file: str, calibration_file: str) -> float:
     body = predict_height_common(depthmap_file, rgb_file, calibration_file, False)
-    angle = body.dmap.get_angle_between_camera_and_floor()
     height_in_cm = body.get_person_length() * 100.0 + PREDICTION_OFFSET_IN_CM_LYING
-    return height_in_cm, angle
+    return height_in_cm
 
 
-def predict_height_cv_standing(depthmap_file: str, rgb_file: str, calibration_file: str) -> Tuple[float, float]:
+def predict_height_cv_standing(depthmap_file: str, rgb_file: str, calibration_file: str) -> float:
     body = predict_height_common(depthmap_file, rgb_file, calibration_file, True)
-    angle = body.dmap.get_angle_between_camera_and_floor()
     nose_height = body.get_person_joints()[JOINT_INDEX_NOSE][1]
     height_in_cm = nose_height * 100.0 + PREDICTION_OFFSET_IN_CM_STANDING
-    return height_in_cm, angle
+    return height_in_cm
 
 
-def predict_height_ml(depthmap_file: str, rgb_file: str, calibration_file: str, standing: bool) -> Tuple[float, float]:
+def predict_height_ml(depthmap_file: str, rgb_file: str, calibration_file: str, standing: bool) -> float:
 
     body = predict_height_common(depthmap_file, rgb_file, calibration_file, standing)
     body.export_object(TEMP_FILE)
@@ -74,16 +71,14 @@ def predict_height_ml(depthmap_file: str, rgb_file: str, calibration_file: str, 
     child_features = get_features_from_fpath(TEMP_FILE, config_train=CONFIG_TRAIN)
     feats = np.array(list(child_features.values()))
     height_in_cm = model.predict([feats])[0]
-
-    angle = body.dmap.get_angle_between_camera_and_floor()
-    return height_in_cm, angle
+    return height_in_cm
 
 
-def predict_height_ml_lying(depthmap_file: str, rgb_file: str, calibration_file: str) -> Tuple[float, float]:
+def predict_height_ml_lying(depthmap_file: str, rgb_file: str, calibration_file: str) -> float:
     return predict_height_ml(depthmap_file, rgb_file, calibration_file, False)
 
 
-def predict_height_ml_standing(depthmap_file: str, rgb_file: str, calibration_file: str) -> Tuple[float, float]:
+def predict_height_ml_standing(depthmap_file: str, rgb_file: str, calibration_file: str) -> float:
     return predict_height_ml(depthmap_file, rgb_file, calibration_file, True)
 
 

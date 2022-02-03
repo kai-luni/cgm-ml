@@ -1,5 +1,4 @@
 import math
-from typing import Tuple
 
 import numpy as np
 from PIL import Image
@@ -14,7 +13,7 @@ HEIGHT_SCALE_FACTOR = 0.05
 HEIGHT_OFFSET_IN_CM = -0.25
 
 
-def predict_height(depthmap_file: str, rgb_file: str, calibration_file: str) -> Tuple[float, float]:
+def predict_height(depthmap_file: str, rgb_file: str, calibration_file: str) -> float:
 
     # Check if it is captured by a new device
     dmap = Depthmap.create_from_zip_absolute(depthmap_file, 0, calibration_file)
@@ -44,7 +43,7 @@ def predict_height(depthmap_file: str, rgb_file: str, calibration_file: str) -> 
     highest = dmap.get_highest_point(seg_map)[1]
     factor = 1.0 + math.sin(math.radians(angle)) * HEIGHT_SCALE_FACTOR
     height_in_cm = factor * (highest - floor) * 100.0 + HEIGHT_OFFSET_IN_CM
-    return height_in_cm, angle
+    return height_in_cm
 
 
 def render_prediction_plots(depthmap_file: str, rgb_file: str, calibration_file: str) -> np.array:
