@@ -39,12 +39,13 @@ METADATA_ARTIFACT_COUNT = 16
 METADATA_CAMERA_MOVEMENT = 17
 METADATA_CAMERA_ROTATION = 18
 METADATA_FLOOR_LEVEL_DIFF = 19
+METADATA_CAMERA_HEIGHT = 20
 
 header = [
     'scan_id', 'order', 'artifact_id', 'depthmap', 'rgb', 'manual_height', 'manual_weight', 'manual_muac',
     'scan_version', 'scan_type', 'manual_date', 'scan_date', 'height [cm]', 'error [cm]', 'bias [cm]',
     'angle [degrees]', 'child_distance [cm]', 'artifact_count', 'camera_movement [cm]', 'camera_rotation [degrees]',
-    'floor_level_diff [cm]'
+    'floor_level_diff [cm]', 'camera_height [cm]'
 ]
 
 
@@ -239,6 +240,7 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
         distances = []
         positions = []
         directions = []
+        camera_heights = []
         floors = []
         last_fail = 0
         for artifact in range(len(metadata[key])):
@@ -260,8 +262,10 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
                 angle = dmap.get_angle_between_camera_and_floor()
                 position = dmap.device_pose[12:15]
                 direction = dmap.get_camera_direction_angle()
+                camera_height = -position[1] - floor
 
                 floors.append(floor)
+                camera_heights.append(camera_height)
                 directions.append(direction)
                 positions.append(position)
                 distances.append(distance)
@@ -277,6 +281,7 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
             heights,
             positions,
             directions,
+            camera_heights,
             floors,
             last_fail,
             data,
@@ -296,6 +301,7 @@ def update_output(
         heights: np.array,
         positions: np.array,
         directions: np.array,
+        camera_heights: np.array,
         floors: np.array,
         last_fail: str,
         data: list,
@@ -310,6 +316,7 @@ def update_output(
         heights: height in centimeters of current scan artifacts
         positions: device positions of current scan artifacts
         directions: device directions of current scan artifacts
+        camera_heights: heights of the camera device of current scan artifacts
         floors: floor levels of current scan artifacts
         last_fail: last reason for rejections of an artifact
         data: metadata of the last processed artifact
@@ -339,6 +346,7 @@ def update_output(
     data.append(vectors_distance(positions) * 100.)
     data.append(vector_distance(directions))
     data.append(vector_distance(floors) * 100.)
+    data.append(np.median(camera_heights) * 100.)
     output.append(data)
 
     sum_err = 0

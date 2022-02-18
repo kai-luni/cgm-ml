@@ -49,7 +49,7 @@ def test_update_output():
     positions = [dummy, dummy, dummy]
     data = [0, 0, 0, 0, 0, 79, 0, 0, 0, 0, 0, 0]
     output.append(data)  # workaround for missing header
-    update_output(dummy, dummy, heights, positions, dummy, dummy, '', data, output, rejections, True)
+    update_output(dummy, dummy, heights, positions, dummy, dummy, dummy, '', data, output, rejections, True)
 
     # Check processed scans
     assert len(output) == 2
