@@ -21,7 +21,7 @@ This [one-minute video](https://www.youtube.com/watch?v=f2doV43jdwg) explains.
 ### Requirements
 
 You will need:
-* Python 3.6 or Python 3.7
+* Python 3.7
 * TensorFlow version 2
 * other libraries
 

@@ -1,13 +1,13 @@
 # on updating dependencies please also update cache version in CI config file
 # (e.g. https://github.com/Welthungerhilfe/cgm-ml/pull/489/files)
-numpy==1.19.5
-pandas==0.25.3
-matplotlib==3.3.4
-scikit-learn==0.22.2.post1
+numpy==1.21.0
+pandas==1.3.5
+matplotlib==3.5.1
+scikit-learn==1.0.2
 glob2==0.7
 bunch==1.0.1
-tensorflow==2.5.2
-tensorflow-addons==0.13.0
+tensorflow==2.8.0
+tensorflow-addons==0.16.1
 torch==1.7.0
 torchvision==0.8.1
 open3d==0.8.0.0
@@ -20,7 +20,7 @@ imgaug==0.4.0
 xmltodict==0.12.0
 pyntcloud==0.1.3
 cgmzscore==3.0.3
-wandb
+wandb==0.12.10
 azureml-sdk[notebooks]==1.21.0
 flake8==3.9.2
 pep8-naming==0.12.1
