@@ -341,7 +341,7 @@ def update_output(
     data.append(error)
     data.append(bias)
     data.append(np.median(angles))
-    data.append(np.median(distances))
+    data.append(np.median(distances) * 100.)
     data.append(len(heights))
     data.append(vectors_distance(positions) * 100.)
     data.append(vector_distance(directions))

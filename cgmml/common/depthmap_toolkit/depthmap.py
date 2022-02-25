@@ -520,6 +520,8 @@ class Depthmap:
         # Apply new resolution
         self.width = int(new_width)
         self.height = int(new_height)
+        self.confidence_arr = None
+        self.depthmap_arr_smooth = smoothen_depthmap_array(self.depthmap_arr)
 
     def _parse_confidence_data(self, data) -> np.ndarray:
         """Parse depthmap confidence
