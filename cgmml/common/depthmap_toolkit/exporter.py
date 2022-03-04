@@ -1,3 +1,4 @@
+import open3d as o3d
 import logging
 from pathlib import Path
 from typing import Union
@@ -11,6 +12,47 @@ logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s - %(pathname)s: line %(lineno)d'))
 logger.addHandler(handler)
+
+
+def convert_to_open3d_pointcloud(dmap: Depthmap,
+                                 floor_altitude_in_meters: float):
+    """Converts depthmap into Open3D pointcloud.
+
+    floor_altitude_in_meters is the floor altitude to align floor to Y=zero"""
+    points = []
+    normals = []
+    points_3d_arr = dmap.convert_2d_to_3d_oriented()
+    normal_3d_arr = dmap.calculate_normalmap_array(points_3d_arr)
+    for x in range(2, dmap.width - 2):
+        for y in range(2, dmap.height - 2):
+            depth = dmap.depthmap_arr[x, y]
+            if not depth:
+                continue
+
+            x_coord = points_3d_arr[0, x, y]
+            y_coord = points_3d_arr[1, x, y] - floor_altitude_in_meters
+            z_coord = points_3d_arr[2, x, y]
+            x_normal = normal_3d_arr[0, x, y]
+            y_normal = normal_3d_arr[1, x, y]
+            z_normal = normal_3d_arr[2, x, y]
+            points.append([x_coord, y_coord, z_coord])
+            normals.append([x_normal, y_normal, z_normal])
+
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd.normals = o3d.utility.Vector3dVector(normals)
+    return pcd
+
+
+def convert_to_open3d_mesh(dmap: Depthmap,
+                           floor_altitude_in_meters: float):
+    """Converts depthmap into Open3D mesh, postprocessed with Poisson reconstruction.
+
+    floor_altitude_in_meters is the floor altitude to align floor to Y=zero"""
+
+    pcd = convert_to_open3d_pointcloud(dmap, floor_altitude_in_meters)
+    mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd)
+    return mesh
 
 
 def export_obj(fpath: Union[str, Path],
@@ -59,6 +101,18 @@ def export_obj(fpath: Union[str, Path],
         logger.info('Mesh exported into %s', fpath)
 
 
+def export_extrapolated_obj(fpath: Union[str, Path],
+                            dmap: Depthmap,
+                            floor_altitude_in_meters: float):
+    """Export .obj file, postprocessed with Poisson reconstruction which can be visualized in tools like Meshlab.
+
+    floor_altitude_in_meters is the floor altitude to align floor to Y=zero"""
+
+    mesh = convert_to_open3d_mesh(dmap, floor_altitude_in_meters)
+    o3d.io.write_triangle_mesh(str(fpath), mesh)
+    logger.info('Mesh exported into %s', fpath)
+
+
 def export_renderable_obj(fpath: Union[str, Path],
                           dmap: Depthmap,
                           floor_altitude_in_meters: float,
@@ -97,6 +151,18 @@ def export_renderable_obj(fpath: Union[str, Path],
                 count = count + 8
 
         logger.info('Mesh exported into %s', fpath)
+
+
+def export_ply(fpath: Union[str, Path],
+               dmap: Depthmap,
+               floor_altitude_in_meters: float):
+    """Export .ply pointcloud file which can be visualized in tools like Meshlab.
+
+    floor_altitude_in_meters is the floor altitude to align floor to Y=zero"""
+
+    pcd = convert_to_open3d_pointcloud(dmap, floor_altitude_in_meters)
+    o3d.io.write_point_cloud(str(fpath), pcd)
+    logger.info('Pointcloud exported into %s', fpath)
 
 
 def _do_triangulation(dmap: Depthmap, indices, filehandle):
@@ -188,50 +254,3 @@ def _write_obj_cube(
 
 def _write_obj_triangle_indices(f, a: str, b: str, c: str):
     f.write(f'f {a}/{a} {b}/{b} {c}/{c}\n')
-
-
-def _write_pcd_header(filehandle, count):
-    filehandle.write('# timestamp 1 1 float 0\n')
-    filehandle.write('# .PCD v.7 - Point Cloud Data file format\n')
-    filehandle.write('VERSION .7\n')
-    filehandle.write('FIELDS x y z c\n')
-    filehandle.write('SIZE 4 4 4 4\n')
-    filehandle.write('TYPE F F F F\n')
-    filehandle.write('COUNT 1 1 1 1\n')
-    filehandle.write('WIDTH ' + count + '\n')
-    filehandle.write('HEIGHT 1\n')
-    filehandle.write('VIEWPOINT 0 0 0 1 0 0 0\n')
-    filehandle.write('POINTS ' + count + '\n')
-    filehandle.write('DATA ascii\n')
-
-
-def export_pcd(filename: str, dmap: Depthmap):
-    with open(filename, 'w') as f:
-        count = str(_get_count(dmap))
-        _write_pcd_header(f, count)
-
-        for x in range(2, dmap.width - 2):
-            for y in range(2, dmap.height - 2):
-                depth = dmap.depthmap_arr[x, y]
-                if not depth:
-                    continue
-                res = dmap.convert_2d_to_3d(x, y, depth)
-                if not res.any():
-                    continue
-                confidence = dmap.confidence_arr[x, y]
-                f.write(str(-res[0]) + ' ' + str(res[1]) + ' ' + str(res[2]) + ' ' + str(confidence) + '\n')
-        logger.info('Pointcloud exported into %s', filename)
-
-
-def _get_count(dmap: Depthmap) -> int:
-    count = 0
-    for x in range(2, dmap.width - 2):
-        for y in range(2, dmap.height - 2):
-            depth = dmap.depthmap_arr[x, y]
-            if not depth:
-                continue
-            res = dmap.convert_2d_to_3d(x, y, depth)
-            if not res.any():
-                continue
-            count = count + 1
-    return count

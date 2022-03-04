@@ -12,7 +12,7 @@ from matplotlib.widgets import Button
 from scipy import ndimage
 
 from cgmml.common.depthmap_toolkit.depthmap import Depthmap
-from cgmml.common.depthmap_toolkit.exporter import export_obj, export_pcd
+from cgmml.common.depthmap_toolkit.exporter import export_obj, export_extrapolated_obj, export_ply
 from cgmml.common.depthmap_toolkit.visualisation import render_plot
 
 logger = logging.getLogger(__name__)
@@ -49,15 +49,22 @@ def onclick(event):
             LAST_CLICK_COORD[2] = res[2]
 
 
-def export_object(event):
+def export_extrapolated_object(event):
     global DMAP
     floor = DMAP.get_floor_level()
-    export_obj(EXPORT_DIR / f'output{IDX_CUR_DMAP}.obj', DMAP, floor, triangulate=True)
+    export_extrapolated_obj(EXPORT_DIR / f'output{IDX_CUR_DMAP}_extrapolated.obj', DMAP, floor)
+
+
+def export_textured_object(event):
+    global DMAP
+    floor = DMAP.get_floor_level()
+    export_obj(EXPORT_DIR / f'output{IDX_CUR_DMAP}_textured.obj', DMAP, floor, True)
 
 
 def export_pointcloud(event):
     global DMAP
-    export_pcd(EXPORT_DIR / f'output{IDX_CUR_DMAP}.pcd', DMAP)
+    floor = DMAP.get_floor_level()
+    export_ply(EXPORT_DIR / f'output{IDX_CUR_DMAP}.ply', DMAP, floor)
 
 
 def next_click(event, calibration_fpath: str, depthmap_dir: str):
@@ -151,9 +158,11 @@ if __name__ == "__main__":
     bprev.on_clicked(functools.partial(prev_click, calibration_fpath=calibration_fpath, depthmap_dir=depthmap_dir))
     bnext = Button(plt.axes([0.9, 0.0, 0.1, 0.075]), '>>', color='gray')
     bnext.on_clicked(functools.partial(next_click, calibration_fpath=calibration_fpath, depthmap_dir=depthmap_dir))
-    bexport_obj = Button(plt.axes([0.3, 0.0, 0.2, 0.05]), 'Export OBJ', color='gray')
-    bexport_obj.on_clicked(functools.partial(export_object))
-    bexport_pcd = Button(plt.axes([0.5, 0.0, 0.2, 0.05]), 'Export PCD', color='gray')
-    bexport_pcd.on_clicked(functools.partial(export_pointcloud))
+    bexport_ply = Button(plt.axes([0.125, 0.0, 0.25, 0.05]), 'Export pointcloud', color='gray')
+    bexport_ply.on_clicked(functools.partial(export_pointcloud))
+    bexport_textured_obj = Button(plt.axes([0.375, 0.0, 0.25, 0.05]), 'Export textured mesh', color='gray')
+    bexport_textured_obj.on_clicked(functools.partial(export_textured_object))
+    bexport_extrapolated_obj = Button(plt.axes([0.625, 0.0, 0.25, 0.05]), 'Export Poisson mesh', color='gray')
+    bexport_extrapolated_obj.on_clicked(functools.partial(export_extrapolated_object))
     background = Button(plt.axes([0.0, 0.0, 1.0, 1.0]), '', color='white')
     show(depthmap_dir, calibration_fpath)

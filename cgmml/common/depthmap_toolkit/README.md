@@ -4,31 +4,9 @@ Depthmap toolkit is an utility to convert and visualise the data captured by cgm
 
 ## Overview
 
-CGM-Scanner currently captures the data as depthmaps and PCD files. PCD file is a standardised format. Depthmap is our own format developed for high compressed data.
-
-In the future we plan to not support PCD files anymore (due to their big size).
+CGM-Scanner currently captures the data as depthmaps. Depthmap is our own format developed for high compressed data.
 
 ## Tools
-
-### Converting PCD data into depthmap
-
-* The convertor uses `camera_calibration.txt` file which is the calibration from Lenovo Phab 2 Pro. Converting could be done by following command:
-
-`python convertpcd2depth.py pcd_dir calibration_file`
-
-* The `pcd_dir` folder could contain more PCD files.
-* The output will be stored in folder output.
-* `calibration_file` is the txt file with calibration for the device
-
-### Converting depthmaps into PCD data
-
-* The convertor accepts only the data captured by cgm-scanner. The data could be captured by any ARCore device supporting ToF sensor. Converting could be done by following command:
-
-`python convertdepth2pcd.py depthmap_dir calibration_file`
-
-* The `depthmap_dir` folder has to contain subfolder depth containing one or more depthmap files.
-* The output will be stored in folder export.
-* `calibration_file` is the txt file with calibration for the device
 
 ### Visualisation of depthmaps
 
@@ -37,10 +15,12 @@ In the future we plan to not support PCD files anymore (due to their big size).
 `python toolkit.py depthmap_dir calibration_file `
 
 * The `depthmap_dir` folder has to contain subfolder depth containing one or more depthmap files.
-* By arrows "<<" and ">>" you can switch to next or previous depthmap in the folder
-* Export OBJ will export the data as a pointcloud into OBJ file in export folder, this data will be reoriented using depthmap pose (if available)
-* Export PCDwill export the data as a pointcloud into PCD file in export folder
-* `calibration_file` is the txt file with calibration for the device
+* By arrows "<<" and ">>" you can switch to next or previous depthmap in the folder.
+* Export pointcloud will export the data into PLY file in export folder.
+* Export textured mesh will triangulate and texturize the data and export in into OBJ file in export folder.
+* Export poisson mesh will triangulate and extrapolate the data and export in into OBJ file in export folder.
+* All exported data data will be reoriented using depthmap pose (if available)
+* `calibration_file` is the txt file with calibration for the device.
 
 ### Visualisation types
 
