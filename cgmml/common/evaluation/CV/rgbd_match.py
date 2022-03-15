@@ -59,6 +59,8 @@ def blacklist_invalid(indata):
         person = data[METADATA_PERSON_ID].replace('"', '')
         if not blacklist.get(person):
             outdata.append(data)
+        else:
+            print(data[METADATA_PERSON_ID] + ' blacklisted')
     return outdata
 
 

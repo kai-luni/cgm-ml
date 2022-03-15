@@ -4,7 +4,7 @@ import logging
 import sys
 from collections import defaultdict
 
-from cgmml.common.depthmap_toolkit.depthmap import Depthmap
+from cgmml.common.depthmap_toolkit.depthmap import Depthmap, is_google_tango_resolution
 from cgmml.common.depthmap_toolkit.depthmap_utils import vector_distance, vectors_distance
 from cgmml.common.evaluation.CV.csv_utils import read_csv, write_csv
 
@@ -89,9 +89,11 @@ def filter_metadata(metadata: list, is_standing: bool, one_artifact_per_scan: bo
     output = defaultdict(list)
     for index in range(size):
 
-        # Check if the scan version is correct
+        # Check if the scan version is supported (v0.9+)
         data = metadata[index]
-        if not data[METADATA_SCAN_VERSION].startswith('v0.9'):
+        version09 = data[METADATA_SCAN_VERSION].startswith('v0.9')
+        version0x = data[METADATA_SCAN_VERSION].startswith('v0.')
+        if version0x & (not version09):
             continue
 
         # Check if it is a standing child
@@ -202,7 +204,7 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
         path: Path where the RAW dataset is located
         metadata_file: Path to the CSV file with RAW dataset metadata preprocessed by rgbd_match.py script
         calibration_file: Path to lens calibration file of the device
-        method: Method for estimation, available are depthmap_toolkit, ml_segmentation, mixed and hrnet variants
+        method: Method for estimation, available are depthmap_toolkit, ml_segmentation and hrnet variants
         hrnet variants are: hrnet_cv_lying, hrnet_cv_standing, hrnet_ml_lying, hrnet_ml_standing
         one_artifact_per_scan: True to return one artifact per scan (faster), False to return all artifacts (slower)
     """
@@ -212,8 +214,6 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
         from height_prediction_depthmap_toolkit import predict_height
     elif method == 'ml_segmentation':
         from height_prediction_with_ml_segmentation import predict_height
-    elif method == 'mixed':
-        from height_prediction_mixed import predict_height
     elif method == 'hrnet_cv_standing':
         from height_prediction_with_hrnet import predict_height_cv_standing as predict_height
     elif method == 'hrnet_cv_lying':
@@ -256,6 +256,8 @@ def run_evaluation(path: str, metadata_file: str, calibration_file: str, method:
 
                 # Get additional data
                 dmap = Depthmap.create_from_zip_absolute(depthmap_file, 0, calibration_file)
+                if is_google_tango_resolution(dmap.width, dmap.height):
+                    raise Exception('Skipping because it is not a new device data')
                 floor = dmap.get_floor_level()
                 mask = dmap.detect_floor(floor)
                 distance = dmap.get_distance_of_child_from_camera(mask)
@@ -361,7 +363,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 4:
         print('You did not enter raw data path, metadata file name or method name')
         print('E.g.: python evaluation.py rawdata_dir metadata_file depthmap_toolkit')
-        print('Available methods are depthmap_toolkit, ml_segmentation, mixed and hrnet variants')
+        print('Available methods are depthmap_toolkit, ml_segmentation and hrnet variants')
         print('hrnet variants are: hrnet_cv_lying, hrnet_cv_standing, hrnet_ml_lying, hrnet_ml_standing')
         sys.exit(1)
 

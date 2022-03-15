@@ -2,7 +2,6 @@ from joblib import load
 
 import numpy as np
 
-from cgmml.common.depthmap_toolkit.depthmap import is_google_tango_resolution
 from cgmml.models.HRNET.body_pose import BodyPose
 from cgmml.models.HRNET.hrnet3d import JOINT_INDEX_NOSE
 from cgmml.models.Pose3dPoints.Pose3dPoints_height.m2021q4_randomforest.src.constants import REPO_DIR
@@ -24,12 +23,8 @@ MODEL_LYING = load(MODEL_PATH_LYING)
 
 def predict_height_common(depthmap_file: str, rgb_file: str, calibration_file: str, standing: bool) -> object:
 
-    # Check if it is captured by a new device
-    body = BodyPose.create_from_rgbd(depthmap_file, rgb_file, calibration_file)
-    if is_google_tango_resolution(body.dmap.width, body.dmap.height):
-        raise Exception('Skipping because it is not a new device data')
-
     # Check how many persons were detected
+    body = BodyPose.create_from_rgbd(depthmap_file, rgb_file, calibration_file)
     person_count = body.get_person_count()
     if person_count < 1:
         raise Exception('Skipping because there is no child detected')
