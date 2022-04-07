@@ -20,6 +20,9 @@ https://docs.microsoft.com/en-us/azure/machine-learning/how-to-deploy-and-where?
     VERSION= Registered Model version Number,
     ENDPOINT_NAME=Name of endpoint,
     LOCALTEST=If you want to test your endpoint locally then set Local Test `True`,
+    EXPERIMENT_NAME=Name of the Model we want to register,
+    RUN_ID=Run id of that Particular experiment,
+    LOCALTEST=False,
     TEST_FILES=Test file location
 
 #### Endpoint Naming convention
