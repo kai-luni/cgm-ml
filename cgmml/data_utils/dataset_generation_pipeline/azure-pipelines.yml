@@ -11,12 +11,11 @@ variables:
   pythonVersion: '3.x'
   DATASET_TYPE: 'depthmap'
   JOB_PATH: $[format('kai/pipeline_jobs/pipelinejob-{0:dd}-{0:MM}-{0:yyyy}_{0:HH}{0:mm}{0:ss}/', pipeline.startTime)]
-  NUM_ARTIFACTS: 2000
+  NUM_ARTIFACTS: 20000
 
 jobs:
 - job: PreProc
   timeoutInMinutes: 360 # how long to run the job before automatically cancelling
-  cancelTimeoutInMinutes: 2 # how much time to give 'run always even if cancelled tasks' before stopping them
 
   steps:
   - task: UsePythonVersion@0
