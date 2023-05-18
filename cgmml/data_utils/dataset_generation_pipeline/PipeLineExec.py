@@ -81,7 +81,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     logger.write(f"[{datetime.now()}] Preparing to download {len(_file_paths)} files.")
 
     CONTAINER_NAME_SRC_SA = "cgm-result"
-    NUM_THREADS = 32
+    NUM_THREADS = 64
     pool = ThreadPool(NUM_THREADS)
     results = pool.map(
         lambda full_name: BlobRepo.download_from_blob_storage(
@@ -109,7 +109,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
             return (artifact_dict, artifact_processor.create_and_save_pickle(artifact_dict))
     artifact_processor.create_and_save_pickle(query_results_dicts[0])
     # Set the number of parallel workers
-    num_workers = 16
+    num_workers = 32
     # Create a ThreadPoolExecutor instance and parallelize the processing
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         processed_dicts_and_fnames = list(executor.map(process_artifact, query_results_dicts))
