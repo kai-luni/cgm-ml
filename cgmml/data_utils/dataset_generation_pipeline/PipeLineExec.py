@@ -48,7 +48,9 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
 
     logger.write(f"[{datetime.now()}]get the 'pose_result' data and merge it into the main dataframe")
     pose_results, column_names_pose = database_repo.get_pose_result(None)
+    logger.write(f"[{datetime.now()}] got {len(pose_results)} Pose Results")
     df_pose_results = PandaFactory.create_pose_data_frame(pose_results, column_names_pose)
+    logger.write(f"[{datetime.now()}] Pose Data Frame Created.")
     df_pose_results= df_pose_results.drop_duplicates(subset='artifact_id', keep='last')
     logger.write(f"[{datetime.now()}]Found {len(df_pose_results)} pose result entries, columns: {df_pose_results.columns}, df_proc entries: {len(df_to_process)}")
     # Merge the two DataFrames on the 'artifact_id' column
