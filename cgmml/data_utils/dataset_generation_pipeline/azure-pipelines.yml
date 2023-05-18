@@ -10,8 +10,8 @@ pool:
 variables:
   pythonVersion: '3.x'
   DATASET_TYPE: 'depthmap'
-  JOB_PATH: $[format('kai/pipelinejob-{0:dd}-{0:MM}-{0:yyyy}_{0:HH}{0:mm}{0:ss}/', pipeline.startTime)]
-  NUM_ARTIFACTS: 20000
+  JOB_PATH: $[format('kai/pipeline_jobs/pipelinejob-{0:dd}-{0:MM}-{0:yyyy}_{0:HH}{0:mm}{0:ss}/', pipeline.startTime)]
+  NUM_ARTIFACTS: 20
 
 steps:
 - task: UsePythonVersion@0
@@ -35,7 +35,7 @@ steps:
     export PATH_TO_FOLDER="dbfs:/${JOB_PATH}"
     PATH_TO_LOG="${JOB_PATH}testlog.txt"
     echo "Copying repository files to ${PATH_TO_FOLDER}"
-    databricks fs cp --recursive ./ ${PATH_TO_FOLDER}
+    databricks fs cp --recursive ./cgmml/data_utils/dataset_generation_pipeline/ ${PATH_TO_FOLDER}
     echo "##vso[task.setvariable variable=PATH_TO_FOLDER]${PATH_TO_FOLDER}"
     echo "##vso[task.setvariable variable=PATH_TO_LOG]${PATH_TO_LOG}"
   displayName: 'Upload Repository to DBFS'
