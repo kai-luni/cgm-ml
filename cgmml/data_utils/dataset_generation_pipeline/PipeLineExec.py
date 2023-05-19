@@ -25,17 +25,21 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     logger.write(f"[{datetime.now()}] Created dataframe from scans, dataframe size: {len(scans_df)}")
 
 
-    logger.write("Set zscore, diagnosis, lhfa....")
+    
     dataframe = scans_df
+    logger.write(f"[{datetime.now()}] Set zscore")
     dataframe['zscore'] = dataframe.apply(PandaFactory.calculate_zscore, axis=1)
+    logger.write(f"[{datetime.now()}] Set diagnosis")
     dataframe['diagnosis'] = dataframe.apply(PandaFactory.get_diagnosis,axis=1)
+    logger.write(f"[{datetime.now()}] Set lhfa")
     dataframe['lhfa'] = dataframe.apply(PandaFactory.calculate_lhfa_zscore,axis =1)
+    logger.write(f"[{datetime.now()}] Set diagnosis lhfa")
     dataframe['diagnosis_lhfa'] = dataframe.apply(PandaFactory.diagnosis_on_lhfa,axis=1)
     dataframe.rename(columns = {'diagnosis':'diagnosis_wfh','zscore':'zscore_wfh','lhfa':'zscore_lhfa'}, inplace = True)
     logger.write("....Done.")
     df_to_process = dataframe
 
-    logger.write("Get 'no of person' data and merge it into df_to_process.")
+    logger.write("[{datetime.now()}] Get 'no of person' data and merge it into df_to_process.")
     pose_number_data, column_names_number_pose = database_repo.get_number_persons_pose(None)
     df_no_of_person = PandaFactory.create_number_persons_data_frame(pose_number_data, column_names_number_pose)
     df_no_of_person= df_no_of_person.drop_duplicates(subset='artifact_id', keep='last')
