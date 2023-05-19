@@ -11,7 +11,7 @@ variables:
   pythonVersion: '3.x'
   DATASET_TYPE: 'depthmap'
   JOB_PATH: $[format('kai/pipeline_jobs/pipelinejob-{0:dd}-{0:MM}-{0:yyyy}_{0:HH}{0:mm}{0:ss}/', pipeline.startTime)]
-  NUM_ARTIFACTS: 80000
+  NUM_ARTIFACTS: 10000
 
 jobs:
 - job: PreProc
@@ -53,7 +53,7 @@ jobs:
         \"name\": \"PreProcessingJob\",
         \"new_cluster\": {
           \"spark_version\": \"8.4.x-scala2.12\",
-          \"node_type_id\": \"Standard_F8\",
+          \"node_type_id\": \"Standard_DS3_v2\",
           \"num_workers\": 1
         },
         \"libraries\": [
