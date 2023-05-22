@@ -106,34 +106,36 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     ### Process
     input_dir = f"{exec_path}scans/"
     artifact_processor = ArtifactProcessor(input_dir, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)
-    def process_artifact(artifact_dict: dict):
+
+
+    #spark works well for DataBricks Clusters, alternatively you can use normal Multi Threading
+    use_spark = True
+    if use_spark:
+        def map_fct(query_result_dict):
+            return query_result_dict, artifact_processor.create_and_save_pickle(query_result_dict)
+        def map_fct_rgb(query_result_dict):
+            return query_result_dict, ImageFactory.process_rgb(query_result_dict, input_dir, exec_path)
+        # Processing all artifacts at once
+        rdd = spark.sparkContext.parallelize(query_results_dicts,48)
+        print(rdd.getNumPartitions())
         if dataset_type == 'rgb':
-            return (artifact_dict, ImageFactory.process_rgb(artifact_dict, input_dir, exec_path))
+            rdd_processed = rdd.map(map_fct_rgb)
         else:
-            return (artifact_dict, artifact_processor.create_and_save_pickle(artifact_dict))
-
-    #only a test
-    def map_fct(query_result_dict):
-        return query_result_dict, artifact_processor.create_and_save_pickle(query_result_dict)
-    def map_fct_rgb(query_result_dict):
-        return query_result_dict, ImageFactory.process_rgb(query_result_dict, input_dir, exec_path)
-    # Processing all artifacts at once
-    rdd = spark.sparkContext.parallelize(query_results_dicts,48)
-    print(rdd.getNumPartitions())
-    if dataset_type == 'rgb':
-      rdd_processed = rdd.map(map_fct_rgb)
+            rdd_processed = rdd.map(map_fct)
+            processed_dicts_and_fnames = rdd_processed.collect()
+            print(processed_dicts_and_fnames[:3])    
     else:
-      rdd_processed = rdd.map(map_fct)
-    processed_dicts_and_fnames = rdd_processed.collect()
-    print(processed_dicts_and_fnames[:3])    
+        def process_artifact(artifact_dict: dict):
+            if dataset_type == 'rgb':
+                return (artifact_dict, ImageFactory.process_rgb(artifact_dict, input_dir, exec_path))
+            else:
+                return (artifact_dict, artifact_processor.create_and_save_pickle(artifact_dict))
+        # Set the number of parallel workers
+        num_workers = 32
+        # Create a ThreadPoolExecutor instance and parallelize the processing
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            processed_dicts_and_fnames = list(executor.map(process_artifact, query_results_dicts))
 
-
-
-    # Set the number of parallel workers
-    num_workers = 32
-    # Create a ThreadPoolExecutor instance and parallelize the processing
-    # with ThreadPoolExecutor(max_workers=num_workers) as executor:
-    #     processed_dicts_and_fnames = list(executor.map(process_artifact, query_results_dicts))
     logger.write(f"[{datetime.now()}] Created {len(processed_dicts_and_fnames)} pickle files in folder {input_dir}.")
     logger.write(f"[{datetime.now()}] Main execution finished.")
 
