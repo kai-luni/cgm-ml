@@ -143,8 +143,6 @@ jobs:
 
               # Download the log file
               databricks fs cp "dbfs:/${PATH_TO_LOG}" "logs.txt"
-
-              # Display the contents of the log file
               echo "Logs from Python Execution: "
               cat logs.txt
 
@@ -158,10 +156,14 @@ jobs:
               break
           else
               echo "The run is still in progress with state: $LIFE_CYCLE_STATE"
+              # Download the log file
+              databricks fs cp "dbfs:/${PATH_TO_LOG}" "logs.txt"
+              echo "Logs from Python Execution: "
+              tail logs.txt
           fi
 
           # Wait for a specified interval (e.g., 30 seconds) before checking again
-          sleep 12
+          sleep 15
       done
     displayName: 'Execute Databricks Job'
     timeoutInMinutes: 360

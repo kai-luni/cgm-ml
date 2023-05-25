@@ -14,56 +14,56 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     # dataset_type = 'depthmap'  # Supported: 'rgbd' and 'depthmap'
     dataset_type = args.dataset_type
 
-    logger.write(f"[{datetime.now()}] Beginning main execution. Dataset type: {dataset_type}, number of artifacts: {num_artifacts}")
+    logger.write("Beginning main execution. Dataset type: {dataset_type}, number of artifacts: {num_artifacts}")
 
     # get scans from db and create dataframe
     database_repo = DatabaseRepo(db_host, db_user, db_pw)
     query_results, column_names = database_repo.get_scans(dataset_type, None, num_artifacts)
-    logger.write(f"[{datetime.now()}] Retrieved {len(query_results)} scans from the database.")
+    logger.write("Retrieved {len(query_results)} scans from the database.")
     
     scans_df = PandaFactory.create_scans_data_frame(query_results, column_names)
-    logger.write(f"[{datetime.now()}] Created dataframe from scans, dataframe size: {len(scans_df)}")
+    logger.write("Created dataframe from scans, dataframe size: {len(scans_df)}")
 
 
     
     dataframe = scans_df
-    logger.write(f"[{datetime.now()}] Set zscore")
+    logger.write("Set zscore")
     dataframe['zscore'] = dataframe.apply(PandaFactory.calculate_zscore, axis=1)
-    logger.write(f"[{datetime.now()}] Set diagnosis")
+    logger.write("Set diagnosis")
     dataframe['diagnosis'] = dataframe.apply(PandaFactory.get_diagnosis,axis=1)
-    logger.write(f"[{datetime.now()}] Set lhfa")
+    logger.write("Set lhfa")
     dataframe['lhfa'] = dataframe.apply(PandaFactory.calculate_lhfa_zscore,axis =1)
-    logger.write(f"[{datetime.now()}] Set diagnosis lhfa")
+    logger.write("Set diagnosis lhfa")
     dataframe['diagnosis_lhfa'] = dataframe.apply(PandaFactory.diagnosis_on_lhfa,axis=1)
     dataframe.rename(columns = {'diagnosis':'diagnosis_wfh','zscore':'zscore_wfh','lhfa':'zscore_lhfa'}, inplace = True)
     logger.write("....Done.")
     df_to_process = dataframe
 
-    logger.write("[{datetime.now()}] Get 'no of person' data and merge it into df_to_process.")
+    logger.write("Get 'no of person' data and merge it into df_to_process.")
     pose_number_data, column_names_number_pose = database_repo.get_number_persons_pose(None)
     df_no_of_person = PandaFactory.create_number_persons_data_frame(pose_number_data, column_names_number_pose)
     df_no_of_person= df_no_of_person.drop_duplicates(subset='artifact_id', keep='last')
-    logger.write(f"[{datetime.now()}] Merging number of person data into main dataframe")
+    logger.write("Merging number of person data into main dataframe")
     # Merge the two DataFrames on the 'artifact_id' column
     df_to_process = df_to_process.merge(df_no_of_person, on='artifact_id', suffixes=('', '_temp'))
     # Drop the temporary 'scan_id' column from the merged DataFrame
     df_to_process.drop(columns=['scan_id_temp'], inplace=True)
-    logger.write(f"[{datetime.now()}] Entries after merge with nop data: {len(df_to_process)}")
+    logger.write("Entries after merge with nop data: {len(df_to_process)}")
 
-    logger.write(f"[{datetime.now()}]get the 'pose_result' data and merge it into the main dataframe")
+    logger.write("get the 'pose_result' data and merge it into the main dataframe")
     pose_results, column_names_pose = database_repo.get_pose_result(None)
-    logger.write(f"[{datetime.now()}] got {len(pose_results)} Pose Results")
+    logger.write("got {len(pose_results)} Pose Results")
     df_pose_results = PandaFactory.create_pose_data_frame(pose_results, column_names_pose)
-    logger.write(f"[{datetime.now()}] Pose Data Frame Created.")
+    logger.write("Pose Data Frame Created.")
     df_pose_results= df_pose_results.drop_duplicates(subset='artifact_id', keep='last')
-    logger.write(f"[{datetime.now()}]Found {len(df_pose_results)} pose result entries, columns: {df_pose_results.columns}, df_proc entries: {len(df_to_process)}")
+    logger.write("Found {len(df_pose_results)} pose result entries, columns: {df_pose_results.columns}, df_proc entries: {len(df_to_process)}")
     # Merge the two DataFrames on the 'artifact_id' column
     df_to_process = df_to_process.merge(df_pose_results, on='artifact_id', suffixes=('', '_temp'))
     # Drop the temporary 'scan_id' column from the merged DataFrame
     df_to_process.drop(columns=['scan_id_temp'], inplace=True)
-    logger.write(f"[{datetime.now()}]Entries after merge with pose data: {len(df_to_process)}")
+    logger.write("Entries after merge with pose data: {len(df_to_process)}")
 
-    logger.write(f"[{datetime.now()}]Finalize df PreProcessing.")
+    logger.write("Finalize df PreProcessing.")
 
    
     if dataset_type == 'rgbd':
@@ -82,7 +82,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     BLOB_SERVICE_CLIENT = BlobServiceClient.from_connection_string(blob_conn_str)
     # Gather file_paths, Remove duplicates
     _file_paths = list(set(df_to_process['file_path'].tolist()))
-    logger.write(f"[{datetime.now()}] Preparing to download {len(_file_paths)} files.")
+    logger.write("Preparing to download {len(_file_paths)} files.")
 
     CONTAINER_NAME_SRC_SA = "cgm-result"
     NUM_THREADS = 64
@@ -96,11 +96,11 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         ),
         _file_paths
     )
-    logger.write(f"[{datetime.now()}]Done with download.")
+    logger.write("Done with download.")
 
-    logger.write(f"[{datetime.now()}]Start creating Pickle Files.")
+    logger.write("Start creating Pickle Files.")
     ### Convert Dataframe to list of query_result_dicts
-    logger.write(f"[{datetime.now()}] Start creating Pickle Files.")
+    logger.write("Start creating Pickle Files.")
     query_results_dicts = df_to_process.to_dict('records')
 
     ### Process
@@ -136,8 +136,8 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             processed_dicts_and_fnames = list(executor.map(process_artifact, query_results_dicts))
 
-    logger.write(f"[{datetime.now()}] Created {len(processed_dicts_and_fnames)} pickle files in folder {input_dir}.")
-    logger.write(f"[{datetime.now()}] Main execution finished.")
+    logger.write("Created {len(processed_dicts_and_fnames)} pickle files in folder {input_dir}.")
+    logger.write("Main execution finished.")
 
     return
 

@@ -4,6 +4,7 @@ from ast import List, Tuple
 from cgmzscore.src.main import z_score_wfh, z_score_lhfa
 import pandas as pd
 
+from cgmml.data_utils.dataset_generation_pipeline.LoggerPipe import LoggerPipe
 
 
 class PandaFactory:
@@ -80,7 +81,7 @@ class PandaFactory:
         return score
 
     @staticmethod
-    def create_scans_data_frame(query_results, column_names : 'list[str]') -> pd.DataFrame:
+    def create_scans_data_frame(query_results, column_names : 'list[str]', logger : LoggerPipe) -> pd.DataFrame:
         """
         Create a DataFrame of scans data and filter it based on specific conditions.
 
@@ -101,22 +102,22 @@ class PandaFactory:
         # Clean timestamp and convert to a formatted string
         df['timestamp'] = df['timestamp'].astype(str).apply(lambda ts: ts.replace(' ', '-').replace(':', '-').replace('.', '-'))
 
-        print("Total number of unique scans in fetched:", len(pd.unique(df['scan_id'])))
+        logger.write("Total number of unique scans in fetched:", len(pd.unique(df['scan_id'])))
 
         # Insert fake manual measurements if they are not present
         for col, default_value in [('muac', 10), ('weight', 30), ('height', 90)]:
             if col not in df.columns:
                 df.insert(4, col, default_value)
 
-        print("Shape with duplicates:", df.shape)
+        logger.write("Shape with duplicates:", df.shape)
         df = df.drop_duplicates(subset=['scan_id', 'scan_step', 'timestamp', 'order_number'])
-        print("Shape without duplicates:", df.shape)
+        logger.write("Shape without duplicates:", df.shape)
 
         def print_unique_counts(df, title):
-            print(title)
-            print("Unique persons:", len(df.person_id.unique()))
-            print("Unique scan_ids:", len(df.scan_id.unique()))
-            print("Unique artifacts:", len(df.file_path.unique()))
+            logger.write(title)
+            logger.write("Unique persons:", len(df.person_id.unique()))
+            logger.write("Unique scan_ids:", len(df.scan_id.unique()))
+            logger.write("Unique artifacts:", len(df.file_path.unique()))
 
         # Print unique counts before and after filtering by age
         print_unique_counts(df, "Before filtering by age:")
