@@ -21,7 +21,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     query_results, column_names = database_repo.get_scans(dataset_type, None, num_artifacts)
     logger.write("Retrieved {len(query_results)} scans from the database.")
     
-    scans_df = PandaFactory.create_scans_data_frame(query_results, column_names)
+    scans_df = PandaFactory.create_scans_data_frame(query_results, column_names, logger)
     logger.write("Created dataframe from scans, dataframe size: {len(scans_df)}")
 
 
