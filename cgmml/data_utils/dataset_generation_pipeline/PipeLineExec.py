@@ -1,6 +1,5 @@
 import argparse
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from multiprocessing.pool import ThreadPool
 import sys
 import traceback
@@ -48,20 +47,20 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     df_to_process = df_to_process.merge(df_no_of_person, on='artifact_id', suffixes=('', '_temp'))
     # Drop the temporary 'scan_id' column from the merged DataFrame
     df_to_process.drop(columns=['scan_id_temp'], inplace=True)
-    logger.write("Entries after merge with nop data: {len(df_to_process)}")
+    logger.write(f"Entries after merge with nop data: {len(df_to_process)}")
 
     logger.write("get the 'pose_result' data and merge it into the main dataframe")
     pose_results, column_names_pose = database_repo.get_pose_result(args.workflow_id_pose, None)
-    logger.write("got {len(pose_results)} Pose Results")
+    logger.write(f"got {len(pose_results)} Pose Results")
     df_pose_results = PandaFactory.create_pose_data_frame(pose_results, column_names_pose)
     logger.write("Pose Data Frame Created.")
     df_pose_results= df_pose_results.drop_duplicates(subset='artifact_id', keep='last')
-    logger.write("Found {len(df_pose_results)} pose result entries, columns: {df_pose_results.columns}, df_proc entries: {len(df_to_process)}")
+    logger.write(f"Found {len(df_pose_results)} pose result entries, columns: {df_pose_results.columns}, df_proc entries: {len(df_to_process)}")
     # Merge the two DataFrames on the 'artifact_id' column
     df_to_process = df_to_process.merge(df_pose_results, on='artifact_id', suffixes=('', '_temp'))
     # Drop the temporary 'scan_id' column from the merged DataFrame
     df_to_process.drop(columns=['scan_id_temp'], inplace=True)
-    logger.write("Entries after merge with pose data: {len(df_to_process)}")
+    logger.write(f"Entries after merge with pose data: {len(df_to_process)}")
 
     logger.write("Finalize df PreProcessing.")
 
@@ -82,7 +81,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     BLOB_SERVICE_CLIENT = BlobServiceClient.from_connection_string(blob_conn_str)
     # Gather file_paths, Remove duplicates
     _file_paths = list(set(df_to_process['file_path'].tolist()))
-    logger.write("Preparing to download {len(_file_paths)} files.")
+    logger.write(f"Preparing to download {len(_file_paths)} files.")
 
     CONTAINER_NAME_SRC_SA = "cgm-result"
     NUM_THREADS = 64
@@ -136,7 +135,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             processed_dicts_and_fnames = list(executor.map(process_artifact, query_results_dicts))
 
-    logger.write("Created {len(processed_dicts_and_fnames)} pickle files in folder {input_dir}.")
+    logger.write(f"Created {len(processed_dicts_and_fnames)} pickle files in folder {input_dir}.")
     logger.write("Main execution finished.")
 
     return
