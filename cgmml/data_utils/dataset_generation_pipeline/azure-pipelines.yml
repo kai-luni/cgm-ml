@@ -159,7 +159,7 @@ jobs:
               break
           else
               echo "The run is still in progress with state: $LIFE_CYCLE_STATE"
-              Download the log file
+              #Download the log file
               databricks fs cp "dbfs:/${PATH_TO_LOG}" "logs.txt"
               echo "Last Log Entries: "
               tail logs.txt
