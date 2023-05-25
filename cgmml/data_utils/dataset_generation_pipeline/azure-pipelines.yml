@@ -11,7 +11,7 @@ variables:
   pythonVersion: '3.x'
   DATASET_TYPE: 'depthmap'
   JOB_PATH: $[format('kai/pipeline_jobs/pipelinejob-{0:dd}-{0:MM}-{0:yyyy}_{0:HH}{0:mm}{0:ss}/', pipeline.startTime)]
-  NUM_ARTIFACTS: 1000
+  NUM_ARTIFACTS: 100
 
 jobs:
 - job: PreProc
@@ -157,9 +157,9 @@ jobs:
           else
               echo "The run is still in progress with state: $LIFE_CYCLE_STATE"
               # Download the log file
-              databricks fs cp "dbfs:/${PATH_TO_LOG}" "logs.txt"
-              echo "Logs from Python Execution: "
-              tail logs.txt
+              # databricks fs cp "dbfs:/${PATH_TO_LOG}" "logs.txt"
+              # echo "Logs from Python Execution: "
+              # tail logs.txt
           fi
 
           # Wait for a specified interval (e.g., 30 seconds) before checking again
