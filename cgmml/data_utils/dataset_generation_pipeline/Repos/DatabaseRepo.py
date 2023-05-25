@@ -24,39 +24,8 @@ class DatabaseRepo:
         """ Destructor
         """
         self.__sql_cursor.close()
-
-    def get_base_standing(self, num_artifacts: int = None) -> Tuple[List[Tuple[str]], Tuple[psycopg2.extensions.Column]]:
-        """
-        Retrieve base standing data from the database.
-
-        This function queries the database to obtain standing data, artifact IDs,
-        scan IDs, and other related information, and returns the query results
-        along with the column names.
-
-        Args:
-            num_artifacts (int, optional): Number of artifacts to fetch. If None, fetches all artifacts.
-
-        Returns:
-            Tuple[List[Tuple[str]], Tuple[psycopg2.extensions.Column]]: A tuple containing query results and column names.
-        """
-
-        limit_string = f"LIMIT {num_artifacts}" if num_artifacts != None else ""
-        SQL_QUERY_BASE_STANDING = f"""SELECT r.scan_id, r.result_workflow_id, r.id, r.data, ar.artifact_id, a.ord as standing_ord
-        FROM artifact_result ar
-        INNER JOIN "result" r on r.id = ar.result_id
-        INNER JOIN artifact a ON a.id = ar.artifact_id
-        WHERE r.id = ar.result_id and r.result_workflow_id = 'abc6f040-738c-11ec-8cec-1fb69324fccb'
-        {limit_string}""";
-
-
-        # SQL_QUERY_BASE_STANDING = f""" select scan_id, result_workflow_id, data FROM result where result_workflow_id = '{STANDING_LAYING_MODEL}'"""
-        self.__sql_cursor.execute(SQL_QUERY_BASE_STANDING)
-        query_results_tmp_standing: List[Tuple[str]] = self.__sql_cursor.fetchall()
-
-        return query_results_tmp_standing, self.__sql_cursor.description
-
     
-    def get_number_persons_pose(self, num_artifacts: int = None) -> Tuple[List[Tuple[str]], Tuple[psycopg2.extensions.Column]]:
+    def get_number_persons_pose(self, workflow_id: str, num_artifacts: int = None) -> Tuple[List[Tuple[str]], Tuple[psycopg2.extensions.Column]]:
         """
         Retrieve the number of persons using pose data from the database.
 
@@ -72,7 +41,7 @@ class DatabaseRepo:
         """
         limit_string = f"LIMIT {num_artifacts}" if num_artifacts != None else ""
         SQL_QUERY_BASE_POSE = f"""select ar.artifact_id, r.data->>'no of person using pose' as no_of_person, r.scan_id from artifact_result ar 
-        join "result" r on r.id = ar.result_id and r.result_workflow_id = 'b04da320-42b3-11ec-9e50-0b91a7b6eecf' and r.data ? 'no of person using pose' 
+        join "result" r on r.id = ar.result_id and r.result_workflow_id = '{workflow_id}' and r.data ? 'no of person using pose' 
         {limit_string}"""
 
         self.__sql_cursor.execute(SQL_QUERY_BASE_POSE)
@@ -80,39 +49,7 @@ class DatabaseRepo:
         
         return query_results_tmp_pose, self.__sql_cursor.description
     
-    def get_pose_data(self, num_artifacts: int = None) -> Tuple[List[Tuple[str]], Tuple[psycopg2.extensions.Column]]:
-        """
-        Retrieves pose results from the database based on the specified number of artifacts.
-
-        This function executes a SQL query to fetch pose results along with associated information
-        from the artifact_result, result, and artifact tables. The query retrieves artifact_id, pose_score,
-        pose_result, scan_id, ord, and format fields from the database. The number of artifacts to fetch
-        can be limited using the num_artifacts parameter.
-
-        Args:
-            num_artifacts (int, optional): The maximum number of artifacts to fetch. If not provided,
-                                            no limit is applied.
-
-        Returns:
-            Tuple[List[Tuple[str]], Tuple[psycopg2.extensions.Column]]: A tuple containing two elements:
-                1. A list of tuples, each tuple representing a row of the query result.
-                2. A tuple of psycopg2.extensions.Column objects, representing the column names
-                of the query result.
-        """
-        limit_string = f"LIMIT {num_artifacts}" if num_artifacts != None else ""
-        SQL_QUERY_BASE_POSE = f""" select ar.artifact_id, r.data->>'Pose Scores'  as pose_score, r.data->>'Pose Results' as pose_result,r.scan_id , a.ord,a.format from artifact_result ar 
-        INNER JOIN "result" r on r.id = ar.result_id 
-        INNER JOIN artifact a ON a.id =ar.artifact_id 
-        and r.result_workflow_id = 'b04da320-42b3-11ec-9e50-0b91a7b6eecf' and r.data ? 'Pose Scores' and r.data ? 'Pose Results'
-        {limit_string}"""
-        
-        self.__sql_cursor.execute(SQL_QUERY_BASE_POSE)
-        query_results_tmp_pose: List[Tuple[str]] = self.__sql_cursor.fetchall()
-        column_names: Tuple[psycopg2.extensions.Column] = self.__sql_cursor.description
-
-        return query_results_tmp_pose, column_names
-    
-    def get_pose_result(self, num_artifacts: int = None) -> Tuple[List[Tuple[str]], Tuple[psycopg2.extensions.Column]]:
+    def get_pose_result(self, workflow_id: str, num_artifacts: int = None) -> Tuple[List[Tuple[str]], Tuple[psycopg2.extensions.Column]]:
         """
         Retrieves pose results from the database based on the specified number of artifacts.
 
@@ -135,7 +72,7 @@ class DatabaseRepo:
         SQL_QUERY_BASE_POSE = f""" select ar.artifact_id, r.data->>'Pose Scores'  as pose_score, r.data->>'Pose Results' as pose_result, r.scan_id, a.ord, a.format from artifact_result ar 
         INNER JOIN "result" r on r.id = ar.result_id 
         INNER JOIN artifact a ON a.id =ar.artifact_id 
-        and r.result_workflow_id = 'b04da320-42b3-11ec-9e50-0b91a7b6eecf' and r.data ? 'Pose Scores' and r.data ? 'Pose Results'
+        and r.result_workflow_id = '{workflow_id}' and r.data ? 'Pose Scores' and r.data ? 'Pose Results'
         {limit_string}"""
         
         self.__sql_cursor.execute(SQL_QUERY_BASE_POSE)

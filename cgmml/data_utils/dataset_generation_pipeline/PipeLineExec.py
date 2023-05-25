@@ -40,7 +40,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     df_to_process = dataframe
 
     logger.write("Get 'no of person' data and merge it into df_to_process.")
-    pose_number_data, column_names_number_pose = database_repo.get_number_persons_pose(None)
+    pose_number_data, column_names_number_pose = database_repo.get_number_persons_pose(args.workflow_id_pose, None)
     df_no_of_person = PandaFactory.create_number_persons_data_frame(pose_number_data, column_names_number_pose)
     df_no_of_person= df_no_of_person.drop_duplicates(subset='artifact_id', keep='last')
     logger.write("Merging number of person data into main dataframe")
@@ -51,7 +51,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     logger.write("Entries after merge with nop data: {len(df_to_process)}")
 
     logger.write("get the 'pose_result' data and merge it into the main dataframe")
-    pose_results, column_names_pose = database_repo.get_pose_result(None)
+    pose_results, column_names_pose = database_repo.get_pose_result(args.workflow_id_pose, None)
     logger.write("got {len(pose_results)} Pose Results")
     df_pose_results = PandaFactory.create_pose_data_frame(pose_results, column_names_pose)
     logger.write("Pose Data Frame Created.")
@@ -149,8 +149,9 @@ if __name__ == '__main__':
     parser.add_argument('--db_user', metavar='db_user', required=True, help='address of db')
     parser.add_argument('--db_pw', metavar='db_pw', required=True, help='address of db')
     parser.add_argument('--exec_path', metavar='exec_path', required=True, help='path from where to exec python script')
-    parser.add_argument('--blob_conn_str', metavar='blob_conn_str', required=True, help='path from where to exec python script')
-    #optional params
+    parser.add_argument('--blob_conn_str', metavar='blob_conn_str', required=True, help='connection string for blob storage')
+    parser.add_argument('--workflow_id_pose', metavar='workflow_id_pose', required=True, help='Workflow Id used in Standing SQL Query')
+    #optional params 
     parser.add_argument('--data_category', metavar='data_category', required=True, help='Can be Train or Test')
     parser.add_argument('--dataset_type', default='Train', metavar='dataset_type', required=True, help='Kind of Preprocessing: rgb, depth, rgbd')
     parser.add_argument('--num_artifacts', metavar='num_artifacts', required=False, type=int, help='Maximum Number of entries taken from database')
