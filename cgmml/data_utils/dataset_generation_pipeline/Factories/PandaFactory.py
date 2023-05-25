@@ -99,22 +99,22 @@ class PandaFactory:
         # Clean timestamp and convert to a formatted string
         df['timestamp'] = df['timestamp'].astype(str).apply(lambda ts: ts.replace(' ', '-').replace(':', '-').replace('.', '-'))
 
-        logger.write("Total number of unique scans in fetched:", len(pd.unique(df['scan_id'])))
+        logger.write(f"Total number of unique scans in fetched: {len(pd.unique(df['scan_id']))})")
 
         # Insert fake manual measurements if they are not present
         for col, default_value in [('muac', 10), ('weight', 30), ('height', 90)]:
             if col not in df.columns:
                 df.insert(4, col, default_value)
 
-        logger.write("Shape with duplicates:", df.shape)
+        logger.write(f"Shape with duplicates: {df.shape}")
         df = df.drop_duplicates(subset=['scan_id', 'scan_step', 'timestamp', 'order_number'])
-        logger.write("Shape without duplicates:", df.shape)
+        logger.write(f"Shape without duplicates: {df.shape}")
 
         def print_unique_counts(df, title):
             logger.write(title)
-            logger.write("Unique persons:", len(df.person_id.unique()))
-            logger.write("Unique scan_ids:", len(df.scan_id.unique()))
-            logger.write("Unique artifacts:", len(df.file_path.unique()))
+            logger.write(f"Unique persons: {len(df.person_id.unique())}")
+            logger.write(f"Unique scan_ids: {len(df.scan_id.unique())}")
+            logger.write(f"Unique artifacts: {len(df.file_path.unique())}")
 
         # Print unique counts before and after filtering by age
         print_unique_counts(df, "Before filtering by age:")

@@ -157,7 +157,7 @@ class DatabaseRepo:
             query_results, column_names
         """
         person_id_string = f"AND p.id = '{person_id}'" if person_id != None else ""
-        limit_string = f"LIMIT {num_artifacts}" if num_artifacts != None else ""
+        limit_string = f"LIMIT {num_artifacts}" if num_artifacts > -1 else ""
         DATA_CATEGORY = 'Train'  # Supported: 'Train' and 'Test'
         SQL_QUERY_BASE = f"""
         SELECT f.file_path, f.created as timestamp,

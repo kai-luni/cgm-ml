@@ -10,7 +10,7 @@ from cgmml.common.data_utilities.rgbd_matching import *
 
 
 def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: str, logger, args):
-    num_artifacts = args.num_artifacts
+    num_artifacts : int = args.num_artifacts if args.num_artifacts else -1
     # dataset_type = 'depthmap'  # Supported: 'rgbd' and 'depthmap'
     dataset_type = args.dataset_type
 
