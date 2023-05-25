@@ -160,9 +160,10 @@ jobs:
           else
               echo "The run is still in progress with state: $LIFE_CYCLE_STATE"
               #Download the log file
-              # databricks fs cp "dbfs:/${PATH_TO_LOG}" "logs.txt"
-              # echo "Last Log Entries: "
-              # tail logs.txt
+              if databricks fs ls "dbfs:/${PATH_TO_LOG}" | grep -q "logs.txt"; then
+                  databricks fs cp "dbfs:/${PATH_TO_LOG}" "logs.txt"
+                  echo "Last Log Entries: "
+                  tail logs.txt
           fi
 
           # Wait for a specified interval (e.g., 30 seconds) before checking again
