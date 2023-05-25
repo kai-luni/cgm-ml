@@ -54,7 +54,7 @@ jobs:
       CREATE_JOB_OUTPUT=$(databricks jobs create --json "{
         \"name\": \"PreProcessingJob\",
         \"new_cluster\": {
-          \"spark_version\": \"8.4.x-scala2.12\",
+          \"spark_version\": \"12.2.x-scala2.12\",
           \"node_type_id\": \"Standard_DS3_v2\",
           \"num_workers\": 1
         },
