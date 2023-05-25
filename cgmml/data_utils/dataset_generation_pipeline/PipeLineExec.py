@@ -166,13 +166,10 @@ if __name__ == '__main__':
 
     logger = LoggerPipe(args.path_to_log)
     
-
     try:
         main(args.db_host, args.db_user, args.db_pw, args.blob_conn_str, args.exec_path, logger, args)
     except Exception as e:
         stack_trace = traceback.format_exc()
         logger.write(f"Execution of Script failed: {e}\nStack trace:\n{stack_trace}")
         raise e
-    finally:
-        logger.__del__()
 
