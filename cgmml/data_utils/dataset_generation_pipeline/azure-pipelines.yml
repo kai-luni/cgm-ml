@@ -164,6 +164,7 @@ jobs:
                   databricks fs cp "dbfs:/${PATH_TO_LOG}" "logs.txt"
                   echo "Last Log Entries: "
                   tail logs.txt
+              fi
           fi
 
           # Wait for a specified interval (e.g., 30 seconds) before checking again
