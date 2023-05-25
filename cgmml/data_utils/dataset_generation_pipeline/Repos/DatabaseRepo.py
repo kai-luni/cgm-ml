@@ -144,7 +144,7 @@ class DatabaseRepo:
 
         return query_results_tmp_pose, column_names
 
-    def get_scans(self, dataset_type : str, person_id: str, num_artifacts: int = None) -> Tuple[List[Tuple[str]], List[str]]:
+    def get_scans(self, data_category : str, dataset_type : str, person_id: str, num_artifacts: int = None) -> Tuple[List[Tuple[str]], List[str]]:
         """ Access SQL database to find all the scans/artifacts of interest
         We build our SQL query, so that we get all the required information for the ML dataset creation:
         - the artifacts (depthmap, RGB, pointcloud)
@@ -158,7 +158,6 @@ class DatabaseRepo:
         """
         person_id_string = f"AND p.id = '{person_id}'" if person_id != None else ""
         limit_string = f"LIMIT {num_artifacts}" if num_artifacts > -1 else ""
-        DATA_CATEGORY = 'Train'  # Supported: 'Train' and 'Test'
         SQL_QUERY_BASE = f"""
         SELECT f.file_path, f.created as timestamp,
             s.id as scan_id, s.scan_type_id as scan_step, s.version as scan_version,
@@ -176,7 +175,7 @@ class DatabaseRepo:
         INNER JOIN child_data_category cdc ON p.id = cdc.person_id
         INNER JOIN data_category dc ON dc.id = cdc.data_category_id
         INNER JOIN device_info di ON di.id = s.device_info_id
-        WHERE dc.description = '{DATA_CATEGORY}'
+        WHERE dc.description = '{data_category}'
         AND di.model = 'HUAWEI VOG-L29'
         {person_id_string}
         """

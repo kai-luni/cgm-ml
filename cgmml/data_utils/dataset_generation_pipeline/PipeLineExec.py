@@ -14,11 +14,11 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     # dataset_type = 'depthmap'  # Supported: 'rgbd' and 'depthmap'
     dataset_type = args.dataset_type
 
-    logger.write("Beginning main execution. Dataset type: {dataset_type}, number of artifacts: {num_artifacts}")
+    logger.write(f"Beginning main execution. Data Category: {args.data_category}, Dataset Type: {dataset_type}, Number of Artifacts: {num_artifacts}")
 
     # get scans from db and create dataframe
     database_repo = DatabaseRepo(db_host, db_user, db_pw)
-    query_results, column_names = database_repo.get_scans(dataset_type, None, num_artifacts)
+    query_results, column_names = database_repo.get_scans(args.data_category, dataset_type, None, num_artifacts)
     logger.write("Retrieved {len(query_results)} scans from the database.")
     
     scans_df = PandaFactory.create_scans_data_frame(query_results, column_names, logger)
@@ -151,8 +151,9 @@ if __name__ == '__main__':
     parser.add_argument('--exec_path', metavar='exec_path', required=True, help='path from where to exec python script')
     parser.add_argument('--blob_conn_str', metavar='blob_conn_str', required=True, help='path from where to exec python script')
     #optional params
+    parser.add_argument('--data_category', metavar='data_category', required=True, help='Can be Train or Test')
+    parser.add_argument('--dataset_type', default='Train', metavar='dataset_type', required=True, help='Kind of Preprocessing: rgb, depth, rgbd')
     parser.add_argument('--num_artifacts', metavar='num_artifacts', required=False, type=int, help='Maximum Number of entries taken from database')
-    parser.add_argument('--dataset_type', metavar='dataset_type', required=True, help='Kind of Preprocessing')
     args = parser.parse_args()
 
     # Add the following line after parsing the arguments:

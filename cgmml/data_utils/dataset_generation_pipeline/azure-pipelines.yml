@@ -5,10 +5,12 @@ pool:
   vmImage: 'ubuntu-latest'
   timeoutInMinutes: 360
 
-#DATASET_TYPE Supported: 'rgbd' and 'depthmap'
+#DATASET_CATEGORY 'Train' or 'Test'
+#DATASET_TYPE Supported: 'rgb', 'rgbd' and 'depthmap'
 #JOB_PATH: in which folder to load all the Databricks Jobs related files
 variables:
   pythonVersion: '3.x'
+  DATA_CATEGORY: 'Train' 
   DATASET_TYPE: 'depthmap'
   JOB_PATH: $[format('kai/pipeline_jobs/pipelinejob-{0:dd}-{0:MM}-{0:yyyy}_{0:HH}{0:mm}{0:ss}/', pipeline.startTime)]
   NUM_ARTIFACTS: 100
@@ -105,7 +107,8 @@ jobs:
             \"--exec_path\", \"/dbfs/${JOB_PATH}\",
             \"--blob_conn_str\", \"$(MLAPI_SA_SAS_TOKEN)\",
             \"--dataset_type\", \"$(DATASET_TYPE)\",
-            \"--num_artifacts\", \"$(NUM_ARTIFACTS)\"
+            \"--num_artifacts\", \"$(NUM_ARTIFACTS)\",
+            \"--data_category\", \"$(DATA_CATEGORY)\"
           ]
         }
       }")
