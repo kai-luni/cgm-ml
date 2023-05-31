@@ -102,8 +102,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
 
     ### Process
     input_dir = f"{exec_path}scans/"
-    rotate_rgb = dataset_type in ['depthmap', 'rgbd']
-    artifact_processor = ArtifactProcessor(input_dir, exec_path, dataset_type=dataset_type, should_rotate_rgb=rotate_rgb)
+    artifact_processor = ArtifactProcessor(input_dir, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)
 
 
     #spark works well for DataBricks Clusters, alternatively you can use normal Multi Threading
