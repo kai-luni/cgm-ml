@@ -14,6 +14,7 @@ variables:
   DATASET_TYPE: 'depthmap'
   JOB_PATH: $[format('kai/pipeline_jobs/pipelinejob-{0:dd}-{0:MM}-{0:yyyy}_{0:HH}{0:mm}{0:ss}/', pipeline.startTime)]
   NUM_ARTIFACTS: 10000
+  UPLOAD_TO_BLOB_STORAGE: FALSE
   WORKFLOW_ID_POSE: 'b04da320-42b3-11ec-9e50-0b91a7b6eecf'
 
 jobs:
@@ -102,14 +103,16 @@ jobs:
           \"python_file\": \"${PATH_TO_FOLDER}/PipeLineExec.py\",
           \"parameters\": [
             \"--path_to_log\", \"/dbfs/${PATH_TO_LOG}\",
+            \"--dataset_type\", \"$(DATASET_TYPE)\",
+            \"--data_category\", \"$(DATA_CATEGORY)\",
             \"--db_host\", \"$(MLAPI_DB_HOST)\",
             \"--db_user\", \"$(MLAPI_DB_USER)\",
             \"--db_pw\", \"$(MLAPI_DB_PW)\",
             \"--exec_path\", \"/dbfs/${JOB_PATH}\",
             \"--blob_conn_str\", \"$(MLAPI_SA_SAS_TOKEN)\",
-            \"--dataset_type\", \"$(DATASET_TYPE)\",
             \"--num_artifacts\", \"$(NUM_ARTIFACTS)\",
-            \"--data_category\", \"$(DATA_CATEGORY)\",
+            \"--upload_to_blob_storage\", \"$(UPLOAD_TO_BLOB_STORAGE)\",
+            \"--upload_blob_conn_str\", \"$(UPLOAD_BLOB_CONN_STR)\",
             \"--workflow_id_pose\", \"$(WORKFLOW_ID_POSE)\"
           ]
         }

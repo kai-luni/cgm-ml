@@ -10,7 +10,6 @@ from cgmml.common.data_utilities.rgbd_matching import *
 
 def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: str, logger, args):
     num_artifacts : int = args.num_artifacts if args.num_artifacts else -1
-    # dataset_type = 'depthmap'  # Supported: 'rgbd' and 'depthmap'
     dataset_type = args.dataset_type
 
     logger.write(f"Beginning main execution. Data Category: {args.data_category}, Dataset Type: {dataset_type}, Number of Artifacts: {num_artifacts}")
@@ -82,7 +81,6 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     # Gather file_paths, Remove duplicates
     _file_paths = list(set(df_to_process['file_path'].tolist()))
     logger.write(f"Preparing to download {len(_file_paths)} files.")
-
     CONTAINER_NAME_SRC_SA = "cgm-result"
     NUM_THREADS = 64
     pool = ThreadPool(NUM_THREADS)
@@ -135,24 +133,41 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             processed_dicts_and_fnames = list(executor.map(process_artifact, query_results_dicts))
 
-    logger.write(f"Created {len(processed_dicts_and_fnames)} pickle files in folder {input_dir}.")
+    logger.write(f"All processed samples: {len(processed_dicts_and_fnames)} pickle files in folder {input_dir}.")
+    # Select successfully processed
+    processed_dicts_with_success = []
+    processed_fnames_with_success = []
+    for query_result_dict, fn in processed_dicts_and_fnames:
+        if fn != '':
+            processed_dicts_with_success.append(query_result_dict)
+            processed_fnames_with_success.append(fn)
+    # Update dataframe
+    logger.write(f"Successfully pickled samples: {len(processed_fnames_with_success)}")
+
+    if(args.upload_to_blob_storage):
+        logger.write("Upload Blobs")
+        BlobRepo.upload_to_blob_storage(args.upload_blob_conn_str, processed_dicts_with_success, args.dataset_type, args.data_category)
+        logger.write("Upload Blobs Finished")
+
     logger.write("Main execution finished.")
 
     return
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Create a ArcHydro schema')
-    parser.add_argument('--path_to_log', metavar='path_to_log', required=True, help='the path to workspace')
+    parser = argparse.ArgumentParser(description='Create a ArcHydro schema')    
+    parser.add_argument('--blob_conn_str', metavar='blob_conn_str', required=True, help='connection string for blob storage')
+    parser.add_argument('--data_category', metavar='data_category', required=True, help='Can be Train or Test')
+    parser.add_argument('--dataset_type', default='Train', metavar='dataset_type', required=True, help='Kind of Preprocessing: rgb, depth, rgbd')
     parser.add_argument('--db_host', metavar='db_host', required=True, help='address of db')
     parser.add_argument('--db_user', metavar='db_user', required=True, help='address of db')
     parser.add_argument('--db_pw', metavar='db_pw', required=True, help='address of db')
     parser.add_argument('--exec_path', metavar='exec_path', required=True, help='path from where to exec python script')
-    parser.add_argument('--blob_conn_str', metavar='blob_conn_str', required=True, help='connection string for blob storage')
+    parser.add_argument('--path_to_log', metavar='path_to_log', required=True, help='the path to workspace')
+    parser.add_argument('--upload_to_blob_storage', metavar='upload_to_blob_storage', required=True, help='Upload to a blob storage afterwards, yes or no.')
+    parser.add_argument('--upload_blob_conn_str', metavar='upload_blob_conn_str', required=True, help='connection string for blob storage upload')
     parser.add_argument('--workflow_id_pose', metavar='workflow_id_pose', required=True, help='Workflow Id used in Standing SQL Query')
     #optional params 
-    parser.add_argument('--data_category', metavar='data_category', required=True, help='Can be Train or Test')
-    parser.add_argument('--dataset_type', default='Train', metavar='dataset_type', required=True, help='Kind of Preprocessing: rgb, depth, rgbd')
     parser.add_argument('--num_artifacts', metavar='num_artifacts', required=False, type=int, help='Maximum Number of entries taken from database')
     args = parser.parse_args()
 
