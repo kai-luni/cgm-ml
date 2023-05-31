@@ -114,8 +114,6 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     query_results_dicts = df_to_process.to_dict('records')
 
     ### Process
-    artifact_processor = ArtifactProcessor(path_to_images, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)
-
     #spark works well for DataBricks Clusters, alternatively you can use normal Multi Threading
     use_spark = True
     if use_spark:
@@ -129,6 +127,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         if dataset_type == 'rgb':
             rdd_processed = rdd.map(map_fct_rgb)
         else:
+            artifact_processor = ArtifactProcessor(path_to_images, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)
             rdd_processed = rdd.map(map_fct)
             processed_dicts_and_fnames = rdd_processed.collect()
             print(processed_dicts_and_fnames[:3])    
@@ -137,6 +136,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
             if dataset_type == 'rgb':
                 return (artifact_dict, ImageFactory.process_rgb(artifact_dict, path_to_images, exec_path))
             else:
+                artifact_processor = ArtifactProcessor(path_to_images, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)
                 return (artifact_dict, artifact_processor.create_and_save_pickle(artifact_dict))
         # Set the number of parallel workers
         num_workers = 32
