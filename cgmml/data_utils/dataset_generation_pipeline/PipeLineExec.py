@@ -164,7 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('--db_pw', metavar='db_pw', required=True, help='address of db')
     parser.add_argument('--exec_path', metavar='exec_path', required=True, help='path from where to exec python script')
     parser.add_argument('--path_to_log', metavar='path_to_log', required=True, help='the path to workspace')
-    parser.add_argument('--upload_to_blob_storage', metavar='upload_to_blob_storage', required=True, help='Upload to a blob storage afterwards, yes or no.')
+    parser.add_argument('--upload_to_blob_storage', metavar='upload_to_blob_storage', required=True, type=bool, help='Upload to a blob storage afterwards, yes or no.')
     parser.add_argument('--upload_blob_conn_str', metavar='upload_blob_conn_str', required=True, help='connection string for blob storage upload')
     parser.add_argument('--workflow_id_pose', metavar='workflow_id_pose', required=True, help='Workflow Id used in Standing SQL Query')
     #optional params 
