@@ -1,9 +1,7 @@
 # CGM Preprocessing Pipeline
-
 This repository contains the code for the CGM preprocessing pipeline, a crucial step for preparing the raw data from the Child Growth Monitor (CGM) project for machine learning model training. The pipeline downloads the raw data, preprocesses it, and stores it in a suitable format for further analysis.
 
 ## Overview
-
 The CGM preprocessing pipeline performs the following steps:
 
 1. Fetching raw scans from the database.
@@ -13,17 +11,15 @@ The CGM preprocessing pipeline performs the following steps:
 5. Saving the preprocessed data in pickle format for easy consumption by machine learning models.
 
 ## Pipeline
-
 This Azure pipeline  processes data on a Databricks Spark cluster. Here is a step by step description of what this pipeline does:
 
-### Trigger 
-The pipeline doesn't have a specified trigger, which means it's manually started.
+### Trigger
+The pipeline is configured to be triggered on pull request events. Specifically, it activates when a pull request is made with a branch that starts with 'feature/'. So, any branch name starting with 'feature/' will trigger this pipeline when a pull request is opened.
 
 ### Pool 
 The pipeline is set to run on a hosted agent with an Ubuntu image. The job is configured to timeout if it runs for longer than 360 minutes.
 
 ### Variables
-
 The following variables are defined to be used in the pipeline:
 
 - `pythonVersion`: This variable defines the version of Python to be used in the pipeline.
@@ -33,7 +29,6 @@ The following variables are defined to be used in the pipeline:
 - `NUM_ARTIFACTS`: This variable is used to limit the number of artifacts taken from the database for processing.
 - `UPLOAD_TO_BLOB_STORAGE`: This variable can be either TRUE or FALSE. If TRUE, the final output pickle files will be uploaded to blob storage. If FALSE, this step will be skipped.
 - `WORKFLOW_ID_POSE`: This GUID is used in the SQL queries for retrieving pose data from the database.
-
 
 ### Jobs
 - `PreProc:` A job named "PreProc" is defined, which has its own timeout of 360 minutes.
@@ -46,6 +41,9 @@ The following variables are defined to be used in the pipeline:
 
 Overall, this Azure pipeline is designed to perform a data preprocessing operation using a Databricks Spark cluster, monitor the operation, and handle any potential errors in the process.
 
-### Process
+### Process Steps
+1. `Create a New Branch:` Start by creating a new branch in your repository. Ensure the branch name begins with 'feature/'.
+2. `Edit Pipeline Variables:` Within your newly created branch, navigate to the 'cgmml/data_utils/dataset_generation_pipeline/azure-pipelines.yml' file. Open this file and modify the pipeline variables as per your requirements.
+3. `Create a Pull Request:` Once you've done editing the variables, commit the changes to your branch and push the branch to the repository. Then, initiate a pull request. The pipeline will automatically be triggered to start executing once this pull request is opened.
 
-TBD
+Remember to review your changes thoroughly before creating the pull request, as this will kick off the pipeline execution.
