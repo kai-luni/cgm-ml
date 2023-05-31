@@ -77,6 +77,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         df_to_process = pd.DataFrame(fused_artifacts_dicts)
 
     ###download blobs
+    path_to_images = f"{exec_path}scans/"
     BLOB_SERVICE_CLIENT = BlobServiceClient.from_connection_string(blob_conn_str)
     # Gather file_paths, Remove duplicates
     _file_paths = list(set(df_to_process['file_path'].tolist()))
@@ -87,7 +88,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     results = pool.map(
         lambda full_name: BlobRepo.download_from_blob_storage(
             src=full_name,
-            dest=f"{exec_path}scans/{full_name}",
+            dest=f"{path_to_images}{full_name}",
             container=CONTAINER_NAME_SRC_SA,
             blob_client=BLOB_SERVICE_CLIENT
         ),
@@ -95,15 +96,19 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     )
     logger.write("Done with download.")
 
-    logger.write("Start creating Pickle Files.")
+    logger.write("Check if all files exist")
+    import os
+    for file in _file_paths:
+        if not os.path.isfile(f"{path_to_images}{file}"):
+            raise Exception(f"{path_to_images}{file} does not exist")
+    logger.write("All files exist")
+
     ### Convert Dataframe to list of query_result_dicts
     logger.write("Start creating Pickle Files.")
     query_results_dicts = df_to_process.to_dict('records')
 
     ### Process
-    input_dir = f"{exec_path}scans/"
-    artifact_processor = ArtifactProcessor(input_dir, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)
-
+    artifact_processor = ArtifactProcessor(path_to_images, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)
 
     #spark works well for DataBricks Clusters, alternatively you can use normal Multi Threading
     use_spark = True
@@ -111,7 +116,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         def map_fct(query_result_dict):
             return query_result_dict, artifact_processor.create_and_save_pickle(query_result_dict)
         def map_fct_rgb(query_result_dict):
-            return query_result_dict, ImageFactory.process_rgb(query_result_dict, input_dir, exec_path)
+            return query_result_dict, ImageFactory.process_rgb(query_result_dict, path_to_images, exec_path)
         # Processing all artifacts at once
         rdd = spark.sparkContext.parallelize(query_results_dicts,48)
         print(rdd.getNumPartitions())
@@ -124,7 +129,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     else:
         def process_artifact(artifact_dict: dict):
             if dataset_type == 'rgb':
-                return (artifact_dict, ImageFactory.process_rgb(artifact_dict, input_dir, exec_path))
+                return (artifact_dict, ImageFactory.process_rgb(artifact_dict, path_to_images, exec_path))
             else:
                 return (artifact_dict, artifact_processor.create_and_save_pickle(artifact_dict))
         # Set the number of parallel workers
@@ -133,7 +138,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             processed_dicts_and_fnames = list(executor.map(process_artifact, query_results_dicts))
 
-    logger.write(f"All processed samples: {len(processed_dicts_and_fnames)} pickle files in folder {input_dir}.")
+    logger.write(f"All processed samples: {len(processed_dicts_and_fnames)} pickle files in folder {path_to_images}.")
     # Select successfully processed
     processed_dicts_with_success = []
     processed_fnames_with_success = []
