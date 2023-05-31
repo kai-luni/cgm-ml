@@ -129,8 +129,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         else:
             artifact_processor = ArtifactProcessor(path_to_images, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)
             rdd_processed = rdd.map(map_fct)
-            processed_dicts_and_fnames = rdd_processed.collect()
-            print(processed_dicts_and_fnames[:3])    
+        processed_dicts_and_fnames = rdd_processed.collect()  
     else:
         def process_artifact(artifact_dict: dict):
             if dataset_type == 'rgb':
