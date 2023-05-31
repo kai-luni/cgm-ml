@@ -76,11 +76,17 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         fused_artifacts_dicts = match_df_with_depth_and_image_artifacts(df_to_process)
         df_to_process = pd.DataFrame(fused_artifacts_dicts)
 
-    ###download blobs
+    ### download blobs
     path_to_images = f"{exec_path}scans/"
     BLOB_SERVICE_CLIENT = BlobServiceClient.from_connection_string(blob_conn_str)
-    # Gather file_paths, Remove duplicates
+    ## Gather file_paths, Remove duplicates
     _file_paths = list(set(df_to_process['file_path'].tolist()))
+    # Check if 'file_path_rgb' column exists
+    if 'file_path_rgb' in df_to_process.columns:
+        # Append 'file_path_rgb' values to _file_paths
+        _file_paths.extend(df_to_process['file_path_rgb'].tolist())
+        # Remove duplicates
+        _file_paths = list(set(_file_paths))    
     logger.write(f"Preparing to download {len(_file_paths)} files.")
     CONTAINER_NAME_SRC_SA = "cgm-result"
     NUM_THREADS = 64
