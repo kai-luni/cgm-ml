@@ -120,11 +120,12 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         def map_fct(query_result_dict):
             return query_result_dict, artifact_processor.create_and_save_pickle(query_result_dict)
         def map_fct_rgb(query_result_dict):
-            return query_result_dict, ImageFactory.process_rgb(query_result_dict, path_to_images, exec_path)
+            return query_result_dict, image_factory.process_rgb(query_result_dict, path_to_images, exec_path)
         # Processing all artifacts at once
         rdd = spark.sparkContext.parallelize(query_results_dicts,48)
         print(rdd.getNumPartitions())
         if dataset_type == 'rgb':
+            image_factory = ImageFactory()
             rdd_processed = rdd.map(map_fct_rgb)
         else:
             artifact_processor = ArtifactProcessor(path_to_images, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)

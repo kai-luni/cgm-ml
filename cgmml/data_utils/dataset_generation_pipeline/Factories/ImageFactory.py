@@ -4,7 +4,6 @@ from PIL import Image
 import numpy as np
 
 class ImageFactory:
-    @staticmethod
     def process_rgb(artifact_dict, input_dir : str, output_dir : str) -> str:
         """
         Process RGB data, save it as a pickle file, and return the file path.
