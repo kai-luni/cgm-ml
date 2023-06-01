@@ -7,12 +7,17 @@ from pathlib import Path
 import pickle
 from PIL import Image
 import numpy as np
+from pathlib import Path
+import pickle
+from PIL import Image
+import numpy as np
 
 from azure.storage.blob import BlobServiceClient
 from cgmml.common.data_utilities.rgbd_matching import *
 
-class ImageFactory:
-    def process_rgb(self, artifact_dict, input_dir : str, output_dir : str) -> str:
+class SparkFunctions:
+    @staticmethod    
+    def process_rgb(artifact_dict, input_dir : str, output_dir : str) -> str:
         """
         Process RGB data, save it as a pickle file, and return the file path.
 
@@ -46,6 +51,11 @@ class ImageFactory:
         pickle.dump((layers, target_dict), open(pickle_output_full_path, "wb"))
 
         return pickle_output_full_path
+
+
+
+
+
 
 
 def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: str, logger, args):
@@ -160,13 +170,11 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         def map_fct(query_result_dict):
             return query_result_dict, artifact_processor.create_and_save_pickle(query_result_dict)
         def map_fct_rgb(query_result_dict):
-            return query_result_dict, image_factory.process_rgb(query_result_dict, path_to_images, exec_path)
+            return query_result_dict, SparkFunctions.process_rgb(query_result_dict, path_to_images, exec_path)
         # Processing all artifacts at once
         rdd = spark.sparkContext.parallelize(query_results_dicts,48)
         if dataset_type == 'rgb':
-            #spark.sparkContext.addPyFile("Factories/ImageFactory.py")
-            image_factory = ImageFactory()
-            rdd_processed = rdd.map(map_fct_rgb)
+            rdd_processed = rdd.map(lambda query_result_dict: (query_result_dict, SparkFunctions.process_rgb(query_result_dict, path_to_images, exec_path)))
         else:
             artifact_processor = ArtifactProcessor(path_to_images, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)
             rdd_processed = rdd.map(map_fct)
@@ -174,7 +182,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     else:
         def process_artifact(artifact_dict: dict):
             if dataset_type == 'rgb':
-                return (artifact_dict, ImageFactory.process_rgb(artifact_dict, path_to_images, exec_path))
+                return (artifact_dict, SparkFunctions.process_rgb(artifact_dict, path_to_images, exec_path))
             else:
                 artifact_processor = ArtifactProcessor(path_to_images, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)
                 return (artifact_dict, artifact_processor.create_and_save_pickle(artifact_dict))
