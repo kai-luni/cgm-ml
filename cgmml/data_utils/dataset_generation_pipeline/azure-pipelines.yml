@@ -16,7 +16,7 @@ variables:
   DATA_CATEGORY: 'Train' 
   DATASET_TYPE: 'rgbd'
   JOB_PATH: $[format('kai/pipeline_jobs/pipelinejob-{0:dd}-{0:MM}-{0:yyyy}_{0:HH}{0:mm}{0:ss}/', pipeline.startTime)]
-  NUM_ARTIFACTS: 10000
+  NUM_ARTIFACTS: 100000
   UPLOAD_TO_BLOB_STORAGE: FALSE
   WORKFLOW_ID_POSE: 'b04da320-42b3-11ec-9e50-0b91a7b6eecf'
 
