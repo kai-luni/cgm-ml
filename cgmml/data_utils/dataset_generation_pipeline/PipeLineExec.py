@@ -124,7 +124,7 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         # Processing all artifacts at once
         rdd = spark.sparkContext.parallelize(query_results_dicts,48)
         if dataset_type == 'rgb':
-            rdd.addPyFile("Factories/ImageFactory.py")
+            spark.sparkContext.addPyFile("Factories/ImageFactory.py")
             image_factory = ImageFactory()
             rdd_processed = rdd.map(map_fct_rgb)
         else:
