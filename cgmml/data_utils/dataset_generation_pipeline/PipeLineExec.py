@@ -16,6 +16,7 @@ from azure.storage.blob import BlobServiceClient
 from cgmml.common.data_utilities.rgbd_matching import *
 
 class SparkFunctions:
+    """This is here because it is not very simple to execute spark jobs from another file"""
     @staticmethod    
     def process_rgb(artifact_dict, input_dir : str, output_dir : str) -> str:
         """
@@ -52,12 +53,6 @@ class SparkFunctions:
 
         return pickle_output_full_path
 
-
-
-
-
-
-
 def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: str, logger, args):
     num_artifacts : int = args.num_artifacts if args.num_artifacts else -1
     dataset_type = args.dataset_type
@@ -72,8 +67,6 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     scans_df = PandaFactory.create_scans_data_frame(query_results, column_names, logger)
     logger.write("Created dataframe from scans, dataframe size: {len(scans_df)}")
 
-
-    
     dataframe = scans_df
     logger.write("Set zscore")
     dataframe['zscore'] = dataframe.apply(PandaFactory.calculate_zscore, axis=1)
@@ -139,9 +132,8 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
         _file_paths = list(set(_file_paths))    
     logger.write(f"Preparing to download {len(_file_paths)} files.")
     CONTAINER_NAME_SRC_SA = "cgm-result"
-    NUM_THREADS = 64
-    pool = ThreadPool(NUM_THREADS)
-    results = pool.map(
+    pool = ThreadPool(64)
+    _ = pool.map(
         lambda full_name: BlobRepo.download_from_blob_storage(
             src=full_name,
             dest=f"{path_to_images}{full_name}",
@@ -167,17 +159,13 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
     #spark works well for DataBricks Clusters, alternatively you can use normal Multi Threading
     use_spark = True
     if use_spark:
-        def map_fct(query_result_dict):
-            return query_result_dict, artifact_processor.create_and_save_pickle(query_result_dict)
-        def map_fct_rgb(query_result_dict):
-            return query_result_dict, SparkFunctions.process_rgb(query_result_dict, path_to_images, exec_path)
         # Processing all artifacts at once
         rdd = spark.sparkContext.parallelize(query_results_dicts,48)
         if dataset_type == 'rgb':
             rdd_processed = rdd.map(lambda query_result_dict: (query_result_dict, SparkFunctions.process_rgb(query_result_dict, path_to_images, exec_path)))
         else:
             artifact_processor = ArtifactProcessor(path_to_images, exec_path, dataset_type=dataset_type, should_rotate_rgb=True)
-            rdd_processed = rdd.map(map_fct)
+            rdd_processed = rdd.map(lambda query_result_dict: (query_result_dict, artifact_processor.create_and_save_pickle(query_result_dict)))
         processed_dicts_and_fnames = rdd_processed.collect()  
     else:
         def process_artifact(artifact_dict: dict):
