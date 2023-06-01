@@ -4,7 +4,7 @@ from PIL import Image
 import numpy as np
 
 class ImageFactory:
-    def process_rgb(artifact_dict, input_dir : str, output_dir : str) -> str:
+    def process_rgb(self, artifact_dict, input_dir : str, output_dir : str) -> str:
         """
         Process RGB data, save it as a pickle file, and return the file path.
 
@@ -19,7 +19,7 @@ class ImageFactory:
         RGB_HEIGHT = 1440
         RGB_WEIGHT = 1080
         zip_input_full_path = f"{input_dir}/{artifact_dict['file_path']}"
-        layers = ImageFactory.read_rgb_data(zip_input_full_path, RGB_HEIGHT, RGB_WEIGHT)
+        layers = self.read_rgb_data(zip_input_full_path, RGB_HEIGHT, RGB_WEIGHT)
         timestamp = artifact_dict['timestamp']
         scan_id = artifact_dict['scan_id']
         scan_step = artifact_dict['scan_step']
@@ -35,8 +35,7 @@ class ImageFactory:
 
         return pickle_output_full_path
 
-    @staticmethod
-    def read_rgb_data(rgb_fpath : str):
+    def read_rgb_data(self, rgb_fpath : str):
         """
         Process RGB dataset by loading, rotating, and resizing the image.
 
