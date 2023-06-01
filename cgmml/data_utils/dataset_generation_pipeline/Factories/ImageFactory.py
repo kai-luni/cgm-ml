@@ -16,10 +16,14 @@ class ImageFactory:
         Returns:
         str: File path of the saved pickle file.
         """
-        RGB_HEIGHT = 1440
-        RGB_WEIGHT = 1080
         zip_input_full_path = f"{input_dir}/{artifact_dict['file_path']}"
-        layers = self.read_rgb_data(zip_input_full_path, RGB_HEIGHT, RGB_WEIGHT)
+
+        pil_im = Image.open(zip_input_full_path)
+        pil_im = pil_im.rotate(-90, expand=True)
+        rgb_height, rgb_width = pil_im.width, pil_im.height  # Weird switch
+        pil_im = pil_im.resize((rgb_height, rgb_width), Image.ANTIALIAS)
+        layers = np.asarray(pil_im)
+
         timestamp = artifact_dict['timestamp']
         scan_id = artifact_dict['scan_id']
         scan_step = artifact_dict['scan_step']
@@ -34,24 +38,3 @@ class ImageFactory:
         pickle.dump((layers, target_dict), open(pickle_output_full_path, "wb"))
 
         return pickle_output_full_path
-
-    def read_rgb_data(self, rgb_fpath : str):
-        """
-        Process RGB dataset by loading, rotating, and resizing the image.
-
-        Args:
-        rgb_fpath (str): File path of the RGB image.
-
-        Returns:
-        numpy.ndarray: Resized and rotated RGB image as a NumPy array, or None if the file path is not provided.
-        """
-        if rgb_fpath:
-            pil_im = Image.open(rgb_fpath)
-            pil_im = pil_im.rotate(-90, expand=True)
-            rgb_height, rgb_width = pil_im.width, pil_im.height  # Weird switch
-            pil_im = pil_im.resize((rgb_height, rgb_width), Image.ANTIALIAS)
-            rgb_array = np.asarray(pil_im)
-        else:
-            rgb_array = None
-
-        return rgb_array
