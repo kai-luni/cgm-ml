@@ -203,6 +203,11 @@ def main(db_host: str, db_user: str, db_pw: str, blob_conn_str: str, exec_path: 
 
 
 if __name__ == '__main__':
+    def int_or_none(val):
+        if not val:
+            return None
+        return int(val)
+
     parser = argparse.ArgumentParser(description='Create a ArcHydro schema')    
     parser.add_argument('--blob_conn_str', metavar='blob_conn_str', required=True, help='connection string for blob storage')
     parser.add_argument('--data_category', metavar='data_category', required=True, help='Can be Train or Test')
@@ -216,7 +221,7 @@ if __name__ == '__main__':
     parser.add_argument('--upload_blob_conn_str', metavar='upload_blob_conn_str', required=True, help='connection string for blob storage upload')
     parser.add_argument('--workflow_id_pose', metavar='workflow_id_pose', required=True, help='Workflow Id used in Standing SQL Query')
     #optional params 
-    parser.add_argument('--num_artifacts', metavar='num_artifacts', required=False, type=int, help='Maximum Number of entries taken from database')
+    parser.add_argument('--num_artifacts', metavar='num_artifacts', required=False, type=int_or_none, help='Maximum Number of entries taken from database')
     args = parser.parse_args()
 
     # Add the following line after parsing the arguments:
