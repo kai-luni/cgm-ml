@@ -11,12 +11,13 @@ pool:
 #DATASET_CATEGORY 'Train' or 'Test'
 #DATASET_TYPE Supported: 'rgb', 'rgbd' and 'depthmap'
 #JOB_PATH: in which folder to load all the Databricks Jobs related files
+# NUM_ARTIFACTS: count of artifacts to take, if you want to take all comment it out with a hash in front
 variables:
   pythonVersion: '3.x'
   DATA_CATEGORY: 'Train' 
   DATASET_TYPE: 'rgbd'
   JOB_PATH: $[format('kai/pipeline_jobs/pipelinejob-{0:dd}-{0:MM}-{0:yyyy}_{0:HH}{0:mm}{0:ss}/', pipeline.startTime)]
-  #NUM_ARTIFACTS: 100
+  NUM_ARTIFACTS: 1000
   UPLOAD_TO_BLOB_STORAGE: FALSE
   WORKFLOW_ID_POSE: 'b04da320-42b3-11ec-9e50-0b91a7b6eecf'
 
