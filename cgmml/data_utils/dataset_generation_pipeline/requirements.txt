@@ -1,0 +1,7 @@
+azure-storage-blob
+bunch
+cgm-ml-common==3.1.6
+cgmzscore==3.0.3
+pandas
+psycopg2
+scikit-image
