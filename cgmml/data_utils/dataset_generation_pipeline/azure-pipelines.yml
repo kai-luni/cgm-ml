@@ -1,0 +1,185 @@
+#trigger branches that start with the name 'feature'
+pr:
+  branches:
+    include:
+    - feature/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+  timeoutInMinutes: 360
+
+#DATASET_CATEGORY 'Train' or 'Test'
+#DATASET_TYPE Supported: 'rgb', 'rgbd' and 'depthmap'
+#JOB_PATH: in which folder to load all the Databricks Jobs related files
+# NUM_ARTIFACTS: count of artifacts to take, if you want to take all comment it out with a hash in front
+variables:
+  pythonVersion: '3.x'
+  DATA_CATEGORY: 'Train' 
+  DATASET_TYPE: 'rgbd'
+  JOB_PATH: $[format('kai/pipeline_jobs/pipelinejob-{0:dd}-{0:MM}-{0:yyyy}_{0:HH}{0:mm}{0:ss}/', pipeline.startTime)]
+  NUM_ARTIFACTS: 1000
+  UPLOAD_TO_BLOB_STORAGE: FALSE
+  WORKFLOW_ID_POSE: 'b04da320-42b3-11ec-9e50-0b91a7b6eecf'
+
+jobs:
+- job: PreProc
+  timeoutInMinutes: 360 # how long to run the job before automatically cancelling
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(pythonVersion)'
+      addToPath: true
+
+  - script: |
+      python -m pip install --upgrade pip
+      pip install databricks-cli
+    displayName: 'Install Databricks CLI'
+
+  - script: |    
+      echo "[DEFAULT]" > ~/.databricks.cfg
+      echo "host = $(DATABRICKS_HOST)" >> ~/.databricks.cfg
+      echo "token = $(DATABRICKS_TOKEN)" >> ~/.databricks.cfg
+      echo "jobs-api-version = 2.1" >> ~/.databricks.cfg
+    displayName: 'Configure Databricks CLI'
+
+  - script: |
+      export PATH_TO_FOLDER="dbfs:/${JOB_PATH}"
+      PATH_TO_LOG="${JOB_PATH}testlog.txt"
+      echo "Copying repository files to ${PATH_TO_FOLDER}"
+      databricks fs cp --recursive ./cgmml/data_utils/dataset_generation_pipeline/ ${PATH_TO_FOLDER}
+      echo "##vso[task.setvariable variable=PATH_TO_FOLDER]${PATH_TO_FOLDER}"
+      echo "##vso[task.setvariable variable=PATH_TO_LOG]${PATH_TO_LOG}"
+    displayName: 'Upload Repository to DBFS'
+    env:
+      DATABRICKS_CONFIG_FILE: /home/vsts/.databricks.cfg
+
+
+  - script: |
+      set -e
+      CREATE_JOB_OUTPUT=$(databricks jobs create --json "{
+        \"name\": \"PreProcessingJob\",
+        \"new_cluster\": {
+          \"spark_version\": \"12.2.x-scala2.12\",
+          \"node_type_id\": \"Standard_DS4_v2\",
+          \"num_workers\": 1
+        },
+        \"libraries\": [
+          {
+            \"pypi\": {
+              \"package\": \"azure-storage-blob\"
+            }
+          },
+          {
+            \"pypi\": {
+              \"package\": \"bunch\"
+            }
+          },
+          {
+            \"pypi\": {
+              \"package\": \"cgm-ml-common==3.1.6\"
+            }
+          },
+          {
+            \"pypi\": {
+              \"package\": \"cgmzscore==3.0.3\"
+            }
+          },
+          {
+            \"pypi\": {
+              \"package\": \"pandas\"
+            }
+          },
+          {
+            \"pypi\": {
+              \"package\": \"psycopg2\"
+            }
+          },
+          {
+            \"pypi\": {
+              \"package\": \"scikit-image\"
+            }
+          }
+        ],
+        \"email_notifications\": {},
+        \"timeout_seconds\": 0,
+        \"spark_python_task\": {
+          \"python_file\": \"${PATH_TO_FOLDER}/PipeLineExec.py\",
+          \"parameters\": [
+            \"--path_to_log\", \"/dbfs/${PATH_TO_LOG}\",
+            \"--dataset_type\", \"$(DATASET_TYPE)\",
+            \"--data_category\", \"$(DATA_CATEGORY)\",
+            \"--db_host\", \"$(MLAPI_DB_HOST)\",
+            \"--db_user\", \"$(MLAPI_DB_USER)\",
+            \"--db_pw\", \"$(MLAPI_DB_PW)\",
+            \"--exec_path\", \"/dbfs/${JOB_PATH}\",
+            \"--blob_conn_str\", \"$(MLAPI_SA_SAS_TOKEN)\",
+            \"--num_artifacts\", \"$(NUM_ARTIFACTS)\",
+            \"--upload_to_blob_storage\", \"$(UPLOAD_TO_BLOB_STORAGE)\",
+            \"--upload_blob_conn_str\", \"$(UPLOAD_BLOB_CONN_STR)\",
+            \"--workflow_id_pose\", \"$(WORKFLOW_ID_POSE)\"
+          ]
+        }
+      }")
+      echo "$CREATE_JOB_OUTPUT"
+      if echo "$CREATE_JOB_OUTPUT" | grep -q "error"; then
+          echo "Error creating the Databricks job:"
+          echo "$CREATE_JOB_OUTPUT"
+          exit 1
+      else
+          JOB_ID=$(echo "$CREATE_JOB_OUTPUT" | jq '.job_id')
+          echo "Job ID: $JOB_ID"
+          echo "##vso[task.setvariable variable=JOB_ID]$JOB_ID"
+      fi
+    displayName: 'Create Databricks Job'
+    env:
+      DATABRICKS_CONFIG_FILE: /home/vsts/.databricks.cfg
+
+  - script: |
+      set -e
+      databricks jobs run-now --job-id $JOB_ID
+      RUN_ID=$(databricks runs list --job-id $JOB_ID --output JSON | jq -r '.runs[0].run_id')
+      echo "Run ID: $RUN_ID"
+      # Define the terminal states
+      TERMINAL_STATES=("TERMINATED" "FAILED" "INTERNAL_ERROR")
+
+      # Loop until the run reaches a terminal state
+      while true; do
+          # Get the life cycle state of the run
+          LIFE_CYCLE_STATE=$(databricks runs get --run-id $RUN_ID  | jq -r '.state.life_cycle_state')
+
+          # Check if the life cycle state is in the terminal states
+          if [[ " ${TERMINAL_STATES[*]} " == *" $LIFE_CYCLE_STATE "* ]]; then
+              RESULT_STATE=$(databricks runs get --run-id $RUN_ID | jq -r '.state.result_state')
+              echo "The run has finished with state: $RESULT_STATE"
+
+              # Download the log file
+              databricks fs cp "dbfs:/${PATH_TO_LOG}" "logs.txt"
+              echo "Logs from Python Execution: "
+              cat logs.txt
+
+              if [[ "$RESULT_STATE" == "FAILED" || "$RESULT_STATE" == "INTERNAL_ERROR" ]]; then
+                  databricks runs get --run-id $RUN_ID
+                  echo "There was an error executing the pipeline, if there is no error information here, look in databricks for Job with Run ID: $RUN_ID"
+
+                  exit 1
+              fi
+
+              break
+          else
+              echo "The run is still in progress with state: $LIFE_CYCLE_STATE"
+              #Download the log file
+              if databricks fs ls "dbfs:/${PATH_TO_LOG}" | grep -q "logs.txt"; then
+                  databricks fs cp "dbfs:/${PATH_TO_LOG}" "logs.txt"
+                  echo "Last Log Entries: "
+                  tail logs.txt
+              fi
+          fi
+
+          # Wait for a specified interval (e.g., 30 seconds) before checking again
+          sleep 25
+      done
+    displayName: 'Execute Databricks Job'
+    timeoutInMinutes: 360
+    env:
+      DATABRICKS_CONFIG_FILE: /home/vsts/.databricks.cfg
